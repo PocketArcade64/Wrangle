@@ -122,3 +122,11 @@ Points are then spent on a menu of named stats: max styler energy, styler power,
 	•	Crucially, each stat can be leveled up repeatedly toward a max, but higher levels cost progressively more points  — classic diminishing-returns skill investment, giving the player real build choices instead of a fixed progression path.
 
 Maybe use? - 	Also introduces Styler Power (friendship conveyed per loop) as a new upgrade axis alongside Energy — this replaces the old raw line-length-only progression since the capture mechanic itself changed here (friendship gauge you fill over time, rather than a hard loop counter — you can lift the stylus without penalty, but the gauge decays if you stop drawing for too long).
+
+____________
+
+- Can you create a file that succinctly explains what you accomplished in each update iteration of making the game in a text file and each time you check the GitHib repo to see where you left off.
+- Also while building, please create instructions in a text file teaching Claude Opus 4.8 how to think more efficiently and productively with tips you specifically learned when working on this project. 
+
+- Add my custom Wrangle sprites 
+- Ask Claude how to build a scalable system like an excel sheet where I can keep adding creatures in the future and the spreadsheet tracks their types and other relevant gameplay behavior (like aggressiveness when catching)
