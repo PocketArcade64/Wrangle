@@ -122,15 +122,3 @@ Points are then spent on a menu of named stats: max styler energy, styler power,
 	•	Crucially, each stat can be leveled up repeatedly toward a max, but higher levels cost progressively more points  — classic diminishing-returns skill investment, giving the player real build choices instead of a fixed progression path.
 
 Maybe use? - 	Also introduces Styler Power (friendship conveyed per loop) as a new upgrade axis alongside Energy — this replaces the old raw line-length-only progression since the capture mechanic itself changed here (friendship gauge you fill over time, rather than a hard loop counter — you can lift the stylus without penalty, but the gauge decays if you stop drawing for too long).
-
-____________
-
-Project context: Building "Wrangle," a Phaser 3 + TypeScript + Vite mobile game (western-themed creature-capture game). Repo: https://github.com/PocketArcade64/Wrangle. Development happens in a separate Claude Code session on a locked-down Windows machine (which writes/edits files and cannot run npm); this Mac is where the code actually runs — npm install, npm run dev for browser playtesting, and eventually Capacitor + Xcode for the iOS build.
-
-Current state: Repo is just an initial scaffold (no real game content yet) — package.json, tsconfig.json, vite.config.ts, index.html, src/main.ts, src/scenes/BootScene.ts, .gitignore, README.md. Dependencies: phaser, with vite and typescript as dev dependencies.
-
-Environment already verified working: Xcode (with iOS 26.5 simulator) installed, Homebrew 6.0.6, Node v26.4.0, npm 11.17.0, CocoaPods 1.16.2, Git present.
-
-What I'm stuck on: I cloned the repo and ran npm install from inside the Wrangle folder, and got output I don't understand. Please help me read/interpret it — tell me whether it's a real error, a warning I can ignore, or something that needs fixing, and what to do next.
-
-Ask: Please have me paste the exact npm install output here, then diagnose it and tell me the next command to run.
