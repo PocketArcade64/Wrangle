@@ -1,0 +1,38 @@
+WRANGLE DEVLOG
+==============
+One entry per update iteration. Newest entry at the TOP.
+Claude: read this file at the start of every session to see where work left
+off, and append a new entry every time an iteration of work is completed.
+
+----------------------------------------------------------------------
+[M1] 2026-07-05 - Lasso capture prototype
+----------------------------------------------------------------------
+- Built the full Pokemon Ranger-style capture mini-game (CaptureScene):
+  loop drawing, rope budget (resets per loop), banked-loop pips,
+  body-touch line break (no damage), telegraphed radial attacks that
+  break the line AND damage GRIT (lasso HP), release-mid-draw stun with
+  anti-cheese (no progress during stun, creature gets faster after).
+- Pure-math capture modules: geometry.ts (segment intersection,
+  point-in-polygon, point-to-segment), LassoLine.ts, CreatureActor.ts
+  (graze / flee / charge movement AI + attack telegraph state machine).
+- 3 placeholder targets in src/data/species.ts: BESSIE cow (graze, 2
+  loops), PECKSY hen (flee, 3 loops), DUSTDEVIL (charge + radial burst,
+  4 loops, 25 dmg). Sprites are runtime-generated placeholder graphics.
+- Scene flow: Boot (texture gen + Silkscreen font load) -> Title ->
+  CaptureSelect -> Capture. Shared button helper in src/ui/button.ts.
+- Docs: docs/GAME_DESIGN.md (full concept), docs/ROADMAP.md (M0-M10).
+- Renamed README.md -> GUIDE.md (user keeps their own README on GitHub).
+- STATUS: awaiting first playtest feedback (loop feel, rope budget 1600,
+  Dustdevil fairness). Tuning knobs: top of CaptureScene.ts + species.ts.
+
+----------------------------------------------------------------------
+[M0] 2026-07-04 - Project scaffold
+----------------------------------------------------------------------
+- Phaser 3 + TypeScript + Vite scaffold; portrait 720x1280, pixelArt,
+  Silkscreen font via Google Fonts in index.html.
+- Pipeline verified end-to-end: Windows (Claude writes files) -> user
+  manually uploads to their GitHub repo -> Mac (git pull, npm run dev,
+  browser playtest).
+- Mac environment verified: Node 26.4.0, npm 11.17.0, CocoaPods 1.16.2,
+  Xcode + iOS 26.5 simulator. Apple Developer Program NOT purchased yet
+  (not needed until TestFlight/App Store).

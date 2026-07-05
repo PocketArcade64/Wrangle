@@ -1,0 +1,54 @@
+TIPS FOR CLAUDE (written by Fable 5 for Opus 4.8 or any future session)
+=======================================================================
+Lessons learned specifically while building Wrangle. Read DEVLOG.txt and
+CLAUDE.md first, then this.
+
+THE #1 CONSTRAINT: YOU CANNOT RUN THE CODE HERE
+- This Windows machine has no Node.js and cannot get it. There is no
+  compile step, no dev server, no browser test. Every error you write
+  ships to the user's Mac and costs a full push/pull/playtest round trip.
+- Therefore: mentally compile everything. Re-check imports are all used
+  (tsconfig has noUnusedLocals/noUnusedParameters), types line up under
+  strict mode, and Phaser API calls actually exist in Phaser 3. When
+  unsure about an API signature, pick the most version-stable form
+  (e.g. this.add.graphics() + destroy() over this.make.graphics()).
+
+PHASER GOTCHAS THAT WILL BITE YOU
+- Scene instances persist across scene.restart()/scene.start(). Field
+  initializers run ONCE at construction. Reset ALL mutable round state
+  in init() or create(), never rely on field initializers for it.
+- Scene-level input handlers fire for taps on buttons too. Guard with
+  phase checks and screen-region (arena bounds) checks.
+- Webfonts: Phaser won't wait for CSS fonts. Explicitly
+  document.fonts.load(...) in Boot with a timeout fallback before
+  rendering any styled text.
+- Use scaleX + origin(0, 0.5) for meter fills; it is simpler and safer
+  than resizing Rectangle geometry every frame.
+
+WORK EFFICIENTLY
+- Read DEVLOG.txt first; don't re-derive project state from the code.
+  Append a DEVLOG entry after every completed iteration (newest on top).
+- Keep pure logic (math, line/loop state, creature AI) in plain TS
+  modules with no Phaser imports. It is easier to reason about without
+  being able to run it, and testable later.
+- Centralize tuning constants (top of CaptureScene.ts, src/data/
+  species.ts). Playtest feedback then becomes one-line changes instead
+  of code hunts — this is the whole feedback loop with the user.
+- Content is data, not code. New creatures = new entry in species.ts.
+  Never fork scene logic per creature; add a pattern field instead.
+- Batch related work into one iteration. Each user playtest cycle is
+  expensive (manual GitHub upload + Mac pull), so ship coherent,
+  complete milestones, not fragments.
+
+PROJECT RULES (user preferences)
+- NEVER create README.md — the user maintains their own on GitHub.
+  Project guide lives in GUIDE.md.
+- The user manually uploads files to their GitHub repo — do NOT run git
+  commands to commit/push.
+- Dotfiles (like .gitignore) silently drop out of the user's drag-and-
+  drop uploads; if one changes, tell the user explicitly so they can
+  paste it via GitHub's web editor.
+- All text uses the Silkscreen font. 16-bit western aesthetic. All
+  assets original — never source art/audio online.
+- The user's own pixel-art creature sprites arrive later; current
+  sprites are runtime-generated placeholders in BootScene.
