@@ -4,6 +4,8 @@ import { LassoLine } from '../capture/LassoLine';
 import { ArenaRect, CreatureActor } from '../capture/CreatureActor';
 import { dist, distPointToSegment, pointInPolygon, Vec2 } from '../capture/geometry';
 import { makeButton } from '../ui/button';
+import { gameState } from '../state/GameState';
+import { ensureIcons } from '../ui/icons';
 
 // Tuning knobs for the capture mini-game live here.
 // Hidden rope budget (no meter shown, per design): max total line length on
@@ -21,6 +23,7 @@ const ROPE_LIGHT = 0xdca85e;
 const ROPE_DARK = 0xa8722f;
 const ROPE_BAND_LEN = 14; // px of arclength per stripe
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
+const CAPTURE_REWARD = 25; // Dust paid out per successful wrangle
 const GAUGE_DECAY_DELAY_S = 4; // seconds without a loop before decay kicks in
 const GAUGE_DECAY_PER_S = 0.75; // loops' worth of gauge drained per second
 
@@ -76,6 +79,7 @@ export class CaptureScene extends Phaser.Scene {
   }
 
   create(): void {
+    ensureIcons(this);
     const { width, height } = this.scale;
     this.arena = { left: 30, top: 120, right: width - 30, bottom: height - 140 };
     this.cameras.main.setBackgroundColor('#d9a066');
@@ -271,6 +275,10 @@ export class CaptureScene extends Phaser.Scene {
     this.updateHud();
 
     if (won) {
+      // into the herd, and the critter pays out
+      gameState.data.herd.push(this.species.id);
+      gameState.data.currency += CAPTURE_REWARD;
+      gameState.save();
       this.tweens.add({
         targets: this.creatureImg,
         y: this.creatureImg.y - 30,
@@ -291,11 +299,22 @@ export class CaptureScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setDepth(21);
-      makeButton(this, width / 2, height * 0.55, 320, 70, 'TRY AGAIN', () =>
+      if (won) {
+        this.add.image(width / 2 - 42, height * 0.4 + 62, 'icon-coin').setTint(0xb8912a).setDepth(21);
+        this.add
+          .text(width / 2 - 14, height * 0.4 + 62, `+${CAPTURE_REWARD}`, {
+            fontFamily: 'Silkscreen',
+            fontSize: '26px',
+            color: '#b8912a'
+          })
+          .setOrigin(0, 0.5)
+          .setDepth(21);
+      }
+      makeButton(this, width / 2, height * 0.57, 320, 70, 'TRY AGAIN', () =>
         this.scene.restart({ speciesId: this.species.id })
       ).setDepth(21);
-      makeButton(this, width / 2, height * 0.55 + 100, 320, 70, 'PICK TARGET', () =>
-        this.scene.start('CaptureSelect')
+      makeButton(this, width / 2, height * 0.57 + 100, 320, 70, 'PICK TARGET', () =>
+        this.scene.start('CaptureSelect', { tab: 'tally' })
       ).setDepth(21);
     });
   }
@@ -379,7 +398,7 @@ export class CaptureScene extends Phaser.Scene {
     this.add
       .text(30, 34, this.species.name, { fontFamily: 'Silkscreen', fontSize: '26px', color: '#ffe9c9' })
       .setDepth(11);
-    makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect'), '16px').setDepth(11);
+    makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'tally' }), '16px').setDepth(11);
 
     // segmented HEALTH bar: dark wood frames with rivets, red fill w/ bevel
     this.add

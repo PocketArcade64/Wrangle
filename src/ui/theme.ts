@@ -20,7 +20,9 @@ export const COLORS = {
   denim: 0x3f5c6c,
   ink: 0x2b221a,
   brass: 0xb8912a,
-  sand: 0xd9bd8d
+  sand: 0xd9bd8d,
+  /** In-world print red for MOST WANTED posters only - never UI urgency. */
+  wantedRed: 0xa2261a
 };
 
 export const HEX = {
@@ -34,7 +36,8 @@ export const HEX = {
   sage: '#7c8b6f',
   denim: '#3f5c6c',
   ink: '#2b221a',
-  brass: '#b8912a'
+  brass: '#b8912a',
+  wantedRed: '#a2261a'
 };
 
 export const FONT = {

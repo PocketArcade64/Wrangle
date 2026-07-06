@@ -277,7 +277,7 @@ export class HomeScene extends Phaser.Scene {
       .on('pointerup', () => {
         drawFace(0);
         label.y = cy - 2;
-        this.scene.start('CaptureSelect');
+        this.scene.start('CaptureSelect', { tab: 'tally' });
       });
   }
 

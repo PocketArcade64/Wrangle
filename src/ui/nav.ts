@@ -8,7 +8,7 @@ export const NAV_HEIGHT = 110;
 
 const TABS: { tab: NavTab; icon: string; label: string; scene: string }[] = [
   { tab: 'auction', icon: 'icon-gavel', label: 'AUCTION', scene: 'Auction' },
-  { tab: 'collection', icon: 'icon-crate', label: 'CRITTERS', scene: 'CaptureSelect' },
+  { tab: 'collection', icon: 'icon-lasso', label: 'CRITTERS', scene: 'CaptureSelect' },
   { tab: 'home', icon: 'icon-home', label: 'HOME', scene: 'Home' },
   { tab: 'bounties', icon: 'icon-star', label: 'BOUNTIES', scene: 'Bounties' },
   { tab: 'player', icon: 'icon-hat', label: 'PLAYER', scene: 'Player' }

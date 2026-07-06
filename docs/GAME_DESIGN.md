@@ -115,10 +115,21 @@ Typography (two bitmap faces, never Press Start 2P):
   stand-in until the custom bitmap face is drawn (M7 art pass).
 - UI/body: Silkscreen - tight pixel grid, legible small.
 
-Navigation: 5 tabs - Auction (gavel) / Critters (crate) / Home (house) /
-**Bounties** (sheriff star: the daily-quest wanted-poster board) / Player
-(hat). Flat single-color glyphs in saddle; active tab clay. All glyphs are
-custom pixel bitmaps (src/ui/icons.ts).
+Navigation: 5 tabs - Auction (gavel) / Critters (lasso) / Home (house) /
+**Bounties** (sheriff star) / Player (hat). Flat single-color glyphs in
+saddle; active tab clay. All glyphs are custom pixel bitmaps
+(src/ui/icons.ts).
+
+Critters screen: two tabs - **MY HERD** (wrangled critters, from the save)
+and **TALLY BOOK** (the full species register; a cattleman's tally book is
+the in-world "dex"). Wrangling a critter adds it to the herd and pays out
+Dust.
+
+Bounty board: 3 wanted posters daily, seeded from the date (stable across
+tab switches/restarts/devices, roll over at local midnight, live countdown
+shown). One per day is the **MOST WANTED** - red print (wantedRed token:
+in-world poster ink, the one sanctioned red - never UI urgency) and double
+reward.
 
 Home screen: quiet status bar (brass currency, sage stamina pips, avatar) /
 **living diorama** - the signature element: a wood-framed postcard of the

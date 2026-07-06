@@ -5,6 +5,8 @@ export interface WrangleSave {
   dailyAvailable: boolean;
   leadCreatureId: string;
   biome: string;
+  /** Species ids of wrangled critters, in capture order (dupes allowed). */
+  herd: string[];
 }
 
 const KEY = 'wrangle-save-v1';
@@ -15,7 +17,8 @@ const DEFAULTS: WrangleSave = {
   staminaMax: 4,
   dailyAvailable: true,
   leadCreatureId: 'herbifuzz',
-  biome: 'DUSTY FLATS'
+  biome: 'DUSTY FLATS',
+  herd: []
 };
 
 /**

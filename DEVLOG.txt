@@ -5,6 +5,31 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2b] 2026-07-06 - Daily bounties, MOST WANTED, herd/tally tabs
+----------------------------------------------------------------------
+User feedback round (loved the shell + western display font):
+- FIXED posters resetting between tab visits: bounty picks are now
+  seeded from the local date (src/util/daily.ts: FNV-1a -> mulberry32)
+  so the same 3 posters show all day everywhere; they roll over at
+  local midnight.
+- NEW: one poster per day is MOST WANTED - red print (new wantedRed
+  token 0xA2261A, documented as in-world poster ink, the only
+  sanctioned red) + double reward + thin red inner border.
+- NEW: live countdown under the board ("NEW BOUNTIES IN HH:MM:SS" to
+  local midnight, 500ms tick), replacing the static "soon" line.
+- Critters nav tab icon: crate -> new custom lasso pixel glyph.
+- Critters screen now has 2 top tabs: MY HERD (owned critters from
+  save; empty-state with lasso + "your herd is empty") and TALLY BOOK
+  (full register, thematic dex name; tap = capture attempt). Explore
+  CTA / capture BACK / PICK TARGET all open the tally tab; nav opens
+  MY HERD first.
+- Wrangling now has consequences: capture success pushes species id
+  into gameState.herd and pays +25 Dust (CAPTURE_REWARD), shown with
+  the coin on the WRANGLED! overlay. Home currency is now real.
+- STATUS: playtest. Candidates next: unify capture arena HUD with the
+  design system, or start M3 battles.
+
+----------------------------------------------------------------------
 [M2a] 2026-07-06 - Full menu shell + design system
 ----------------------------------------------------------------------
 User supplied a detailed design brief (captured in GAME_DESIGN.md "UI

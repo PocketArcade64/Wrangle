@@ -86,6 +86,19 @@ const ICONS: Record<string, string[]> = {
     'XXXXXXXXXXX',
     '.XXXXXXXXX.'
   ],
+  'icon-lasso': [
+    '...XXXXX...',
+    '..XX...XX..',
+    '.XX.....XX.',
+    '.X.......X.',
+    '.X.......X.',
+    '.XX.....XX.',
+    '..XX...XX..',
+    '...XXXXX...',
+    '.......X...',
+    '......X....',
+    '.....XX....'
+  ],
   'icon-coin': [
     '...XXXXX...',
     '..XXXXXXX..',
