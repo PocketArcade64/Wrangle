@@ -41,7 +41,7 @@ sprite column will point at real files as the original pixel art lands.
 |---|---|---|---|---|---|---|---|---|
 | bessie | BESSIE | *(placeholder, generated)* | normal (TBD) | physical (TBD) | 2 | none | graze — wanders slowly, pauses | 60 |
 | pecksy | PECKSY | *(placeholder, generated)* | normal (TBD) | physical (TBD) | 3 | none | flee — runs from your finger within 280px | 150 |
-| dustdevil | DUSTDEVIL | *(placeholder, generated)* | earth (TBD) | special (TBD) | 4 | radial burst every ~5s, 25 GRIT dmg | charge — periodic dashes at your finger | 110 |
+| dustdevil | DUSTDEVIL | *(placeholder, generated)* | earth (TBD) | special (TBD) | 4 | radial burst every ~5s, 25 HEALTH dmg | charge — periodic dashes at your finger | 110 |
 
 *(TBD) fields are placeholders until the type chart and battle system (M3)
 define the real values — the species.ts schema gains `type` and `atkStyle`

@@ -22,25 +22,27 @@ to an alternate dimension full of monsters — same lasso, wilder targets.
 
 Direct adaptation of the Pokémon Ranger loop mechanic:
 
-- Player drags to draw a continuous **capture line** with a max length budget
-  ("rope"/ink) covering the total line currently on the field.
+- Player drags to draw a continuous **capture line**. (A max rope-length
+  budget existed in early builds and may return later as an upgrade axis;
+  currently the line length is unlimited.)
 - When the line crosses itself with the target enclosed, that's **one loop**,
   worth **+10 on the capture gauge** displayed under the creature; the gauge
   full = captured. Per Shadows of Almia: closing a loop consumes ONLY the
   loop portion — the tail drawn before the loop stays live on the field
-  (still loopable, still breakable), drawing continues from the crossing
-  point, and the loop's rope length is refunded to the budget. Each creature
-  has a required loop count (weak: 2–3, legendary-tier: much higher).
+  (still loopable, still breakable) and drawing continues from the crossing
+  point. Each creature has a required loop count (weak: 2–3,
+  legendary-tier: much higher).
+- **Gauge decay**: if ~4 seconds pass without closing a loop around the
+  target, the gauge drains quickly — sustained pressure is the skill, and
+  releasing the line carries no penalty (this replaces the older
+  stun-on-release anti-cheese).
 - **Body touch** on the line: line breaks, capture gauge empties, no HP
   loss. Annoying, not dangerous.
 - **Attacks**: creature telegraphs (cry + `!` above its head, ~0.8s), then
   fires a hazard (projectile / radial burst / melee lunge). If the hazard hits
-  the live line: line breaks, loops reset, **and lasso HP (GRIT) takes
-  damage**. GRIT 0 = capture failed. This body-vs-attack distinction is what
-  makes it skill-based.
-- **Release mid-draw** with banked loops: target is briefly stunned, but loop
-  progress is blocked during the stun, and after it ends the target gets
-  faster ("riled") — anti-cheese so release/redraw isn't free safety.
+  the live line: line breaks, gauge empties, **and lasso HEALTH takes
+  damage** (segmented bar). HEALTH 0 = capture failed. This body-vs-attack
+  distinction is what makes it skill-based.
 - Each species has a distinct **movement pattern** (graze, flee, charge,
   teleport/counter, sleeping) and **attack pattern**; difficulty is tuned by
   pattern speed/size, not just loop count.
@@ -48,7 +50,7 @@ Direct adaptation of the Pokémon Ranger loop mechanic:
 ### Lasso upgrades (post-capture progression)
 
 Points spent on a menu of stats, each repeatable with progressively higher
-costs (diminishing returns → real build choices): max energy/GRIT, power,
+costs (diminishing returns → real build choices): max energy/HEALTH, power,
 max line length, damage reduction, reduced charge time, energy regained per
 capture, power when low.
 

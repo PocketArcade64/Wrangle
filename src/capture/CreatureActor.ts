@@ -14,7 +14,7 @@ export interface ArenaRect {
   bottom: number;
 }
 
-type State = 'idle' | 'roam' | 'stunned' | 'telegraph' | 'recover';
+type State = 'idle' | 'roam' | 'telegraph' | 'recover';
 
 /**
  * Movement + attack brain for a capture target. Pure logic — the scene owns
@@ -23,7 +23,6 @@ type State = 'idle' | 'roam' | 'stunned' | 'telegraph' | 'recover';
 export class CreatureActor {
   readonly species: SpeciesDef;
   readonly pos: Vec2;
-  speedMult = 1;
   onTelegraph?: () => void;
   onAttack?: (origin: Vec2) => void;
 
@@ -48,30 +47,8 @@ export class CreatureActor {
     return this.species.bodyRadius;
   }
 
-  isStunned(): boolean {
-    return this.state === 'stunned';
-  }
-
-  isTelegraphing(): boolean {
-    return this.state === 'telegraph';
-  }
-
-  /** Anti-cheese stun: no capture progress during it, and the creature gets riled after. */
-  stun(seconds: number): void {
-    this.state = 'stunned';
-    this.stateT = seconds;
-    this.dashT = 0;
-  }
-
   update(dt: number, pointer: PointerInfo): void {
     switch (this.state) {
-      case 'stunned':
-        this.stateT -= dt;
-        if (this.stateT <= 0) {
-          this.speedMult = Math.min(2.2, this.speedMult * 1.35);
-          this.setIdle(0.3);
-        }
-        return;
       case 'telegraph':
         this.stateT -= dt;
         if (this.stateT <= 0) {
@@ -105,7 +82,7 @@ export class CreatureActor {
 
   private locomotion(dt: number, pointer: PointerInfo): void {
     const sp = this.species;
-    let speed = sp.moveSpeed * this.speedMult;
+    let speed = sp.moveSpeed;
 
     if (sp.movement === 'flee' && pointer.down) {
       const d = dist(pointer, this.pos);

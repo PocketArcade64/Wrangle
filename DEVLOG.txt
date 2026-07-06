@@ -5,6 +5,24 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M1.2] 2026-07-06 - Gauge decay replaces stun; HEALTH; no rope budget
+----------------------------------------------------------------------
+Playtest feedback round 2 ("new ranger line works great!"):
+- REMOVED the dazed/stun mechanic entirely (release-mid-draw now just
+  drops the line, no penalty; CreatureActor stun state + riled speedup
+  deleted).
+- NEW anti-stall pressure: if 4s pass without closing a loop around the
+  creature, the capture gauge drains quickly (GAUGE_DECAY_DELAY_S=4,
+  GAUGE_DECAY_PER_S=0.75 loops/s; gaugeProgress is now a float).
+- RENAMED GRIT -> HEALTH everywhere (UI label, toasts, docs).
+- Lasso line thicker: LINE_WIDTH 5 -> 7.
+- REMOVED the rope length meter + budget mechanic (LassoLine now gets
+  Infinity budget; may return later as an upgrade axis). Bottom strip
+  now shows only the segmented HEALTH bar; arena grew taller.
+- STATUS: awaiting playtest round 3 (decay pacing: is 4s + 0.75/s fair
+  on PECKSY/DUSTDEVIL?).
+
+----------------------------------------------------------------------
 [M1.1] 2026-07-06 - iPhone fit + Ranger-accurate line + UI rework
 ----------------------------------------------------------------------
 Playtest feedback round 1 (tested on Mac browser + iPhone Safari):

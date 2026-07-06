@@ -6,13 +6,13 @@ import { distPointToSegment, pointInPolygon, Vec2 } from '../capture/geometry';
 import { makeButton } from '../ui/button';
 
 // Tuning knobs for the capture mini-game live here.
-const LINE_BUDGET = 1600; // max total rope length on the field
 const MIN_POINT_DIST = 8;
-const LINE_WIDTH = 5;
-const GRIT_MAX = 100;
-const GRIT_SEGMENTS = 5;
-const GAUGE_PER_LOOP = 10; // capture gauge points per completed loop
-const STUN_SECONDS = 1.2;
+const LINE_WIDTH = 7;
+const HEALTH_MAX = 100;
+const HEALTH_SEGMENTS = 5;
+const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
+const GAUGE_DECAY_DELAY_S = 4; // seconds without a loop before decay kicks in
+const GAUGE_DECAY_PER_S = 0.75; // loops' worth of gauge drained per second
 
 interface Ring {
   x: number;
@@ -33,15 +33,16 @@ export class CaptureScene extends Phaser.Scene {
   private line!: LassoLine;
   private rings: Ring[] = [];
   private gfx!: Phaser.GameObjects.Graphics;
-  private grit = GRIT_MAX;
-  private banked = 0;
+  private health = HEALTH_MAX;
+  /** Capture progress in loop units (float — decays over time). */
+  private gaugeProgress = 0;
+  private decayCountdown = GAUGE_DECAY_DELAY_S;
   private phase: 'active' | 'won' | 'lost' = 'active';
   private telegraphing = false;
 
   private gauge!: Phaser.GameObjects.Container;
   private gaugeFill!: Phaser.GameObjects.Rectangle;
-  private gritFills: Phaser.GameObjects.Rectangle[] = [];
-  private inkFill!: Phaser.GameObjects.Rectangle;
+  private healthFills: Phaser.GameObjects.Rectangle[] = [];
   private toast!: Phaser.GameObjects.Text;
   private toastTween?: Phaser.Tweens.Tween;
 
@@ -52,19 +53,20 @@ export class CaptureScene extends Phaser.Scene {
   init(data: { speciesId: string }): void {
     this.species = speciesById(data.speciesId);
     // Scene objects persist across restarts — reset all round state here.
-    this.line = new LassoLine(LINE_BUDGET);
+    this.line = new LassoLine(Number.POSITIVE_INFINITY);
     this.rings = [];
-    this.grit = GRIT_MAX;
-    this.banked = 0;
+    this.health = HEALTH_MAX;
+    this.gaugeProgress = 0;
+    this.decayCountdown = GAUGE_DECAY_DELAY_S;
     this.phase = 'active';
     this.telegraphing = false;
-    this.gritFills = [];
+    this.healthFills = [];
     this.toastTween = undefined;
   }
 
   create(): void {
     const { width, height } = this.scale;
-    this.arena = { left: 30, top: 120, right: width - 30, bottom: height - 180 };
+    this.arena = { left: 30, top: 120, right: width - 30, bottom: height - 140 };
     this.cameras.main.setBackgroundColor('#d9a066');
     this.drawArena();
 
@@ -118,14 +120,13 @@ export class CaptureScene extends Phaser.Scene {
     this.alertText.setPosition(this.creature.pos.x, this.creature.pos.y - this.creature.radius - 34);
     this.gauge.setPosition(this.creature.pos.x, this.creature.pos.y + this.creature.radius + 26);
 
-    if (this.creature.isStunned()) {
-      this.creatureImg.setTint(0x8fb7ff);
-    } else if (this.telegraphing) {
+    if (this.telegraphing) {
       this.creatureImg.setTint(0xff9999);
     } else {
       this.creatureImg.clearTint();
     }
 
+    this.tickGaugeDecay(dt);
     this.updateRings(dt);
     if (this.line.active) this.checkBodyCollision();
     this.redraw();
@@ -147,40 +148,35 @@ export class CaptureScene extends Phaser.Scene {
       const px = Phaser.Math.Clamp(p.x, this.arena.left, this.arena.right);
       const py = Phaser.Math.Clamp(p.y, this.arena.top, this.arena.bottom);
       const res = this.line.extend({ x: px, y: py }, MIN_POINT_DIST);
-      if (res.overflow) {
-        this.breakLine('TOO MUCH ROPE!', false);
-        return;
-      }
       if (res.loop && pointInPolygon(this.creature.pos, res.loop)) {
-        if (this.creature.isStunned()) {
-          this.showToast('NO EFFECT WHILE STUNNED', '#c9b49a');
-        } else {
-          this.bankLoop();
-        }
+        this.bankLoop();
       }
     });
 
-    this.input.on('pointerup', () => this.handleRelease());
-  }
-
-  private handleRelease(): void {
-    if (this.phase !== 'active' || !this.line.active) return;
-    this.line.clear();
-    if (this.banked > 0) {
-      this.creature.stun(STUN_SECONDS);
-      this.showToast("IT'S DAZED... AND GETTIN' RILED!", '#8fb7ff');
-    }
+    // Releasing simply drops the line — the pressure comes from gauge decay.
+    this.input.on('pointerup', () => {
+      if (this.phase === 'active') this.line.clear();
+    });
   }
 
   // ---------- capture logic ----------
 
   private bankLoop(): void {
-    this.banked++;
+    this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + 1);
+    this.decayCountdown = GAUGE_DECAY_DELAY_S;
     this.popGaugeGain();
     this.creatureImg.setScale(1.15);
     this.tweens.add({ targets: this.creatureImg, scale: 1, duration: 150 });
-    if (this.banked >= this.species.requiredLoops) {
+    if (this.gaugeProgress >= this.species.requiredLoops - 1e-9) {
       this.finish(true);
+    }
+  }
+
+  private tickGaugeDecay(dt: number): void {
+    if (this.gaugeProgress <= 0) return;
+    this.decayCountdown -= dt;
+    if (this.decayCountdown <= 0) {
+      this.gaugeProgress = Math.max(0, this.gaugeProgress - GAUGE_DECAY_PER_S * dt);
     }
   }
 
@@ -207,7 +203,7 @@ export class CaptureScene extends Phaser.Scene {
     const hitDist = this.creature.radius + LINE_WIDTH;
     for (let i = 0; i < pts.length - 1; i++) {
       if (distPointToSegment(this.creature.pos, pts[i], pts[i + 1]) <= hitDist) {
-        this.banked = 0;
+        this.gaugeProgress = 0;
         this.breakLine('SNAPPED!', false);
         return;
       }
@@ -219,11 +215,11 @@ export class CaptureScene extends Phaser.Scene {
       ring.prevR = ring.r;
       ring.r += ring.speed * dt;
       if (this.line.active && this.ringHitsLine(ring)) {
-        this.banked = 0;
-        this.grit = Math.max(0, this.grit - ring.damage);
+        this.gaugeProgress = 0;
+        this.health = Math.max(0, this.health - ring.damage);
         this.cameras.main.shake(150, 0.01);
-        this.breakLine(`-${ring.damage} GRIT!`, true);
-        if (this.grit <= 0) {
+        this.breakLine(`-${ring.damage} HEALTH!`, true);
+        if (this.health <= 0) {
           this.finish(false);
           return;
         }
@@ -323,7 +319,7 @@ export class CaptureScene extends Phaser.Scene {
       }
       // knot at the anchor point
       this.gfx.fillStyle(0x8a5a2b, 1);
-      this.gfx.fillCircle(pts[0].x, pts[0].y, 7);
+      this.gfx.fillCircle(pts[0].x, pts[0].y, 8);
     }
   }
 
@@ -339,35 +335,25 @@ export class CaptureScene extends Phaser.Scene {
       .setDepth(11);
     makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect'), '16px').setDepth(11);
 
-    // bottom strip: rope meter + segmented GRIT
-    this.add.rectangle(width / 2, height - 80, width, 160, 0x2a1a10).setDepth(10);
-
+    // bottom strip: segmented HEALTH bar
+    this.add.rectangle(width / 2, height - 60, width, 120, 0x2a1a10).setDepth(10);
     this.add
-      .text(30, height - 133, 'ROPE', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#c9b49a' })
+      .text(30, height - 68, 'HEALTH', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#c9b49a' })
       .setDepth(11);
-    this.add.rectangle(110, height - 125, 420, 14, 0x1a0f08).setOrigin(0, 0.5).setDepth(11);
-    this.inkFill = this.add
-      .rectangle(110, height - 125, 420, 14, 0xc98d4b)
-      .setOrigin(0, 0.5)
-      .setDepth(11);
-
-    this.add
-      .text(30, height - 78, 'GRIT', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#c9b49a' })
-      .setDepth(11);
-    const segW = 78;
+    const segW = 92;
     const gap = 8;
-    for (let i = 0; i < GRIT_SEGMENTS; i++) {
-      const x = 110 + i * (segW + gap);
+    for (let i = 0; i < HEALTH_SEGMENTS; i++) {
+      const x = 150 + i * (segW + gap);
       this.add
-        .rectangle(x, height - 70, segW, 24, 0x1a0f08)
+        .rectangle(x, height - 60, segW, 24, 0x1a0f08)
         .setOrigin(0, 0.5)
         .setStrokeStyle(2, 0x5a3a22)
         .setDepth(11);
       const fill = this.add
-        .rectangle(x + 2, height - 70, segW - 4, 18, 0xe05c4a)
+        .rectangle(x + 2, height - 60, segW - 4, 18, 0xe05c4a)
         .setOrigin(0, 0.5)
         .setDepth(11);
-      this.gritFills.push(fill);
+      this.healthFills.push(fill);
     }
 
     this.toast = this.add
@@ -382,13 +368,12 @@ export class CaptureScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
-    this.inkFill.scaleX = this.line.active ? this.line.remainingFraction : 1;
-    const perSeg = GRIT_MAX / GRIT_SEGMENTS;
-    for (let i = 0; i < this.gritFills.length; i++) {
-      const segHp = Phaser.Math.Clamp(this.grit - i * perSeg, 0, perSeg);
-      this.gritFills[i].scaleX = segHp / perSeg;
+    const perSeg = HEALTH_MAX / HEALTH_SEGMENTS;
+    for (let i = 0; i < this.healthFills.length; i++) {
+      const segHp = Phaser.Math.Clamp(this.health - i * perSeg, 0, perSeg);
+      this.healthFills[i].scaleX = segHp / perSeg;
     }
-    this.gaugeFill.scaleX = Math.min(1, this.banked / this.species.requiredLoops);
+    this.gaugeFill.scaleX = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
   }
 
   private showToast(msg: string, color: string): void {
