@@ -8,8 +8,7 @@ import { makeButton } from '../ui/button';
 // Tuning knobs for the capture mini-game live here.
 const MIN_POINT_DIST = 8;
 const LINE_WIDTH = 7;
-const HEALTH_MAX = 100;
-const HEALTH_SEGMENTS = 5;
+const HEALTH_SEGMENTS = 5; // health is whole bars; attacks remove whole bars
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
 const GAUGE_DECAY_DELAY_S = 4; // seconds without a loop before decay kicks in
 const GAUGE_DECAY_PER_S = 0.75; // loops' worth of gauge drained per second
@@ -33,7 +32,8 @@ export class CaptureScene extends Phaser.Scene {
   private line!: LassoLine;
   private rings: Ring[] = [];
   private gfx!: Phaser.GameObjects.Graphics;
-  private health = HEALTH_MAX;
+  /** Remaining health, counted in whole bars. */
+  private health = HEALTH_SEGMENTS;
   /** Capture progress in loop units (float — decays over time). */
   private gaugeProgress = 0;
   private decayCountdown = GAUGE_DECAY_DELAY_S;
@@ -55,7 +55,7 @@ export class CaptureScene extends Phaser.Scene {
     // Scene objects persist across restarts — reset all round state here.
     this.line = new LassoLine(Number.POSITIVE_INFINITY);
     this.rings = [];
-    this.health = HEALTH_MAX;
+    this.health = HEALTH_SEGMENTS;
     this.gaugeProgress = 0;
     this.decayCountdown = GAUGE_DECAY_DELAY_S;
     this.phase = 'active';
@@ -89,7 +89,7 @@ export class CaptureScene extends Phaser.Scene {
         prevR: this.species.bodyRadius,
         maxR: this.species.ringMaxR ?? 230,
         speed: this.species.ringSpeed ?? 420,
-        damage: this.species.attackDamage ?? 20
+        damage: this.species.attackDamage ?? 1
       });
     };
 
@@ -218,7 +218,7 @@ export class CaptureScene extends Phaser.Scene {
         this.gaugeProgress = 0;
         this.health = Math.max(0, this.health - ring.damage);
         this.cameras.main.shake(150, 0.01);
-        this.breakLine(`-${ring.damage} HEALTH!`, true);
+        this.breakLine(`-${ring.damage} HEALTH BAR${ring.damage > 1 ? 'S' : ''}!`, true);
         if (this.health <= 0) {
           this.finish(false);
           return;
@@ -368,10 +368,8 @@ export class CaptureScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
-    const perSeg = HEALTH_MAX / HEALTH_SEGMENTS;
     for (let i = 0; i < this.healthFills.length; i++) {
-      const segHp = Phaser.Math.Clamp(this.health - i * perSeg, 0, perSeg);
-      this.healthFills[i].scaleX = segHp / perSeg;
+      this.healthFills[i].setVisible(i < this.health);
     }
     this.gaugeFill.scaleX = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
   }

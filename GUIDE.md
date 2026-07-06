@@ -48,6 +48,7 @@ Title → **PICK A TARGET** → capture arena. Three placeholder targets
 ### Tuning
 
 Capture feel knobs are at the top of
-[src/scenes/CaptureScene.ts](src/scenes/CaptureScene.ts) (line width, health,
-gauge decay delay/rate) and per-creature stats in
-[src/data/species.ts](src/data/species.ts).
+[src/scenes/CaptureScene.ts](src/scenes/CaptureScene.ts) (line width, health
+bars, gauge decay delay/rate). Per-creature stats live in the spreadsheet
+[src/data/creatures.csv](src/data/creatures.csv) — editable in Excel; column
+reference in [docs/CREATURES.md](docs/CREATURES.md).

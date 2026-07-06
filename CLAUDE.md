@@ -12,6 +12,7 @@ Hard rules:
 - Never commit/push — the user manually uploads changed files to their
   GitHub repo and playtests on their Mac. End each iteration by listing
   exactly which files changed.
-- Creature/content data is data-driven: add creatures in
-  src/data/species.ts and document them in docs/CREATURES.md.
+- Creature/content data is data-driven: creatures live in
+  src/data/creatures.csv (user-editable spreadsheet, parsed/validated by
+  src/data/species.ts). Column docs in docs/CREATURES.md.
 - Design reference: docs/GAME_DESIGN.md. Milestones: docs/ROADMAP.md.

@@ -5,6 +5,28 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M1.3] 2026-07-06 - Whole-bar damage + creatures.csv spreadsheet
+----------------------------------------------------------------------
+Playtest feedback round 3 (decay pacing approved):
+- HEALTH is now counted in whole bars (5). Attacks remove whole bars
+  only - no partial segment fills. attackDamage in creature data now
+  means "bars per hit" (dustdevil: 1).
+- NEW: creature data moved from TS literals to src/data/creatures.csv,
+  a real spreadsheet the user edits in Excel/Numbers/Sheets. Vite
+  imports it with ?raw; species.ts now parses + validates it at build
+  time (descriptive per-row errors name the creature + column). Added
+  src/vite-env.d.ts for the ?raw import type. New columns: type,
+  atkStyle (stored now, used by M3 battles).
+- docs/CREATURES.md reworked into the how-to-edit-the-CSV guide with
+  full column reference + sprite gallery section.
+- NOTE: species.ts had a UTF-8 mangling incident via PowerShell
+  Get-Content/Set-Content (em-dashes corrupted); rewritten clean with
+  plain hyphens. Lesson: never round-trip project files through
+  PS 5.1 default encoding - use the Write tool.
+- STATUS: awaiting playtest round 4. User can now try adding a test
+  creature row to creatures.csv themselves.
+
+----------------------------------------------------------------------
 [M1.2] 2026-07-06 - Gauge decay replaces stun; HEALTH; no rope budget
 ----------------------------------------------------------------------
 Playtest feedback round 2 ("new ranger line works great!"):

@@ -34,8 +34,13 @@ WORK EFFICIENTLY
 - Centralize tuning constants (top of CaptureScene.ts, src/data/
   species.ts). Playtest feedback then becomes one-line changes instead
   of code hunts — this is the whole feedback loop with the user.
-- Content is data, not code. New creatures = new entry in species.ts.
+- Content is data, not code. New creatures = new ROW in src/data/
+  creatures.csv (user edits it in Excel; species.ts parses/validates).
   Never fork scene logic per creature; add a pattern field instead.
+- NEVER round-trip project files through PowerShell Get-Content/
+  Set-Content: PS 5.1 default encoding corrupts UTF-8 (em-dashes etc).
+  Use the Read/Write/Edit tools for file content, always. Prefer plain
+  ASCII hyphens in code comments to dodge the whole problem class.
 - Batch related work into one iteration. Each user playtest cycle is
   expensive (manual GitHub upload + Mac pull), so ship coherent,
   complete milestones, not fragments.

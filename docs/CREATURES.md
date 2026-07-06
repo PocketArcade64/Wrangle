@@ -1,48 +1,57 @@
 # Wrangle — Creature Registry
 
-**Single source of truth for gameplay data: [src/data/species.ts](../src/data/species.ts).**
-The game reads only that file. This document is the human-friendly spreadsheet
-view of it — keep the two in sync (Claude updates both whenever a creature is
-added or changed).
+**Single source of truth: [src/data/creatures.csv](../src/data/creatures.csv)** —
+a real spreadsheet you can open and edit directly in Excel, Numbers, or Google
+Sheets. The game parses it automatically at build time
+([src/data/species.ts](../src/data/species.ts) does the parsing/validation);
+no code changes are needed to add a creature.
 
 ## How to add a creature
 
-1. Drop the sprite PNG into `public/sprites/<id>.png` (e.g.
-   `public/sprites/bessie.png`). Vite serves `public/` as-is and GitHub
-   renders the image links below.
-2. Add an entry to `SPECIES` in `src/data/species.ts` filling in the columns
-   below. No scene code changes needed — behavior comes from the
-   `movement` / `attack` pattern fields, so new creatures are pure data.
-3. Add a row to the table here with the sprite link.
+1. Open `src/data/creatures.csv` in Excel/Numbers/Sheets.
+2. Add a row (columns below). Leave attack columns blank for harmless
+   creatures.
+3. **Save it back as CSV** (in Excel: "CSV UTF-8" — keep the `.csv`
+   extension, don't let it convert to `.xlsx`).
+4. Drop the sprite PNG into `public/sprites/<id>.png` and put its key in the
+   `textureKey` column (real sprite loading lands with the art pass — current
+   placeholder keys are `pl-cow`, `pl-chicken`, `pl-dust`).
+5. Upload the changed CSV to GitHub as usual. Done — the creature appears in
+   the game.
 
-If a creature needs a behavior that doesn't exist yet (new movement or attack
-pattern), that pattern gets implemented once in `CreatureActor.ts` /
-`CaptureScene.ts` and then becomes available to every future creature.
+If a row has a mistake (typo'd column, non-number where a number belongs),
+the game shows a descriptive error naming the creature and column — check
+the browser console / Vite error overlay.
 
 ## Columns
 
-| Column | Meaning |
+| Column | Required | Meaning |
+|---|---|---|
+| id | yes | Lowercase internal id, must be unique (e.g. `bessie`) |
+| name | no | Display name (defaults to id uppercased) |
+| type | no | Elemental type — tracked now, used by battles in M3 |
+| atkStyle | no | `physical` or `special` — battle system (M3) |
+| loops | yes | Loops required to fill the capture gauge |
+| bodyRadius | yes | Collision radius in px (placeholder sprites are ~30-46) |
+| moveSpeed | yes | Base walk speed, px/s |
+| movement | yes | Catch behavior: `graze`, `flee`, or `charge` |
+| attack | yes | `none` or `radial` |
+| attackIntervalMs | if attacking | ms between attacks (~5000 typical) |
+| attackDamage | if attacking | **Whole health bars** removed per hit (player has 5) |
+| telegraphMs | if attacking | Warning time before the attack fires (~800) |
+| ringMaxR | if radial | Burst max radius, px (~230) |
+| ringSpeed | if radial | Burst expansion speed, px/s (~420) |
+| dashIntervalMs | if charge | ms between dashes (~3500) |
+| textureKey | yes | Sprite key (later: `public/sprites/<id>.png`) |
+| blurb | no | Flavor text shown on the target-select card |
+
+## Sprite gallery
+
+Placeholder art is runtime-generated for now. As real pixel-art PNGs land in
+`public/sprites/`, link them here for easy reference:
+
+| id | sprite |
 |---|---|
-| id / name | Internal id (lowercase) and display name |
-| sprite | Link to the PNG in `public/sprites/` |
-| type | Elemental/creature type (drives battle matchups — schema arrives with M3 battles) |
-| atk style | `physical` or `special` (which battle button/moveset it gets) |
-| loops | Loops required to capture |
-| aggressiveness | Attack pattern + how often: `none`, or pattern + interval/damage |
-| catch behavior | Movement pattern while being lassoed: `graze`, `flee`, `charge` (more patterns in M2: sleep, teleport, lunge...) |
-| speed | Base movement speed, px/s |
-
-## Roster
-
-Current sprites are runtime-generated placeholders (no PNG files yet) — the
-sprite column will point at real files as the original pixel art lands.
-
-| id | name | sprite | type | atk style | loops | aggressiveness | catch behavior | speed |
-|---|---|---|---|---|---|---|---|---|
-| bessie | BESSIE | *(placeholder, generated)* | normal (TBD) | physical (TBD) | 2 | none | graze — wanders slowly, pauses | 60 |
-| pecksy | PECKSY | *(placeholder, generated)* | normal (TBD) | physical (TBD) | 3 | none | flee — runs from your finger within 280px | 150 |
-| dustdevil | DUSTDEVIL | *(placeholder, generated)* | earth (TBD) | special (TBD) | 4 | radial burst every ~5s, 25 HEALTH dmg | charge — periodic dashes at your finger | 110 |
-
-*(TBD) fields are placeholders until the type chart and battle system (M3)
-define the real values — the species.ts schema gains `type` and `atkStyle`
-fields at that point.*
+| bessie | *(placeholder, generated)* |
+| pecksy | *(placeholder, generated)* |
+| dustdevil | *(placeholder, generated)* |
