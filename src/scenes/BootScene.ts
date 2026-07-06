@@ -22,6 +22,7 @@ export class BootScene extends Phaser.Scene {
     this.makeCowTexture();
     this.makeChickenTexture();
     this.makeDustdevilTexture();
+    this.makeUnknownTexture();
 
     const fonts = Promise.all([
       document.fonts.load('16px Silkscreen'),
@@ -79,6 +80,28 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0xe8963c);
     g.fillTriangle(27, 40, 37, 40, 32, 49);
     g.generateTexture('pl-chicken', 64, 64);
+    g.destroy();
+  }
+
+  /** Mystery-critter placeholder for creatures whose sprite hasn't landed yet. */
+  private makeUnknownTexture(): void {
+    const g = this.add.graphics();
+    g.fillStyle(0xb8a88f);
+    g.fillCircle(40, 42, 34);
+    g.lineStyle(4, 0x3a2a1a);
+    g.strokeCircle(40, 42, 34);
+    // curious eyes
+    g.fillStyle(0x1a1a1a);
+    g.fillCircle(29, 36, 4);
+    g.fillCircle(51, 36, 4);
+    // question-mark-ish squiggle
+    g.lineStyle(5, 0x5a3a22);
+    g.beginPath();
+    g.arc(40, 52, 9, Math.PI, Math.PI * 2.4);
+    g.strokePath();
+    g.fillStyle(0x5a3a22);
+    g.fillCircle(40, 66, 3);
+    g.generateTexture('pl-unknown', 80, 80);
     g.destroy();
   }
 

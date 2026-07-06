@@ -116,7 +116,7 @@ export class CreatureActor {
   }
 
   private tickAttack(dt: number): void {
-    if (this.species.attack === 'none') return;
+    if (this.species.attackPattern === 'none') return;
     this.attackT -= dt;
     if (this.attackT <= 0) {
       this.state = 'telegraph';

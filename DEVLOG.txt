@@ -5,6 +5,28 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M1.4] 2026-07-06 - User's 45-creature dex + stats columns + scroll UI
+----------------------------------------------------------------------
+- User added their 45 original creatures to creatures.csv on GitHub
+  (fetched from the public repo - remember: sync GitHub-side edits into
+  this folder before editing locally!). Test creatures (bessie/pecksy/
+  dustdevil) removed; CSV row order = dex order.
+- CSV schema expanded: type -> type1 + type2 columns; new battle stat
+  columns hp/attack/defense/spAttack/spDefense/speed (stored in
+  SpeciesDef, used from M3); capture-attack column renamed
+  attackPattern (avoids clash with the attack stat).
+- Parser now applies defaults for blank capture columns (graze, loops
+  3, radius 40, speed 100, no attacks, pl-unknown mystery-blob sprite,
+  id auto-derived from name) + duplicate-id validation, so name+type
+  rows are immediately playable.
+- CaptureSelectScene rebuilt as a scrollable CRITTER DEX grid (3 cols,
+  drag to scroll, tap-vs-drag slop 12px, dex numbers #001+, type
+  labels). Old 3-card layout couldn't hold 45.
+- BootScene: new pl-unknown placeholder texture.
+- STATUS: user filling in creature stats/behaviors in Excel over time.
+  Next likely: real sprite PNG loading from public/sprites/, or M2/M3.
+
+----------------------------------------------------------------------
 [M1.3] 2026-07-06 - Whole-bar damage + creatures.csv spreadsheet
 ----------------------------------------------------------------------
 Playtest feedback round 3 (decay pacing approved):

@@ -7,17 +7,25 @@ export type AtkStyle = 'physical' | 'special';
 export interface SpeciesDef {
   id: string;
   name: string;
-  /** Elemental type - tracked in data now; battles use it from M3. */
-  type?: string;
+  /** Elemental types - tracked in data now; battles use them from M3. */
+  type1?: string;
+  type2?: string;
+  /** Battle base stats (used from M3). */
+  hp?: number;
+  attack?: number;
+  defense?: number;
+  spAttack?: number;
+  spDefense?: number;
+  speed?: number;
   /** Physical or special attacker - used by the battle system (M3). */
   atkStyle?: AtkStyle;
-  textureKey: string;
-  bodyRadius: number;
+  /** Loops required to fill the capture gauge. */
   requiredLoops: number;
-  /** Base walk speed, px/s. */
+  bodyRadius: number;
+  /** Base walk speed in the capture arena, px/s. */
   moveSpeed: number;
   movement: MovementPattern;
-  attack: AttackPattern;
+  attackPattern: AttackPattern;
   attackIntervalMs?: number;
   /** Whole HEALTH bars removed per hit. */
   attackDamage?: number;
@@ -26,17 +34,26 @@ export interface SpeciesDef {
   ringSpeed?: number;
   /** Charge movers: interval between dashes (ms). */
   dashIntervalMs?: number;
+  textureKey: string;
   blurb: string;
 }
 
 const MOVEMENTS: MovementPattern[] = ['graze', 'flee', 'charge'];
-const ATTACKS: AttackPattern[] = ['none', 'radial'];
+const ATTACK_PATTERNS: AttackPattern[] = ['none', 'radial'];
 const ATK_STYLES: AtkStyle[] = ['physical', 'special'];
+
+// Defaults applied when capture-behavior columns are left blank, so a row
+// with just a name and types is immediately playable.
+const DEFAULT_LOOPS = 3;
+const DEFAULT_BODY_RADIUS = 40;
+const DEFAULT_MOVE_SPEED = 100;
+const DEFAULT_TEXTURE = 'pl-unknown';
 
 /**
  * Creature data lives in creatures.csv - an Excel/Numbers/Sheets-editable
- * spreadsheet. This module parses and validates it at build time; a bad row
- * throws a descriptive error (visible in the browser console / Vite overlay).
+ * spreadsheet. Row order in the CSV IS the dex order. This module parses and
+ * validates it at build time; a bad row throws a descriptive error (visible
+ * in the browser console / Vite overlay).
  */
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -94,61 +111,68 @@ function buildSpecies(): SpeciesDef[] {
     if (v === '') return undefined;
     const n = Number(v);
     if (Number.isNaN(n)) {
-      throw new Error(`creatures.csv (${get(row, 'id')}): column "${name}" is not a number: "${v}"`);
-    }
-    return n;
-  };
-  const reqNum = (row: string[], name: string): number => {
-    const n = optNum(row, name);
-    if (n === undefined) {
-      throw new Error(`creatures.csv (${get(row, 'id')}): column "${name}" is required`);
+      throw new Error(`creatures.csv (${get(row, 'name') || get(row, 'id')}): column "${name}" is not a number: "${v}"`);
     }
     return n;
   };
 
-  return rows
-    .slice(1)
-    .filter((r) => r.some((c) => c.trim() !== ''))
-    .map((r) => {
-      const id = get(r, 'id');
-      if (!id) throw new Error('creatures.csv: a data row is missing its "id"');
+  const seen = new Set<string>();
+  const species: SpeciesDef[] = [];
 
-      const movement = get(r, 'movement') as MovementPattern;
-      if (!MOVEMENTS.includes(movement)) {
-        throw new Error(`creatures.csv (${id}): movement must be one of ${MOVEMENTS.join(' / ')}`);
-      }
-      const attack = get(r, 'attack') as AttackPattern;
-      if (!ATTACKS.includes(attack)) {
-        throw new Error(`creatures.csv (${id}): attack must be one of ${ATTACKS.join(' / ')}`);
-      }
-      const atkStyleRaw = get(r, 'atkStyle');
-      const atkStyle = atkStyleRaw === '' ? undefined : (atkStyleRaw as AtkStyle);
-      if (atkStyle !== undefined && !ATK_STYLES.includes(atkStyle)) {
-        throw new Error(`creatures.csv (${id}): atkStyle must be one of ${ATK_STYLES.join(' / ')}`);
-      }
-      const textureKey = get(r, 'textureKey');
-      if (!textureKey) throw new Error(`creatures.csv (${id}): textureKey is required`);
+  for (const r of rows.slice(1)) {
+    if (!r.some((c) => c.trim() !== '')) continue;
 
-      return {
-        id,
-        name: get(r, 'name') || id.toUpperCase(),
-        type: get(r, 'type') || undefined,
-        atkStyle,
-        textureKey,
-        bodyRadius: reqNum(r, 'bodyRadius'),
-        requiredLoops: reqNum(r, 'loops'),
-        moveSpeed: reqNum(r, 'moveSpeed'),
-        movement,
-        attack,
-        attackIntervalMs: optNum(r, 'attackIntervalMs'),
-        attackDamage: optNum(r, 'attackDamage'),
-        telegraphMs: optNum(r, 'telegraphMs'),
-        ringMaxR: optNum(r, 'ringMaxR'),
-        ringSpeed: optNum(r, 'ringSpeed'),
-        dashIntervalMs: optNum(r, 'dashIntervalMs'),
-        blurb: get(r, 'blurb')
-      };
+    const name = get(r, 'name');
+    const id = get(r, 'id') || name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!id) throw new Error('creatures.csv: a data row is missing both "id" and "name"');
+    if (seen.has(id)) throw new Error(`creatures.csv: duplicate id "${id}"`);
+    seen.add(id);
+
+    const movementRaw = get(r, 'movement');
+    const movement = (movementRaw === '' ? 'graze' : movementRaw) as MovementPattern;
+    if (!MOVEMENTS.includes(movement)) {
+      throw new Error(`creatures.csv (${id}): movement must be one of ${MOVEMENTS.join(' / ')}`);
+    }
+    const attackRaw = get(r, 'attackPattern');
+    const attackPattern = (attackRaw === '' ? 'none' : attackRaw) as AttackPattern;
+    if (!ATTACK_PATTERNS.includes(attackPattern)) {
+      throw new Error(`creatures.csv (${id}): attackPattern must be one of ${ATTACK_PATTERNS.join(' / ')}`);
+    }
+    const atkStyleRaw = get(r, 'atkStyle');
+    const atkStyle = atkStyleRaw === '' ? undefined : (atkStyleRaw as AtkStyle);
+    if (atkStyle !== undefined && !ATK_STYLES.includes(atkStyle)) {
+      throw new Error(`creatures.csv (${id}): atkStyle must be one of ${ATK_STYLES.join(' / ')}`);
+    }
+
+    species.push({
+      id,
+      name: name || id.toUpperCase(),
+      type1: get(r, 'type1') || undefined,
+      type2: get(r, 'type2') || undefined,
+      hp: optNum(r, 'hp'),
+      attack: optNum(r, 'attack'),
+      defense: optNum(r, 'defense'),
+      spAttack: optNum(r, 'spAttack'),
+      spDefense: optNum(r, 'spDefense'),
+      speed: optNum(r, 'speed'),
+      atkStyle,
+      requiredLoops: optNum(r, 'loops') ?? DEFAULT_LOOPS,
+      bodyRadius: optNum(r, 'bodyRadius') ?? DEFAULT_BODY_RADIUS,
+      moveSpeed: optNum(r, 'moveSpeed') ?? DEFAULT_MOVE_SPEED,
+      movement,
+      attackPattern,
+      attackIntervalMs: optNum(r, 'attackIntervalMs'),
+      attackDamage: optNum(r, 'attackDamage'),
+      telegraphMs: optNum(r, 'telegraphMs'),
+      ringMaxR: optNum(r, 'ringMaxR'),
+      ringSpeed: optNum(r, 'ringSpeed'),
+      dashIntervalMs: optNum(r, 'dashIntervalMs'),
+      textureKey: get(r, 'textureKey') || DEFAULT_TEXTURE,
+      blurb: get(r, 'blurb')
     });
+  }
+
+  return species;
 }
 
 export const SPECIES: SpeciesDef[] = buildSpecies();

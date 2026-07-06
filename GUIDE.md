@@ -18,14 +18,12 @@ Open the printed `localhost` URL. Keep `npm run dev` running — after each
 
 ## Current build — M1 capture prototype
 
-Title → **PICK A TARGET** → capture arena. Three placeholder targets
-(real pixel-art sprites come later):
-
-| Target | Loops | Behavior |
-|---|---|---|
-| BESSIE (cow) | 2 | Slow grazer, harmless — the tutorial feel |
-| PECKSY (hen) | 3 | Flees your finger/cursor |
-| DUSTDEVIL | 4 | Charges at you and fires radial bursts that damage HEALTH |
+Title → **CRITTER DEX** (scrollable, drag up/down, tap a creature) → capture
+arena. The dex is driven entirely by
+[src/data/creatures.csv](src/data/creatures.csv) in row order — 45 original
+creatures with types. Creatures whose capture-behavior columns are still
+blank get gentle defaults (grazing, 3 loops, no attacks) and a mystery-blob
+placeholder sprite until their pixel art and stats are filled in.
 
 ### How to play
 
