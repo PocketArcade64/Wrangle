@@ -128,5 +128,6 @@ ____________
 - Can you create a file that succinctly explains what you accomplished in each update iteration of making the game in a text file and each time you check the GitHib repo to see where you left off.
 - Also while building, please create instructions in a text file teaching Claude Opus 4.8 how to think more efficiently and productively with tips you specifically learned when working on this project. 
 
-- Add my custom Wrangle sprites 
-- Ask Claude how to build a scalable system like an excel sheet where I can keep adding creatures in the future and the spreadsheet tracks their types and other relevant gameplay behavior (like aggressiveness when catching)
+_____________
+
+Act as a world-class pixel art video game brand identity designer. I am creating my own take on a Pokemon Ranger video game but legally distinct and uses a lasso instead. Create a pixel art logo for "Wrangle" that communicates the lasso premise and targets pixel art video game enthusiasts. Style should feel premium, timeless, and globally recognizable. Avoid trends focus on longevity. The logo is just the word Wrangle but stylized with a lasso (the lasso rope fully connects and is not just segmented). Make the background green screen and include a a thin black border around the logo. Focus on its pixel art identity and western style font. Make one of the letters form into a throwing lasso
