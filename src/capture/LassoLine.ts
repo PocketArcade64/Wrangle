@@ -1,4 +1,4 @@
-import { Vec2, dist, segmentIntersection } from './geometry';
+import { Vec2, dist, polylineLength, segmentIntersection } from './geometry';
 
 export interface ExtendResult {
   /** Closed-loop polygon if the new segment crossed the line, else null. */
@@ -11,11 +11,14 @@ export interface ExtendResult {
  * The player's drawn capture line. Tracks points, rope budget, and
  * self-intersection (loop) detection.
  *
- * Rules (per design doc):
- * - Any self-crossing closes a loop and restarts the line from the crossing
- *   point; used rope length resets each loop.
- * - Whether the loop *counts* (creature enclosed) is the caller's decision
- *   via pointInPolygon on the returned polygon.
+ * Ranger-accurate loop rule (Shadows of Almia): closing a loop consumes ONLY
+ * the loop portion of the line. The tail drawn before the loop started stays
+ * on the field as part of the live line, and drawing continues from the
+ * crossing point. The rope budget tracks the current total line length, so
+ * completing a loop refunds that loop's circumference.
+ *
+ * Whether the loop *counts* (creature enclosed) is the caller's decision
+ * via pointInPolygon on the returned polygon.
  */
 export class LassoLine {
   readonly budget: number;
@@ -71,9 +74,12 @@ export class LassoLine {
       if (hit) {
         // Loop path: crossing point -> pts[i+1..n-2] -> back to crossing point.
         const polygon: Vec2[] = [hit, ...this.pts.slice(i + 1, n - 1)];
-        // Rope restarts from the crossing point; budget resets per loop.
-        this.pts = [{ ...hit }, { ...p }];
-        this.used = dist(hit, p);
+        // Consume only the loop: keep the pre-loop tail (pts[0..i] -> crossing
+        // point) and continue drawing from the crossing point.
+        const tail = this.pts.slice(0, i + 1);
+        tail.push({ ...hit }, { ...p });
+        this.pts = tail;
+        this.used = polylineLength(this.pts);
         return { loop: polygon, overflow: false };
       }
     }

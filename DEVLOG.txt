@@ -5,6 +5,26 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M1.1] 2026-07-06 - iPhone fit + Ranger-accurate line + UI rework
+----------------------------------------------------------------------
+Playtest feedback round 1 (tested on Mac browser + iPhone Safari):
+- FIXED iPhone sizing: black bar top / bottom cut off. index.html now
+  uses 100dvh (Safari's collapsing chrome broke 100vh) + viewport-fit=
+  cover; main.ts computes logical height from device aspect (720 wide,
+  1280-1600 tall) so tall phones fill the screen. Scenes now derive
+  layout from this.scale.height instead of hardcoded 1280.
+- FIXED loop rule to match Pokemon Ranger Shadows of Almia: closing a
+  loop consumes ONLY the loop portion; the pre-loop tail stays on the
+  field (loopable, breakable), drawing continues from the crossing
+  point, loop length is refunded to the rope budget (LassoLine.ts).
+- UI REWORK per user: removed the loop pips (top-left orange circles -
+  user found them confusing); capture progress is now a gauge that
+  follows below the creature, +10 floats up per loop, full gauge =
+  captured. GRIT bar is now SEGMENTED (5 segments of 20) and moved to
+  the bottom strip next to the rope meter.
+- STATUS: awaiting playtest round 2 on iPhone (fit + loop feel).
+
+----------------------------------------------------------------------
 [M1] 2026-07-05 - Lasso capture prototype
 ----------------------------------------------------------------------
 - Built the full Pokemon Ranger-style capture mini-game (CaptureScene):

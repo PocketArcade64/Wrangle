@@ -23,12 +23,16 @@ to an alternate dimension full of monsters — same lasso, wilder targets.
 Direct adaptation of the Pokémon Ranger loop mechanic:
 
 - Player drags to draw a continuous **capture line** with a max length budget
-  ("rope"/ink). Budget is per-loop: it resets each time a loop closes.
-- When the line crosses itself with the target enclosed, that's **one loop**.
-  The line restarts from the crossing point. Each creature has a required
-  loop count (weak: 2–3, legendary-tier: much higher).
-- **Body touch** on the line: line breaks, banked loop progress resets to
-  zero, no HP loss. Annoying, not dangerous.
+  ("rope"/ink) covering the total line currently on the field.
+- When the line crosses itself with the target enclosed, that's **one loop**,
+  worth **+10 on the capture gauge** displayed under the creature; the gauge
+  full = captured. Per Shadows of Almia: closing a loop consumes ONLY the
+  loop portion — the tail drawn before the loop stays live on the field
+  (still loopable, still breakable), drawing continues from the crossing
+  point, and the loop's rope length is refunded to the budget. Each creature
+  has a required loop count (weak: 2–3, legendary-tier: much higher).
+- **Body touch** on the line: line breaks, capture gauge empties, no HP
+  loss. Annoying, not dangerous.
 - **Attacks**: creature telegraphs (cry + `!` above its head, ~0.8s), then
   fires a hazard (projectile / radial burst / melee lunge). If the hazard hits
   the live line: line breaks, loops reset, **and lasso HP (GRIT) takes

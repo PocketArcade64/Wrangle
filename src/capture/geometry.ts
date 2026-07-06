@@ -46,6 +46,13 @@ export function pointInPolygon(p: Vec2, poly: Vec2[]): boolean {
   return inside;
 }
 
+/** Total length of a polyline. */
+export function polylineLength(pts: Vec2[]): number {
+  let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) total += dist(pts[i], pts[i + 1]);
+  return total;
+}
+
 /** Shortest distance from point p to segment (a,b). */
 export function distPointToSegment(p: Vec2, a: Vec2, b: Vec2): number {
   const abx = b.x - a.x;

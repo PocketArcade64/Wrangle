@@ -21,7 +21,7 @@ export class CaptureSelectScene extends Phaser.Scene {
 
     SPECIES.forEach((sp, i) => this.makeCard(sp, width / 2, 240 + i * 260));
 
-    makeButton(this, width / 2, 1150, 200, 60, 'BACK', () => this.scene.start('Title'));
+    makeButton(this, width / 2, this.scale.height - 90, 200, 60, 'BACK', () => this.scene.start('Title'));
   }
 
   private makeCard(sp: SpeciesDef, x: number, y: number): void {
