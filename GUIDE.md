@@ -21,9 +21,9 @@ Open the printed `localhost` URL. Keep `npm run dev` running — after each
 Title → **CRITTER DEX** (scrollable, drag up/down, tap a creature) → capture
 arena. The dex is driven entirely by
 [src/data/creatures.csv](src/data/creatures.csv) in row order — 45 original
-creatures with types. Creatures whose capture-behavior columns are still
-blank get gentle defaults (grazing, 3 loops, no attacks) and a mystery-blob
-placeholder sprite until their pixel art and stats are filled in.
+creatures with real pixel-art sprites loaded from `public/sprites/<id>.png`.
+Creatures whose capture-behavior columns are still blank get gentle defaults
+(grazing, 3 loops, no attacks) until their stats are filled in.
 
 ### How to play
 

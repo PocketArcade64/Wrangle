@@ -1,15 +1,17 @@
 import Phaser from 'phaser';
+import { SPECIES } from '../data/species';
 
 /**
- * Generates placeholder creature textures (to be replaced by the real
- * pixel-art sprites) and waits for the Silkscreen webfont before starting.
+ * Loads creature sprite PNGs from public/sprites/<textureKey>.png (creatures
+ * without art yet fall back to a generated mystery-blob texture), generates
+ * the remaining placeholder textures, and waits for the Silkscreen webfont.
  */
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
 
-  create(): void {
+  preload(): void {
     const { width, height } = this.scale;
     this.add
       .text(width / 2, height / 2, 'loading...', {
@@ -18,6 +20,21 @@ export class BootScene extends Phaser.Scene {
         color: '#f4a340'
       })
       .setOrigin(0.5);
+
+    this.load.on('loaderror', (file: Phaser.Loader.File) => {
+      // Missing sprite file — scenes will show the mystery blob instead.
+      console.warn(`Wrangle: no sprite found for "${file.key}" (${file.url})`);
+    });
+    for (const sp of SPECIES) {
+      if (!sp.textureKey.startsWith('pl-')) {
+        // Filenames can contain spaces/parens (as the user named them) -
+        // encode the URL, but keep the Phaser texture key as the raw name.
+        this.load.image(sp.textureKey, `sprites/${encodeURIComponent(sp.textureKey)}.png`);
+      }
+    }
+  }
+
+  create(): void {
 
     this.makeCowTexture();
     this.makeChickenTexture();

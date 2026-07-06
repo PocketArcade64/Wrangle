@@ -75,7 +75,8 @@ export class CaptureSelectScene extends Phaser.Scene {
 
   private makeCell(sp: SpeciesDef, index: number, x: number, y: number): void {
     const bg = this.add.rectangle(x, y, CELL_W - 16, CELL_H - 16, 0x5a3a22).setStrokeStyle(3, 0x3a2a1a);
-    const img = this.add.image(x, y - 38, sp.textureKey).setScale(1.1);
+    const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
+    const img = this.add.image(x, y - 38, texKey).setScale(1.1);
     const num = this.add.text(x - (CELL_W - 16) / 2 + 8, y - (CELL_H - 16) / 2 + 6, `#${String(index + 1).padStart(3, '0')}`, {
       fontFamily: 'Silkscreen',
       fontSize: '13px',

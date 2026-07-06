@@ -5,6 +5,51 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M1.6] 2026-07-06 - Sprites keep original filenames; source folder gone
+----------------------------------------------------------------------
+- Per user request: public/sprites/ now holds files under their ORIGINAL
+  names (e.g. "Aquarix (Male)_100x100.png", spaces/parens and all) -
+  no more auto-renaming to <id>.png. The one-off "creature sprites/"
+  staging folder is deleted; from now on the user just drops new PNGs
+  straight into public/sprites/ under whatever name they already use.
+- Since filenames no longer match ids, each creatures.csv row now has
+  an explicit textureKey = exact filename (no .png). species.ts's
+  blank-textureKey-falls-back-to-id default still applies for any
+  FUTURE creature whose sprite happens to be saved as <id>.png.
+- BootScene.preload now encodeURIComponent()s the sprite path (spaces/
+  parens are invalid raw in a URL) while keeping the Phaser texture key
+  as the literal filename.
+- docs/CREATURES.md sprite gallery links updated to the real filenames
+  (percent-encoded for markdown/GitHub rendering).
+- STATUS: awaiting playtest confirming sprites still load correctly
+  with the space/paren filenames.
+
+----------------------------------------------------------------------
+[M1.5] 2026-07-06 - Real sprites + striped rope + western HUD
+----------------------------------------------------------------------
+- User uploaded 48 pixel-art sprites into "creature sprites/" (source
+  folder, keep) + re-uploaded old-schema CSV. Copied/renamed all
+  sprites to public/sprites/<id>.png (aquarix male=default + aquarix-f,
+  mega-bloomancer + mega-ramageddon staged unused; skipped stray
+  "Designer-pixel-snapper" file).
+- CSV restructured again to the M1.4 schema (type1/type2 + hp/attack/
+  defense/spAttack/spDefense/speed + attackPattern). Ramageddon name
+  finalized (no /Fleecifer). textureKey column now BLANK by default:
+  it falls back to the id, BootScene preloads public/sprites/<id>.png,
+  and scenes fall back to pl-unknown if the file is missing (loaderror
+  logged to console).
+- Striped lasso: dark outline pass + alternating light/dark bands every
+  14px of arclength (drawRopeStripes), knot upgraded. Rope palette
+  constants at top of CaptureScene.
+- Western pixel HUD: leather panels with stitched edges top+bottom,
+  HEALTH segments are wood-framed sockets with corner rivets; fill
+  stays RED with pixel bevel (highlight top / shade bottom). Capture
+  gauge frame matched to the same palette.
+- REMINDER told to user: upload the public/ folder (new) to GitHub.
+- STATUS: awaiting playtest with real art. Next: capture stats/behavior
+  tuning per creature in CSV, or M2/M3.
+
+----------------------------------------------------------------------
 [M1.4] 2026-07-06 - User's 45-creature dex + stats columns + scroll UI
 ----------------------------------------------------------------------
 - User added their 45 original creatures to creatures.csv on GitHub

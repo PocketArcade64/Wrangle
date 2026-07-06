@@ -47,7 +47,6 @@ const ATK_STYLES: AtkStyle[] = ['physical', 'special'];
 const DEFAULT_LOOPS = 3;
 const DEFAULT_BODY_RADIUS = 40;
 const DEFAULT_MOVE_SPEED = 100;
-const DEFAULT_TEXTURE = 'pl-unknown';
 
 /**
  * Creature data lives in creatures.csv - an Excel/Numbers/Sheets-editable
@@ -167,7 +166,10 @@ function buildSpecies(): SpeciesDef[] {
       ringMaxR: optNum(r, 'ringMaxR'),
       ringSpeed: optNum(r, 'ringSpeed'),
       dashIntervalMs: optNum(r, 'dashIntervalMs'),
-      textureKey: get(r, 'textureKey') || DEFAULT_TEXTURE,
+      // Blank textureKey defaults to the id: BootScene loads
+      // public/sprites/<id>.png, and scenes fall back to the mystery blob
+      // if that file doesn't exist yet.
+      textureKey: get(r, 'textureKey') || id,
       blurb: get(r, 'blurb')
     });
   }

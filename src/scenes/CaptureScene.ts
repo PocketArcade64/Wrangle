@@ -2,13 +2,19 @@ import Phaser from 'phaser';
 import { speciesById, SpeciesDef } from '../data/species';
 import { LassoLine } from '../capture/LassoLine';
 import { ArenaRect, CreatureActor } from '../capture/CreatureActor';
-import { distPointToSegment, pointInPolygon, Vec2 } from '../capture/geometry';
+import { dist, distPointToSegment, pointInPolygon, Vec2 } from '../capture/geometry';
 import { makeButton } from '../ui/button';
 
 // Tuning knobs for the capture mini-game live here.
 const MIN_POINT_DIST = 8;
 const LINE_WIDTH = 7;
 const HEALTH_SEGMENTS = 5; // health is whole bars; attacks remove whole bars
+
+// rope palette (striped like a real lasso)
+const ROPE_OUTLINE = 0x4a2f16;
+const ROPE_LIGHT = 0xdca85e;
+const ROPE_DARK = 0xa8722f;
+const ROPE_BAND_LEN = 14; // px of arclength per stripe
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
 const GAUGE_DECAY_DELAY_S = 4; // seconds without a loop before decay kicks in
 const GAUGE_DECAY_PER_S = 0.75; // loops' worth of gauge drained per second
@@ -42,7 +48,7 @@ export class CaptureScene extends Phaser.Scene {
 
   private gauge!: Phaser.GameObjects.Container;
   private gaugeFill!: Phaser.GameObjects.Rectangle;
-  private healthFills: Phaser.GameObjects.Rectangle[] = [];
+  private healthCells: Phaser.GameObjects.Container[] = [];
   private toast!: Phaser.GameObjects.Text;
   private toastTween?: Phaser.Tweens.Tween;
 
@@ -60,7 +66,7 @@ export class CaptureScene extends Phaser.Scene {
     this.decayCountdown = GAUGE_DECAY_DELAY_S;
     this.phase = 'active';
     this.telegraphing = false;
-    this.healthFills = [];
+    this.healthCells = [];
     this.toastTween = undefined;
   }
 
@@ -94,7 +100,8 @@ export class CaptureScene extends Phaser.Scene {
     };
 
     this.gfx = this.add.graphics().setDepth(1);
-    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, this.species.textureKey).setDepth(2);
+    const texKey = this.textures.exists(this.species.textureKey) ? this.species.textureKey : 'pl-unknown';
+    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, texKey).setDepth(2);
     this.alertText = this.add
       .text(0, 0, '!', { fontFamily: 'Silkscreen', fontSize: '44px', color: '#e01c1c' })
       .setOrigin(0.5)
@@ -102,7 +109,7 @@ export class CaptureScene extends Phaser.Scene {
       .setVisible(false);
 
     // Capture gauge that follows below the creature; each loop adds +10.
-    const gaugeBg = this.add.rectangle(0, 0, 124, 14, 0x1a0f08).setStrokeStyle(2, 0x3a2a1a);
+    const gaugeBg = this.add.rectangle(0, 0, 128, 16, 0x140a05).setStrokeStyle(3, 0x3a2415);
     this.gaugeFill = this.add.rectangle(-60, 0, 120, 10, 0xf4a340).setOrigin(0, 0.5);
     this.gauge = this.add.container(0, 0, [gaugeBg, this.gaugeFill]).setDepth(3);
 
@@ -311,15 +318,41 @@ export class CaptureScene extends Phaser.Scene {
     const pts = this.line.points;
     if (pts.length > 0) {
       if (pts.length > 1) {
-        this.gfx.lineStyle(LINE_WIDTH, 0xc98d4b, 1);
+        // dark outline pass, then alternating light/dark stripes along the
+        // rope's arclength for a twisted-lasso look
+        this.gfx.lineStyle(LINE_WIDTH + 4, ROPE_OUTLINE, 1);
         this.gfx.beginPath();
         this.gfx.moveTo(pts[0].x, pts[0].y);
         for (let i = 1; i < pts.length; i++) this.gfx.lineTo(pts[i].x, pts[i].y);
         this.gfx.strokePath();
+        this.drawRopeStripes(pts);
       }
       // knot at the anchor point
-      this.gfx.fillStyle(0x8a5a2b, 1);
-      this.gfx.fillCircle(pts[0].x, pts[0].y, 8);
+      this.gfx.fillStyle(ROPE_OUTLINE, 1);
+      this.gfx.fillCircle(pts[0].x, pts[0].y, 9);
+      this.gfx.fillStyle(ROPE_LIGHT, 1);
+      this.gfx.fillCircle(pts[0].x, pts[0].y, 5);
+    }
+  }
+
+  private drawRopeStripes(pts: readonly Vec2[]): void {
+    let arc = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      let a = pts[i];
+      const b = pts[i + 1];
+      let remaining = dist(a, b);
+      while (remaining > 0.5) {
+        const intoBand = arc % ROPE_BAND_LEN;
+        const step = Math.min(remaining, ROPE_BAND_LEN - intoBand);
+        const t = step / remaining;
+        const next = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        const light = Math.floor(arc / ROPE_BAND_LEN) % 2 === 0;
+        this.gfx.lineStyle(LINE_WIDTH, light ? ROPE_LIGHT : ROPE_DARK, 1);
+        this.gfx.lineBetween(a.x, a.y, next.x, next.y);
+        arc += step;
+        remaining -= step;
+        a = next;
+      }
     }
   }
 
@@ -327,33 +360,45 @@ export class CaptureScene extends Phaser.Scene {
 
   private buildHud(): void {
     const { width, height } = this.scale;
+    const g = this.add.graphics().setDepth(10);
 
-    // top strip: name + back
-    this.add.rectangle(width / 2, 50, width, 100, 0x2a1a10).setDepth(10);
+    // leather panels with stitched edges, top and bottom
+    this.drawLeatherPanel(g, 0, 0, width, 100);
+    this.drawLeatherPanel(g, 0, height - 120, width, 120);
+
     this.add
-      .text(30, 34, this.species.name, { fontFamily: 'Silkscreen', fontSize: '26px', color: '#ffffff' })
+      .text(30, 34, this.species.name, { fontFamily: 'Silkscreen', fontSize: '26px', color: '#ffe9c9' })
       .setDepth(11);
     makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect'), '16px').setDepth(11);
 
-    // bottom strip: segmented HEALTH bar
-    this.add.rectangle(width / 2, height - 60, width, 120, 0x2a1a10).setDepth(10);
+    // segmented HEALTH bar: dark wood frames with rivets, red fill w/ bevel
     this.add
-      .text(30, height - 68, 'HEALTH', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#c9b49a' })
+      .text(30, height - 70, 'HEALTH', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#e8d5b0' })
       .setDepth(11);
-    const segW = 92;
-    const gap = 8;
+    const segW = 84;
+    const gap = 10;
+    const cy = height - 60;
+    const x0 = 160;
     for (let i = 0; i < HEALTH_SEGMENTS; i++) {
-      const x = 150 + i * (segW + gap);
-      this.add
-        .rectangle(x, height - 60, segW, 24, 0x1a0f08)
-        .setOrigin(0, 0.5)
-        .setStrokeStyle(2, 0x5a3a22)
-        .setDepth(11);
-      const fill = this.add
-        .rectangle(x + 2, height - 60, segW - 4, 18, 0xe05c4a)
-        .setOrigin(0, 0.5)
-        .setDepth(11);
-      this.healthFills.push(fill);
+      const x = x0 + i * (segW + gap);
+      // frame
+      g.fillStyle(0x3a2415);
+      g.fillRect(x - 3, cy - 15, segW + 6, 30);
+      // empty socket
+      g.fillStyle(0x140a05);
+      g.fillRect(x, cy - 12, segW, 24);
+      // corner rivets
+      g.fillStyle(0xcfa96f);
+      g.fillRect(x - 3, cy - 15, 3, 3);
+      g.fillRect(x + segW, cy - 15, 3, 3);
+      g.fillRect(x - 3, cy + 12, 3, 3);
+      g.fillRect(x + segW, cy + 12, 3, 3);
+      // red fill with pixel bevel (kept red per design)
+      const fill = this.add.rectangle(x + 1, cy, segW - 2, 20, 0xd1342a).setOrigin(0, 0.5);
+      const shine = this.add.rectangle(x + 1, cy - 7, segW - 2, 4, 0xe86a55).setOrigin(0, 0.5);
+      const shade = this.add.rectangle(x + 1, cy + 8, segW - 2, 4, 0x8f1f18).setOrigin(0, 0.5);
+      const cell = this.add.container(0, 0, [fill, shine, shade]).setDepth(11);
+      this.healthCells.push(cell);
     }
 
     this.toast = this.add
@@ -367,9 +412,24 @@ export class CaptureScene extends Phaser.Scene {
       .setAlpha(0);
   }
 
+  private drawLeatherPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+    g.fillStyle(0x2a1a10);
+    g.fillRect(x, y, w, h);
+    g.fillStyle(0x40281a); // top edge highlight
+    g.fillRect(x, y, w, 4);
+    g.fillStyle(0x140905); // bottom edge shadow
+    g.fillRect(x, y + h - 4, w, 4);
+    // stitching
+    g.fillStyle(0x8a6a45);
+    for (let sx = x + 12; sx < x + w - 20; sx += 26) {
+      g.fillRect(sx, y + 9, 12, 3);
+      g.fillRect(sx, y + h - 12, 12, 3);
+    }
+  }
+
   private updateHud(): void {
-    for (let i = 0; i < this.healthFills.length; i++) {
-      this.healthFills[i].setVisible(i < this.health);
+    for (let i = 0; i < this.healthCells.length; i++) {
+      this.healthCells[i].setVisible(i < this.health);
     }
     this.gaugeFill.scaleX = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
   }
