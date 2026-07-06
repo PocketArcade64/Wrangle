@@ -10,20 +10,25 @@ export class TitleScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
 
-    this.add
-      .text(width / 2, height * 0.3, 'WRANGLE', {
-        fontFamily: FONT.display,
-        fontSize: '92px',
-        color: HEX.ink
-      })
-      .setOrigin(0.5)
-      .setLetterSpacing(4);
+    // the hand-made logo (216x107 pixel art, integer-scaled to stay crisp)
+    if (this.textures.exists('title-logo')) {
+      this.add.image(width / 2, height * 0.3, 'title-logo').setScale(2);
+    } else {
+      this.add
+        .text(width / 2, height * 0.3, 'WRANGLE', {
+          fontFamily: FONT.display,
+          fontSize: '92px',
+          color: HEX.ink
+        })
+        .setOrigin(0.5)
+        .setLetterSpacing(4);
+    }
 
     // single clay accent under the brand
-    this.add.rectangle(width / 2, height * 0.3 + 64, 250, 8, COLORS.clay);
+    this.add.rectangle(width / 2, height * 0.3 + 128, 250, 8, COLORS.clay);
 
     this.add
-      .text(width / 2, height * 0.3 + 110, "a frontier lasso-'em-up", {
+      .text(width / 2, height * 0.3 + 172, "a frontier lasso-'em-up", {
         fontFamily: FONT.ui,
         fontSize: '20px',
         color: HEX.saddle

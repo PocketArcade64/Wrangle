@@ -68,11 +68,18 @@ export class BountiesScene extends Phaser.Scene {
       this.drawPoster(px, py, posterW, 250, sp, most, BASE_REWARDS[i] * (most ? 2 : 1));
     });
 
+    this.add
+      .text(width / 2, boardY + boardH + 30, 'DAILY BOUNTIES POST AT SUNUP', {
+        fontFamily: FONT.ui,
+        fontSize: '16px',
+        color: HEX.sage
+      })
+      .setOrigin(0.5);
     this.countdown = this.add
-      .text(width / 2, boardY + boardH + 44, '', {
+      .text(width / 2, boardY + boardH + 62, '', {
         fontFamily: FONT.ui,
         fontSize: '17px',
-        color: HEX.sage
+        color: HEX.saddle
       })
       .setOrigin(0.5);
     this.updateCountdown();
@@ -104,18 +111,14 @@ export class BountiesScene extends Phaser.Scene {
     g.fillRect(x - 2, y - 2, w + 4, h + 4);
     g.fillStyle(COLORS.parchment);
     g.fillRect(x, y, w, h);
-    if (mostWanted) {
-      g.lineStyle(3, COLORS.wantedRed);
-      g.strokeRect(x + 5, y + 5, w - 10, h - 10);
-    }
     // nail
     g.fillStyle(COLORS.ink);
     g.fillRect(x + w / 2 - 3, y + 6, 6, 6);
 
     this.add
-      .text(x + w / 2, y + 34, mostWanted ? 'MOST\nWANTED' : 'WANTED', {
+      .text(x + w / 2, mostWanted ? y + 40 : y + 34, mostWanted ? 'MOST\nWANTED' : 'WANTED', {
         fontFamily: FONT.display,
-        fontSize: mostWanted ? '21px' : '26px',
+        fontSize: '26px',
         color: mostWanted ? HEX.wantedRed : HEX.ink,
         align: 'center'
       })
@@ -126,20 +129,23 @@ export class BountiesScene extends Phaser.Scene {
     this.add.image(x + w / 2, y + 122, key).setTintFill(COLORS.ink).setAlpha(0.85);
 
     this.add
-      .text(x + w / 2, y + 188, sp.name.toUpperCase(), {
+      .text(x + w / 2, y + 184, sp.name.toUpperCase(), {
         fontFamily: FONT.ui,
-        fontSize: '13px',
+        fontSize: '17px',
         color: HEX.ink
       })
       .setOrigin(0.5);
 
-    this.add.image(x + w / 2 - 38, y + 222, 'icon-coin').setTint(COLORS.brass).setScale(0.6);
-    this.add
-      .text(x + w / 2 - 16, y + 222, `${reward}`, {
-        fontFamily: FONT.ui,
-        fontSize: '16px',
-        color: HEX.brass
-      })
+    // reward row, centered as a unit under the name
+    const rewardTxt = this.add
+      .text(0, 0, `${reward}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.brass })
       .setOrigin(0, 0.5);
+    const coin = this.add.image(0, 0, 'icon-coin').setTint(COLORS.brass).setScale(0.6);
+    const coinW = 44 * 0.6;
+    const gapPx = 8;
+    const rowW = coinW + gapPx + rewardTxt.width;
+    coin.x = -rowW / 2 + coinW / 2;
+    rewardTxt.x = -rowW / 2 + coinW + gapPx;
+    this.add.container(x + w / 2, y + 222, [coin, rewardTxt]);
   }
 }

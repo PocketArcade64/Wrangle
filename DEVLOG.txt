@@ -5,6 +5,23 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2c] 2026-07-06 - Title logo + bounty poster polish
+----------------------------------------------------------------------
+- User uploaded their hand-made logo: public/sprites/"Wrangle
+  logo_216x107.png". BootScene loads it as 'title-logo'; TitleScene
+  shows it at 2x integer scale (crisp pixels), falls back to the
+  Pixelify text brand if the file is ever missing. Clay accent bar +
+  subtitle shifted below the logo.
+- Bounty board per feedback: restored the "DAILY BOUNTIES POST AT
+  SUNUP" flavor line (sage) with the live countdown below it (saddle);
+  MOST WANTED heading now same 26px as WANTED (still wantedRed, still
+  2x reward) and the red inner border is removed; creature name
+  enlarged 13px -> 17px; coin + reward number now centered as a
+  measured unit under the name (was left-hanging). WANTED size and
+  sprite size untouched.
+- STATUS: awaiting playtest of title + board.
+
+----------------------------------------------------------------------
 [M2b] 2026-07-06 - Daily bounties, MOST WANTED, herd/tally tabs
 ----------------------------------------------------------------------
 User feedback round (loved the shell + western display font):

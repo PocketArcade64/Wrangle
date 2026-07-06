@@ -25,6 +25,7 @@ export class BootScene extends Phaser.Scene {
       // Missing sprite file — scenes will show the mystery blob instead.
       console.warn(`Wrangle: no sprite found for "${file.key}" (${file.url})`);
     });
+    this.load.image('title-logo', `sprites/${encodeURIComponent('Wrangle logo_216x107')}.png`);
     for (const sp of SPECIES) {
       if (!sp.textureKey.startsWith('pl-')) {
         // Filenames can contain spaces/parens (as the user named them) -
