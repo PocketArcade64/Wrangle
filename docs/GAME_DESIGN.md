@@ -22,9 +22,11 @@ to an alternate dimension full of monsters — same lasso, wilder targets.
 
 Direct adaptation of the Pokémon Ranger loop mechanic:
 
-- Player drags to draw a continuous **capture line**. (A max rope-length
-  budget existed in early builds and may return later as an upgrade axis;
-  currently the line length is unlimited.)
+- Player drags to draw a continuous **capture line** with a max total
+  length on the field (starting budget ~1500px, sized after Almia's starting
+  styler: ~2.5 comfortable loops). The budget is **hidden — no meter is
+  shown**; running out snaps the line ("TOO MUCH ROPE!"). Closing a loop
+  refunds that loop's length. Line length is a lasso-upgrade axis later.
 - When the line crosses itself with the target enclosed, that's **one loop**,
   worth **+10 on the capture gauge** displayed under the creature; the gauge
   full = captured. Per Shadows of Almia: closing a loop consumes ONLY the
@@ -84,6 +86,45 @@ capture, power when low.
   spins of a worse-rewards wheel.
 - **Auction/marketplace**: shared player-to-player creature auctions
   (inspired by Virtual Pet Collector). Requires a real backend.
+
+## UI design system (canonical - src/ui/theme.ts)
+
+Sun-worn, screen-printed-poster look. Grounded in the frontier subject, not
+generic monster-collector UI.
+
+| Token | Hex | Role |
+|---|---|---|
+| parchment | #E8D9B5 | Base background - aged paper, never stark white |
+| saddle | #7A4A2B | Structural - frames, nav bar, borders |
+| clay | #C1652F | THE one accent - Explore CTA + active nav tab only |
+| sage | #7C8B6F | Calm secondary - stamina, passive UI |
+| dusk-denim | #3F5C6C | Cool counterpoint - water biome, special tint |
+| ink | #2B221A | Text |
+| brass | #B8912A | Currency ONLY - reserved so it stays meaningful |
+
+Hard rules:
+- **No rounded corners anywhere. No gradients. No glow.** Flat fills, square
+  pixels, hard-offset ink shadows for depth.
+- Exactly one saturated color (clay) so the eye knows what's actionable.
+- No red urgency numerals on stamina/timers (sage - running low isn't
+  failure). No gem-sparkle on brass counters.
+- No forced popups on launch: daily bonus is a badge dot on the satchel.
+
+Typography (two bitmap faces, never Press Start 2P):
+- Display: chunky branding-iron face for headers/logo. Pixelify Sans is the
+  stand-in until the custom bitmap face is drawn (M7 art pass).
+- UI/body: Silkscreen - tight pixel grid, legible small.
+
+Navigation: 5 tabs - Auction (gavel) / Critters (crate) / Home (house) /
+**Bounties** (sheriff star: the daily-quest wanted-poster board) / Player
+(hat). Flat single-color glyphs in saddle; active tab clay. All glyphs are
+custom pixel bitmaps (src/ui/icons.ts).
+
+Home screen: quiet status bar (brass currency, sage stamina pips, avatar) /
+**living diorama** - the signature element: a wood-framed postcard of the
+last-explored biome with the lead creature idle-animating and drifting dust
+motes; previews what Explore drops you into / single clay EXPLORE CTA /
+tucked satchel icon with badge / nav.
 
 ## Tech
 

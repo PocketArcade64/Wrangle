@@ -5,6 +5,73 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2a] 2026-07-06 - Full menu shell + design system
+----------------------------------------------------------------------
+User supplied a detailed design brief (captured in GAME_DESIGN.md "UI
+design system" section - treat it as CANON for all future UI):
+sun-worn poster palette (parchment/saddle/clay/sage/denim/ink/brass),
+clay = only accent (Explore CTA + active tab), brass = currency only,
+NO rounded corners / gradients / glow, two bitmap fonts (no Press
+Start 2P), "?" tab named BOUNTIES (wanted-poster daily quests).
+- NEW src/ui/theme.ts (tokens + drawPixelPanel), src/ui/icons.ts (7
+  custom pixel glyphs as bitmap strings -> white textures, tinted at
+  use), src/ui/nav.ts (5-tab persistent nav builder), restyled
+  button.ts (flat face + hard ink offset shadow, press = shift down).
+- NEW src/state/GameState.ts - localStorage save stub (currency 250,
+  stamina 4/4, dailyAvailable, leadCreatureId, biome).
+- NEW HomeScene: quiet status bar (brass coin count, sage stamina
+  pips, avatar square -> Player), LIVING DIORAMA (wood plank frame,
+  masked postcard: parchment sky, pixel sun, denim mesas, sand floor,
+  sage cacti, fence, lead creature bobbing w/ flat shadow, drifting
+  dust motes, biome nameplate), clay EXPLORE CTA (-> dex until M4
+  map), satchel icon + clay badge -> daily stub modal.
+- NEW stub scenes: BountiesScene (wooden board + 3 WANTED posters w/
+  ink-silhouette creatures + brass rewards), AuctionScene (market
+  wagon hasn't arrived), PlayerScene (portrait + stat rows).
+- Restyled TitleScene (-> Home) + CaptureSelectScene to palette; dex
+  is the Critters tab and the temporary Explore destination.
+- Fonts: added Pixelify Sans (display stand-in until custom
+  branding-iron face in M7); Silkscreen stays for UI/body.
+- Capture arena HUD intentionally NOT restyled yet (gameplay scope).
+- STATUS: playtest the shell feel; then wire real data (owned
+  critters, currency earn on capture) or start M3 battles.
+
+----------------------------------------------------------------------
+[M1.8] 2026-07-06 - Hidden rope budget restored (Almia-style)
+----------------------------------------------------------------------
+- Re-enabled the lasso max-length budget, but HIDDEN from the player
+  (no meter, per user direction). LINE_BUDGET = 1500px in
+  CaptureScene.ts, sized after Almia's starting styler: ~2.5
+  comfortable loops around a default 40px-radius creature (one loop
+  w/ margin ~ 565px circumference). Loop closure still refunds the
+  loop's length (LassoLine already supported budgets).
+- Overflow mid-draw snaps the line with the "TOO MUCH ROPE!" toast -
+  feedback without a meter, so players learn the feel like in Ranger.
+- Line length remains a planned lasso-upgrade axis (raise LINE_BUDGET).
+- STATUS: playtest question - does 1500 feel right on PECKSY-class
+  (flee) creatures once creatures get real behaviors?
+
+----------------------------------------------------------------------
+[M1.7] 2026-07-06 - HOTFIX: black screen = CSV column misalignment
+----------------------------------------------------------------------
+- User reported black screen on Mac. Verified their GitHub repo had all
+  files current (src/, public/sprites/ 48 files, ui/button.ts, latest
+  species.ts + BootScene). Root cause was in MY M1.6 creatures.csv:
+  header has 24 columns but every hand-written data row had only 23
+  fields (one comma short), shifting textureKey values like
+  "Herbifuzz_80x80" into the numeric dashIntervalMs column ->
+  buildSpecies() throws "not a number" at module load -> nothing ever
+  renders -> black screen.
+- Regenerated the CSV with a script (not by hand) and VERIFIED with awk
+  that all 46 lines have exactly 24 fields and values land in the right
+  columns.
+- LESSON (added to OPUS_TIPS): never hand-count CSV commas; generate
+  rows programmatically and verify field counts with awk before
+  shipping. A data file error crashes at module load = black screen
+  with no visible error unless the browser console is open.
+- STATUS: user to re-upload src/data/creatures.csv and re-test.
+
+----------------------------------------------------------------------
 [M1.6] 2026-07-06 - Sprites keep original filenames; source folder gone
 ----------------------------------------------------------------------
 - Per user request: public/sprites/ now holds files under their ORIGINAL

@@ -6,6 +6,11 @@ import { dist, distPointToSegment, pointInPolygon, Vec2 } from '../capture/geome
 import { makeButton } from '../ui/button';
 
 // Tuning knobs for the capture mini-game live here.
+// Hidden rope budget (no meter shown, per design): max total line length on
+// the field. ~2.5 comfortable loops around a default creature, mirroring
+// Almia's starting styler line. Closing a loop refunds its length; future
+// lasso upgrades raise this.
+const LINE_BUDGET = 1500;
 const MIN_POINT_DIST = 8;
 const LINE_WIDTH = 7;
 const HEALTH_SEGMENTS = 5; // health is whole bars; attacks remove whole bars
@@ -59,7 +64,7 @@ export class CaptureScene extends Phaser.Scene {
   init(data: { speciesId: string }): void {
     this.species = speciesById(data.speciesId);
     // Scene objects persist across restarts — reset all round state here.
-    this.line = new LassoLine(Number.POSITIVE_INFINITY);
+    this.line = new LassoLine(LINE_BUDGET);
     this.rings = [];
     this.health = HEALTH_SEGMENTS;
     this.gaugeProgress = 0;
@@ -155,6 +160,11 @@ export class CaptureScene extends Phaser.Scene {
       const px = Phaser.Math.Clamp(p.x, this.arena.left, this.arena.right);
       const py = Phaser.Math.Clamp(p.y, this.arena.top, this.arena.bottom);
       const res = this.line.extend({ x: px, y: py }, MIN_POINT_DIST);
+      if (res.overflow) {
+        // Ran out of rope (hidden budget) — the line snaps, Ranger-style.
+        this.breakLine('TOO MUCH ROPE!', false);
+        return;
+      }
       if (res.loop && pointInPolygon(this.creature.pos, res.loop)) {
         this.bankLoop();
       }

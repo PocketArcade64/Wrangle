@@ -4,6 +4,9 @@
 - [x] **M1 — Capture prototype**: lasso mini-game with 3 placeholder targets
       (graze / flee / charge+radial), rope budget, GRIT, stun anti-cheese.
       Feel-tuning happens here via playtest feedback.
+- [x] **M2a — Menu shell**: design system (palette/typography/pixel icons),
+      Home with living diorama + Explore CTA, 5-tab nav (Auction, Critters,
+      Home, Bounties, Player), stub screens, GameState save foundation.
 - [ ] **M2 — Capture polish**: more movement/attack patterns (projectile,
       lunge, sleep/teleport), lasso upgrade system, capture scoring.
 - [ ] **M3 — Battle levels**: Rumble-style auto-advance, 2 attack buttons,

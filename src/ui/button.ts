@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
+import { COLORS, FONT, HEX } from './theme';
 
+/**
+ * Flat pixel button: hard-offset ink shadow gives depth without gradients;
+ * pressing shifts the face down onto the shadow. Square corners only.
+ */
 export function makeButton(
   scene: Phaser.Scene,
   x: number,
@@ -8,18 +13,27 @@ export function makeButton(
   height: number,
   label: string,
   onClick: () => void,
-  fontSize = '20px'
+  fontSize = '20px',
+  bg: number = COLORS.saddle,
+  fg: string = HEX.parchment
 ): Phaser.GameObjects.Container {
-  const bg = scene.add.rectangle(0, 0, width, height, 0x5a3a22).setStrokeStyle(3, 0xf4a340);
+  const shadow = scene.add.rectangle(0, 4, width, height, COLORS.ink);
+  const face = scene.add.rectangle(0, 0, width, height, bg).setStrokeStyle(2, COLORS.ink);
   const txt = scene.add
-    .text(0, 0, label, { fontFamily: 'Silkscreen', fontSize, color: '#ffe9c9' })
+    .text(0, 0, label, { fontFamily: FONT.ui, fontSize, color: fg })
     .setOrigin(0.5);
-  const container = scene.add.container(x, y, [bg, txt]);
-  bg.setInteractive({ useHandCursor: true })
-    .on('pointerdown', () => container.setScale(0.95))
-    .on('pointerout', () => container.setScale(1))
+  const container = scene.add.container(x, y, [shadow, face, txt]);
+
+  const press = (down: boolean) => {
+    face.y = down ? 3 : 0;
+    txt.y = down ? 3 : 0;
+  };
+  face
+    .setInteractive({ useHandCursor: true })
+    .on('pointerdown', () => press(true))
+    .on('pointerout', () => press(false))
     .on('pointerup', () => {
-      container.setScale(1);
+      press(false);
       onClick();
     });
   return container;

@@ -41,6 +41,11 @@ WORK EFFICIENTLY
   Set-Content: PS 5.1 default encoding corrupts UTF-8 (em-dashes etc).
   Use the Read/Write/Edit tools for file content, always. Prefer plain
   ASCII hyphens in code comments to dodge the whole problem class.
+- NEVER hand-count CSV commas when writing creatures.csv rows -
+  generate rows with a script and verify with awk that every line has
+  the same field count as the header (awk -F',' '{print NF}' | sort |
+  uniq -c). A misaligned data file throws at module load and the user
+  sees only a BLACK SCREEN (the real error is in the browser console).
 - Batch related work into one iteration. Each user playtest cycle is
   expensive (manual GitHub upload + Mac pull), so ship coherent,
   complete milestones, not fragments.

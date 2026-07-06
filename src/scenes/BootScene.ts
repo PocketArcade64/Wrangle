@@ -43,7 +43,9 @@ export class BootScene extends Phaser.Scene {
 
     const fonts = Promise.all([
       document.fonts.load('16px Silkscreen'),
-      document.fonts.load('bold 16px Silkscreen')
+      document.fonts.load('bold 16px Silkscreen'),
+      document.fonts.load('16px "Pixelify Sans"'),
+      document.fonts.load('bold 16px "Pixelify Sans"')
     ]);
     const timeout = new Promise((resolve) => setTimeout(resolve, 1500));
     Promise.race([fonts, timeout])

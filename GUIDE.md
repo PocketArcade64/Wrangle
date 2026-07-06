@@ -16,14 +16,25 @@ npm run dev
 Open the printed `localhost` URL. Keep `npm run dev` running — after each
 `git pull`, Vite hot-reloads automatically.
 
-## Current build — M1 capture prototype
+## Current build — M2a menu shell + capture
 
-Title → **CRITTER DEX** (scrollable, drag up/down, tap a creature) → capture
-arena. The dex is driven entirely by
+Title → **HOME**: status bar (currency, stamina, avatar), the living diorama
+(lead creature idling in the last-explored biome), the clay **EXPLORE**
+button, satchel (daily bonus stub), and the 5-tab nav — Auction / Critters /
+Home / Bounties / Player. Auction, Bounties, and Player are themed
+placeholders; Critters (and Explore, until the map exists) opens the
+scrollable dex, where tapping a creature starts a capture attempt.
+
+The dex is driven entirely by
 [src/data/creatures.csv](src/data/creatures.csv) in row order — 45 original
-creatures with real pixel-art sprites loaded from `public/sprites/<id>.png`.
-Creatures whose capture-behavior columns are still blank get gentle defaults
-(grazing, 3 loops, no attacks) until their stats are filled in.
+creatures with real pixel-art sprites from `public/sprites/`. Creatures
+whose capture-behavior columns are still blank get gentle defaults (grazing,
+3 loops, no attacks) until their stats are filled in.
+
+Design tokens (palette, fonts, pixel-panel helpers) live in
+[src/ui/theme.ts](src/ui/theme.ts); custom pixel icons in
+[src/ui/icons.ts](src/ui/icons.ts); the design-system rules are documented
+in [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
 
 ### How to play
 
@@ -40,6 +51,9 @@ Creatures whose capture-behavior columns are still blank get gentle defaults
 - **Watch for the red `!`** — an attack is coming. If the burst hits your
   line, you lose HEALTH (the segmented bar at the bottom) *and* the gauge.
   All HEALTH segments empty = busted.
+- **The rope isn't endless** — there's a hidden max length (no meter shown).
+  Draw long sloppy tails and it snaps with "TOO MUCH ROPE!". Closing loops
+  refunds their length, so tight efficient circles are the skill.
 - Releasing the line just drops it — no penalty. After a break you must lift
   and press again to start a new line.
 

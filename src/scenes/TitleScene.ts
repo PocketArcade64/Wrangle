@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { FONT, HEX, COLORS } from '../ui/theme';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -7,29 +8,33 @@ export class TitleScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#2a1a10');
+    this.cameras.main.setBackgroundColor(HEX.parchment);
 
     this.add
-      .text(width / 2, height * 0.32, 'WRANGLE', {
-        fontFamily: 'Silkscreen',
-        fontSize: '72px',
-        color: '#f4a340'
+      .text(width / 2, height * 0.3, 'WRANGLE', {
+        fontFamily: FONT.display,
+        fontSize: '92px',
+        color: HEX.ink
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setLetterSpacing(4);
+
+    // single clay accent under the brand
+    this.add.rectangle(width / 2, height * 0.3 + 64, 250, 8, COLORS.clay);
 
     this.add
-      .text(width / 2, height * 0.32 + 70, "a lasso-'em-up", {
-        fontFamily: 'Silkscreen',
-        fontSize: '22px',
-        color: '#c98d4b'
+      .text(width / 2, height * 0.3 + 110, "a frontier lasso-'em-up", {
+        fontFamily: FONT.ui,
+        fontSize: '20px',
+        color: HEX.saddle
       })
       .setOrigin(0.5);
 
     const tap = this.add
       .text(width / 2, height * 0.62, 'TAP TO START', {
-        fontFamily: 'Silkscreen',
-        fontSize: '26px',
-        color: '#ffe9c9'
+        fontFamily: FONT.ui,
+        fontSize: '24px',
+        color: HEX.ink
       })
       .setOrigin(0.5);
     this.tweens.add({
@@ -41,13 +46,14 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.add
-      .text(width / 2, height - 40, 'capture prototype - m1', {
-        fontFamily: 'Silkscreen',
-        fontSize: '14px',
-        color: '#7a5a3a'
+      .text(width / 2, height - 40, 'menu shell - m2', {
+        fontFamily: FONT.ui,
+        fontSize: '13px',
+        color: HEX.saddle
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setAlpha(0.6);
 
-    this.input.once('pointerdown', () => this.scene.start('CaptureSelect'));
+    this.input.once('pointerdown', () => this.scene.start('Home'));
   }
 }
