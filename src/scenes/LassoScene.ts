@@ -3,7 +3,6 @@ import { gameState } from '../state/GameState';
 import { LASSO_UPGRADES, LassoUpgradeDef, upgradeCost } from '../data/lassoUpgrades';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
-import { makeButton } from '../ui/button';
 import { buildNav } from '../ui/nav';
 
 /**
@@ -93,16 +92,43 @@ export class LassoScene extends Phaser.Scene {
       return;
     }
 
-    const cost = upgradeCost(def, level);
-    makeButton(this, width - 130, y + 70, 160, 54, 'UPGRADE', () => this.buy(def), '16px');
-    this.add.image(width - 172, y + 124, 'icon-coin').setTint(COLORS.brass).setScale(0.55);
-    this.add
-      .text(width - 150, y + 124, `${cost}`, {
-        fontFamily: FONT.ui,
-        fontSize: '16px',
-        color: HEX.brass
-      })
+    this.makeUpgradeButton(width - 130, y + 88, upgradeCost(def, level), () => this.buy(def));
+  }
+
+  /** Flat pixel button with the coin cost inside it, under the label. */
+  private makeUpgradeButton(x: number, y: number, cost: number, onClick: () => void): void {
+    const w = 176;
+    const h = 76;
+    const shadow = this.add.rectangle(0, 4, w, h, COLORS.ink);
+    const face = this.add.rectangle(0, 0, w, h, COLORS.saddle).setStrokeStyle(2, COLORS.ink);
+    const label = this.add
+      .text(0, -16, 'UPGRADE', { fontFamily: FONT.ui, fontSize: '17px', color: HEX.parchment })
+      .setOrigin(0.5);
+    const costTxt = this.add
+      .text(0, 16, `${cost}`, { fontFamily: FONT.ui, fontSize: '15px', color: HEX.brass })
       .setOrigin(0, 0.5);
+    const coin = this.add.image(0, 16, 'icon-coin').setTint(COLORS.brass).setScale(0.5);
+    const coinW = 22;
+    const rowW = coinW + 6 + costTxt.width;
+    coin.x = -rowW / 2 + coinW / 2;
+    costTxt.x = -rowW / 2 + coinW + 6;
+    this.add.container(x, y, [shadow, face, label, coin, costTxt]);
+
+    const pressables = [face, label, coin, costTxt];
+    const baseYs = pressables.map((o) => o.y);
+    const press = (down: boolean) => {
+      pressables.forEach((o, i) => {
+        o.y = baseYs[i] + (down ? 3 : 0);
+      });
+    };
+    face
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => press(true))
+      .on('pointerout', () => press(false))
+      .on('pointerup', () => {
+        press(false);
+        onClick();
+      });
   }
 
   private buy(def: LassoUpgradeDef): void {

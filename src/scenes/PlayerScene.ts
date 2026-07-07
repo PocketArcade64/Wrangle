@@ -56,8 +56,7 @@ export class PlayerScene extends Phaser.Scene {
 
     // gear
     const lassoY = 380 + rows.length * 74 + 40;
-    this.add.image(width / 2 - 130, lassoY, 'icon-lasso').setTint(COLORS.saddle);
-    makeButton(this, width / 2 + 30, lassoY, 300, 64, 'UPGRADE LASSO', () =>
+    makeButton(this, width / 2, lassoY, 300, 64, 'UPGRADE LASSO', () =>
       this.scene.start('Lasso')
     );
 

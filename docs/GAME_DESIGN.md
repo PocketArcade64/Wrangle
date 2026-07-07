@@ -38,6 +38,12 @@ Direct adaptation of the Pokémon Ranger loop mechanic:
   target, the gauge drains quickly — sustained pressure is the skill, and
   releasing the line carries no penalty (this replaces the older
   stun-on-release anti-cheese).
+- **Hot-rope combo** (a la Almia): 5 consecutive loops without a
+  break/release heat the rope — loops are worth x1.5; 10 straight = x2.
+  Any line break or release cools it. Every banked loop pops a floating
+  number showing exactly how much it added.
+- Creatures keep ~48px clear of the arena walls so there is always room to
+  draw a loop around them.
 - **Body touch** on the line: line breaks, capture gauge empties, no HP
   loss. Annoying, not dangerous.
 - **Attacks**: creature telegraphs (cry + `!` above its head, ~0.8s), then

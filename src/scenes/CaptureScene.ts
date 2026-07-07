@@ -25,6 +25,12 @@ const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
 const GAUGE_W = 120; // inner fill width of the capture gauge
 const CAPTURE_REWARD = 25; // Dust paid out per successful wrangle
 
+// Consecutive-loop combo (a la Shadows of Almia): 5 straight loops heat the
+// rope to x1.5 gauge per loop, 10 straight = x2. Any break or release cools
+// it. Barely matters on 2-4 loop critters; decisive on high-loop ones.
+const COMBO_HOT_AT = 5;
+const COMBO_BLAZING_AT = 10;
+
 interface Ring {
   x: number;
   y: number;
@@ -52,6 +58,8 @@ export class CaptureScene extends Phaser.Scene {
   private decayDelayS = 4;
   private decayRatePerS = 0.75;
   private decayCountdown = 4;
+  /** Consecutive loops without a break/release. */
+  private streak = 0;
   private phase: 'active' | 'won' | 'lost' = 'active';
   private telegraphing = false;
 
@@ -77,6 +85,7 @@ export class CaptureScene extends Phaser.Scene {
     this.health = this.healthMax;
     this.gaugeProgress = 0;
     this.decayCountdown = this.decayDelayS;
+    this.streak = 0;
     this.phase = 'active';
     this.telegraphing = false;
     this.healthCells = [];
@@ -193,18 +202,27 @@ export class CaptureScene extends Phaser.Scene {
       }
     });
 
-    // Releasing simply drops the line — the pressure comes from gauge decay.
+    // Releasing simply drops the line — the pressure comes from gauge decay
+    // (and the hot-rope streak cools off).
     this.input.on('pointerup', () => {
-      if (this.phase === 'active') this.line.clear();
+      if (this.phase === 'active') {
+        this.line.clear();
+        this.streak = 0;
+      }
     });
   }
 
   // ---------- capture logic ----------
 
   private bankLoop(): void {
-    this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + 1);
+    // hot-rope combo multiplier applies to loops AFTER the streak threshold
+    const mult = this.streak >= COMBO_BLAZING_AT ? 2 : this.streak >= COMBO_HOT_AT ? 1.5 : 1;
+    this.streak++;
+    this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + mult);
     this.decayCountdown = this.decayDelayS;
-    this.popGaugeGain();
+    this.popGaugeGain(Math.round(GAUGE_PER_LOOP * mult), mult > 1);
+    if (this.streak === COMBO_HOT_AT) this.showToast("ROPE'S RED HOT! x1.5", '#f4a340');
+    if (this.streak === COMBO_BLAZING_AT) this.showToast('BLAZING ROPE! x2', '#e05c4a');
     this.creatureImg.setScale(1.15);
     this.tweens.add({ targets: this.creatureImg, scale: 1, duration: 150 });
     if (this.gaugeProgress >= this.species.requiredLoops - 1e-9) {
@@ -220,12 +238,13 @@ export class CaptureScene extends Phaser.Scene {
     }
   }
 
-  private popGaugeGain(): void {
+  /** Floating number over the critter: how much this loop added. */
+  private popGaugeGain(amount: number, hot: boolean): void {
     const t = this.add
-      .text(this.creature.pos.x, this.creature.pos.y - this.creature.radius - 60, `+${GAUGE_PER_LOOP}`, {
+      .text(this.creature.pos.x, this.creature.pos.y - this.creature.radius - 60, `+${amount}`, {
         fontFamily: 'Silkscreen',
-        fontSize: '30px',
-        color: '#f4a340'
+        fontSize: hot ? '36px' : '30px',
+        color: hot ? '#e05c4a' : '#f4a340'
       })
       .setOrigin(0.5)
       .setDepth(12);
@@ -282,6 +301,7 @@ export class CaptureScene extends Phaser.Scene {
 
   private breakLine(msg: string, isAttack: boolean): void {
     this.line.clear();
+    this.streak = 0;
     this.showToast(msg, isAttack ? '#e05c4a' : '#ffe9c9');
   }
 
@@ -433,35 +453,41 @@ export class CaptureScene extends Phaser.Scene {
       .setDepth(11);
     makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'tally' }), '16px').setDepth(11);
 
-    // segmented HEALTH bar: dark wood frames with rivets, red fill w/ bevel
+    // HEALTH as a bandolier: leather strap with red cartridge shells in
+    // loops. Losing a bar = an empty loop. Layout adapts to GRIT bar count.
     this.add
       .text(30, height - 70, 'HEALTH', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#e8d5b0' })
       .setDepth(11);
-    // segment layout adapts to the GRIT upgrade's bar count
-    const gap = 10;
     const cy = height - 60;
-    const x0 = 160;
-    const segW = Math.floor((width - x0 - 30 - gap * (this.healthMax - 1)) / this.healthMax);
+    const x0 = 170;
+    const slotW = Math.min(64, Math.floor((width - x0 - 40) / this.healthMax));
+    const shellW = 22;
+    const shellH = 38;
+    const strapW = slotW * (this.healthMax - 1) + shellW + 36;
+    // the strap itself
+    g.fillStyle(0x140905);
+    g.fillRect(x0 - 20, cy - 8, strapW, 20);
+    g.fillStyle(0x40281a);
+    g.fillRect(x0 - 20, cy - 10, strapW, 20);
+    const gOver = this.add.graphics().setDepth(12);
     for (let i = 0; i < this.healthMax; i++) {
-      const x = x0 + i * (segW + gap);
-      // frame
-      g.fillStyle(0x3a2415);
-      g.fillRect(x - 3, cy - 15, segW + 6, 30);
-      // empty socket
+      const x = x0 + i * slotW; // shell center
+      // socket behind the shell (shows when the shell is gone)
       g.fillStyle(0x140a05);
-      g.fillRect(x, cy - 12, segW, 24);
-      // corner rivets
-      g.fillStyle(0xcfa96f);
-      g.fillRect(x - 3, cy - 15, 3, 3);
-      g.fillRect(x + segW, cy - 15, 3, 3);
-      g.fillRect(x - 3, cy + 12, 3, 3);
-      g.fillRect(x + segW, cy + 12, 3, 3);
-      // red fill with pixel bevel (kept red per design)
-      const fill = this.add.rectangle(x + 1, cy, segW - 2, 20, 0xd1342a).setOrigin(0, 0.5);
-      const shine = this.add.rectangle(x + 1, cy - 7, segW - 2, 4, 0xe86a55).setOrigin(0, 0.5);
-      const shade = this.add.rectangle(x + 1, cy + 8, segW - 2, 4, 0x8f1f18).setOrigin(0, 0.5);
-      const cell = this.add.container(0, 0, [fill, shine, shade]).setDepth(11);
+      g.fillRect(x - shellW / 2, cy - shellH / 2, shellW, shellH);
+      // red cartridge shell (kept red per design), square pixel shapes
+      const tip = this.add.rectangle(x, cy - shellH / 2 + 4, 14, 8, 0xe86a55);
+      const body = this.add.rectangle(x, cy - 1, shellW - 2, 18, 0xd1342a);
+      const edge = this.add.rectangle(x - shellW / 2 + 3, cy - 1, 4, 18, 0xe86a55);
+      const base = this.add.rectangle(x, cy + shellH / 2 - 5, shellW - 2, 10, 0x8f1f18);
+      const cell = this.add.container(0, 0, [tip, body, edge, base]).setDepth(11);
       this.healthCells.push(cell);
+      // belt loop over the shell (always visible, holds the empty socket too)
+      gOver.fillStyle(0x5c3720);
+      gOver.fillRect(x - shellW / 2 - 4, cy - 4, shellW + 8, 12);
+      gOver.fillStyle(0x8a6a45);
+      gOver.fillRect(x - shellW / 2 - 2, cy, 3, 3);
+      gOver.fillRect(x + shellW / 2 - 1, cy, 3, 3);
     }
 
     this.toast = this.add
@@ -494,7 +520,7 @@ export class CaptureScene extends Phaser.Scene {
     for (let i = 0; i < this.healthCells.length; i++) {
       this.healthCells[i].setVisible(i < this.health);
     }
-    // gauge fill drawn as coiled rope: tan bar with dark twist ticks
+    // gauge fill: solid rope-tan bar (no segmentation)
     const frac = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
     const fillW = Math.round(GAUGE_W * frac);
     const g = this.gaugeFillG;
@@ -502,10 +528,6 @@ export class CaptureScene extends Phaser.Scene {
     if (fillW > 0) {
       g.fillStyle(ROPE_BASE);
       g.fillRect(-GAUGE_W / 2, -5, fillW, 10);
-      g.fillStyle(ROPE_TICK);
-      for (let tx = 8; tx < fillW - 2; tx += 12) {
-        g.fillRect(-GAUGE_W / 2 + tx, -5, 3, 10);
-      }
     }
   }
 

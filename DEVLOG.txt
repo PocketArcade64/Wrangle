@@ -5,6 +5,32 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2e] 2026-07-07 - Bandolier health, combo loops, edge fix, UI nits
+----------------------------------------------------------------------
+- HEALTH bar redesigned as a BANDOLIER: leather strap across the
+  bottom HUD, each health bar is a red pixel cartridge shell sitting
+  in a belt loop (loop + dark socket stay visible when the shell is
+  spent). Layout still adapts to the GRIT upgrade bar count. HP stays
+  red per design rules.
+- Capture gauge fill is now a SOLID tan bar (user asked to remove the
+  tick segmentation added in M2d).
+- HOT-ROPE COMBO (Almia-style, balanced): 5 consecutive loops without
+  a break/release -> loops worth x1.5 ("ROPE'S RED HOT!"); 10 -> x2
+  ("BLAZING ROPE!"). Streak resets on any break (body/attack/
+  overflow) or release. Negligible on 2-4 loop critters, decisive for
+  future high-loop/legendary captures. Knobs: COMBO_HOT_AT /
+  COMBO_BLAZING_AT in CaptureScene.
+- Every loop pops a floating +N over the critter showing the actual
+  gauge amount added (bigger + hot color when combo is active).
+- FIXED un-lassoable edge case: creatures now keep 48px clear of the
+  arena walls (EDGE_MARGIN in CreatureActor - clamp + roam targets)
+  so there is always room to draw around them.
+- PlayerScene: removed the stray floating lasso icon next to UPGRADE
+  LASSO (button recentered). LassoScene: coin + cost now rendered
+  INSIDE each UPGRADE button (custom two-line pixel button).
+- STATUS: playtest combo feel + bandolier readability.
+
+----------------------------------------------------------------------
 [M2d] 2026-07-07 - Lasso upgrade menu + logo-matched rope + gauge
 ----------------------------------------------------------------------
 - NEW src/data/lassoUpgrades.ts: single source of truth for upgrade

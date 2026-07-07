@@ -16,6 +16,10 @@ export interface ArenaRect {
 
 type State = 'idle' | 'roam' | 'telegraph' | 'recover';
 
+// Keep creatures well clear of the arena walls so there is always room to
+// draw a loop around them (a body flush against the edge is un-lassoable).
+const EDGE_MARGIN = 48;
+
 /**
  * Movement + attack brain for a capture target. Pure logic — the scene owns
  * rendering, hazards, and HP. Scene subscribes via onTelegraph/onAttack.
@@ -142,7 +146,7 @@ export class CreatureActor {
   }
 
   private pickTarget(): void {
-    const inset = this.radius + 10;
+    const inset = this.radius + EDGE_MARGIN;
     this.target = {
       x: this.arena.left + inset + Math.random() * (this.arena.right - this.arena.left - inset * 2),
       y: this.arena.top + inset + Math.random() * (this.arena.bottom - this.arena.top - inset * 2)
@@ -150,7 +154,7 @@ export class CreatureActor {
   }
 
   private clampPoint(p: Vec2): Vec2 {
-    const inset = this.radius + 6;
+    const inset = this.radius + EDGE_MARGIN;
     return {
       x: clamp(p.x, this.arena.left + inset, this.arena.right - inset),
       y: clamp(p.y, this.arena.top + inset, this.arena.bottom - inset)
