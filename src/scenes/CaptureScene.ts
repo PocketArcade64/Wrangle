@@ -94,6 +94,9 @@ export class CaptureScene extends Phaser.Scene {
 
   create(): void {
     ensureIcons(this);
+    // this encounter counts as "seen" in the Frontier Ledger
+    gameState.data.seen[this.species.id] = (gameState.data.seen[this.species.id] ?? 0) + 1;
+    gameState.save();
     const { width, height } = this.scale;
     this.arena = { left: 30, top: 120, right: width - 30, bottom: height - 140 };
     this.cameras.main.setBackgroundColor('#d9a066');
@@ -265,7 +268,8 @@ export class CaptureScene extends Phaser.Scene {
     const hitDist = this.creature.radius + LINE_WIDTH;
     for (let i = 0; i < pts.length - 1; i++) {
       if (distPointToSegment(this.creature.pos, pts[i], pts[i + 1]) <= hitDist) {
-        this.gaugeProgress = 0;
+        // body snaps the rope (and cools the streak) but capture progress
+        // is kept - only attacks empty the gauge
         this.breakLine('SNAPPED!', false);
         return;
       }

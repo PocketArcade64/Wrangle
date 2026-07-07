@@ -99,6 +99,19 @@ const ICONS: Record<string, string[]> = {
     '......X....',
     '.....XX....'
   ],
+  'icon-x': [
+    'XX.......XX',
+    'XXX.....XXX',
+    '.XXX...XXX.',
+    '..XXX.XXX..',
+    '...XXXXX...',
+    '....XXX....',
+    '...XXXXX...',
+    '..XXX.XXX..',
+    '.XXX...XXX.',
+    'XXX.....XXX',
+    'XX.......XX'
+  ],
   'icon-coin': [
     '...XXXXX...',
     '..XXXXXXX..',

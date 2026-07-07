@@ -97,10 +97,9 @@ export class CaptureSelectScene extends Phaser.Scene {
     bar.fillStyle(COLORS.saddle);
     bar.fillRect(0, TOP_BAR_H - 4, width, 4);
 
-    const caught = new Set(gameState.data.herd).size;
     this.makeTab(width / 2 - 236, 'POSSES', 'posses');
     this.makeTab(width / 2, `HERD (${herdCount})`, 'herd');
-    this.makeTab(width / 2 + 236, `LEDGER ${caught}/${SPECIES.length}`, 'tally');
+    this.makeTab(width / 2 + 236, 'FRONTIER LEDGER', 'tally');
   }
 
   private makeTab(x: number, label: string, tab: CritterTab): void {
@@ -112,7 +111,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     this.add
       .text(x, TOP_BAR_H / 2, label, {
         fontFamily: FONT.ui,
-        fontSize: '18px',
+        fontSize: '17px',
         color: active ? HEX.ink : HEX.saddle
       })
       .setOrigin(0.5)
@@ -168,24 +167,35 @@ export class CaptureSelectScene extends Phaser.Scene {
   }
 
   private makeCell(sp: SpeciesDef, index: number, x: number, y: number): void {
-    const known = this.activeTab !== 'tally' || this.captureCount(sp.id) > 0;
+    const caught = this.captureCount(sp.id) > 0;
+    const seen = (gameState.data.seen[sp.id] ?? 0) > 0;
+    // dex convention: seen reveals sprite + name; caught reveals details
+    const revealed = this.activeTab !== 'tally' || caught || seen;
     const bg = this.add
       .rectangle(x, y, CELL_W - 16, CELL_H - 16, COLORS.parchmentLight)
       .setStrokeStyle(3, COLORS.saddle);
-    const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-    const img = this.add.image(x, y - 42, texKey).setScale(1.45);
-    if (!known) img.setTintFill(COLORS.ink).setAlpha(0.8);
     const numLabel =
       this.activeTab === 'tally'
         ? `#${String(SPECIES.indexOf(sp) + 1).padStart(3, '0')}`
         : `#${index + 1}`;
-    const num = this.add.text(x - (CELL_W - 16) / 2 + 8, y - (CELL_H - 16) / 2 + 6, numLabel, {
+    const cellTop = y - (CELL_H - 16) / 2;
+    const num = this.add.text(x - (CELL_W - 16) / 2 + 8, cellTop + 6, numLabel, {
       fontFamily: FONT.ui,
       fontSize: '18px',
       color: HEX.saddle
     });
+    // sprite fills the band between the dex number and the name, with a
+    // little room above and below
+    const numBottom = cellTop + 28;
+    const nameTop = y + 46;
+    const band = nameTop - numBottom;
+    const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
+    const img = this.add
+      .image(x, numBottom + band / 2, texKey)
+      .setDisplaySize(band - 24, band - 24);
+    if (!revealed) img.setTintFill(COLORS.ink).setAlpha(0.8);
     const name = this.add
-      .text(x, y + 46, known ? sp.name : '???', {
+      .text(x, nameTop, revealed ? sp.name : '???', {
         fontFamily: FONT.ui,
         fontSize: '22px',
         color: HEX.ink,
@@ -193,7 +203,8 @@ export class CaptureSelectScene extends Phaser.Scene {
         wordWrap: { width: CELL_W - 24 }
       })
       .setOrigin(0.5, 0);
-    const typeLabel = known ? [sp.type1, sp.type2].filter(Boolean).join('/') : '???';
+    const typeLabel =
+      this.activeTab !== 'tally' || caught ? [sp.type1, sp.type2].filter(Boolean).join('/') : '???';
     const types = this.add
       .text(x, y + (CELL_H - 16) / 2 - 26, typeLabel, {
         fontFamily: FONT.ui,
@@ -219,18 +230,26 @@ export class CaptureSelectScene extends Phaser.Scene {
       const py = TOP_BAR_H + 34 + ti * 204;
       const g = this.add.graphics();
       drawPixelPanel(g, 40, py, width - 80, 186, COLORS.parchmentLight, COLORS.saddle);
-      this.add.text(70, py + 20, team.name, {
+      // name - tap to rename (underline hints it's editable)
+      const nameTxt = this.add.text(70, py + 20, team.name, {
         fontFamily: FONT.display,
         fontSize: '24px',
         color: HEX.ink
       });
+      g.fillStyle(COLORS.saddle);
+      g.fillRect(70, py + 50, Math.max(60, nameTxt.width), 2);
+      nameTxt.setInteractive({ useHandCursor: true }).on('pointerup', () => this.renamePosse(ti));
       if (ti === gameState.data.activeTeam) {
         this.add
-          .text(width - 70, py + 24, 'ACTIVE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.clay })
+          .text(width - 116, py + 26, 'ACTIVE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.clay })
           .setOrigin(1, 0);
       }
+      // delete (min one posse always remains)
+      const del = this.add.image(width - 78, py + 34, 'icon-x').setTint(COLORS.saddle).setScale(0.7);
+      del.setInteractive({ useHandCursor: true }).on('pointerup', () => this.deletePosse(ti));
+      // three slots, evenly spaced across the panel
       for (let si = 0; si < 3; si++) {
-        this.makeSlot(team.members[si], ti, si, 128 + si * 132, py + 118);
+        this.makeSlot(team.members[si], ti, si, width / 2 + (si - 1) * 200, py + 118);
       }
     });
 
@@ -243,6 +262,30 @@ export class CaptureSelectScene extends Phaser.Scene {
     }
   }
 
+  private renamePosse(ti: number): void {
+    const team = gameState.data.teams[ti];
+    const entered = window.prompt('Name this posse:', team.name);
+    if (entered === null) return;
+    const cleaned = entered.trim().toUpperCase().slice(0, 14);
+    if (cleaned.length === 0) return;
+    team.name = cleaned;
+    gameState.save();
+    this.scene.restart({ tab: 'posses' });
+  }
+
+  private deletePosse(ti: number): void {
+    const teams = gameState.data.teams;
+    if (teams.length <= 1) {
+      this.showTempMsg('A DRIFTER NEEDS AT LEAST ONE POSSE');
+      return;
+    }
+    teams.splice(ti, 1);
+    if (gameState.data.activeTeam >= teams.length) gameState.data.activeTeam = teams.length - 1;
+    else if (gameState.data.activeTeam > ti) gameState.data.activeTeam--;
+    gameState.save();
+    this.scene.restart({ tab: 'posses' });
+  }
+
   private makeSlot(memberId: string | null, ti: number, si: number, x: number, y: number): void {
     const slot = this.add
       .rectangle(x, y, 108, 108, COLORS.parchmentDark)
@@ -250,7 +293,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     if (memberId) {
       const sp = SPECIES.find((s) => s.id === memberId);
       const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-      this.add.image(x, y, texKey).setScale(1.15);
+      this.add.image(x, y, texKey).setDisplaySize(92, 92);
     } else {
       this.add
         .text(x, y, '+', { fontFamily: FONT.display, fontSize: '40px', color: HEX.saddle })

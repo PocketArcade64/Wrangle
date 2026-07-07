@@ -5,6 +5,30 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3b] 2026-07-07 - Snap keeps progress, seen tracking, posse mgmt
+----------------------------------------------------------------------
+- Body-snap ("SNAPPED!") no longer resets the capture gauge - only
+  ATTACK hits empty it. Snap still breaks the line + cools the streak.
+- Ledger tab renamed plain "FRONTIER LEDGER" (progress fraction
+  removed); tab labels 17px.
+- NEW seen tracking: gameState.seen[speciesId] increments whenever a
+  capture attempt starts. Ledger pages now show SEEN and WRANGLED
+  (tally marks) counts. Dex convention: SEEN reveals sprite + name in
+  grid and page; CAUGHT reveals types/entry/weaknesses/stats.
+- Grid cells: sprite now fills the band between dex number and name
+  (setDisplaySize on the band minus margins, centered) - bigger icons,
+  even spacing, and fixes 100px sprites overflowing cells.
+- POSSES: 3 slots now evenly spaced across the panel (were left-
+  clustered); NEW delete button (pixel X icon, top right) with min-1-
+  posse guard + activeTeam reindexing; tap the posse NAME (underlined)
+  to rename via prompt (trimmed/uppercased/max 14 chars).
+- Home carousel: member boxes were off-center and clipping the card's
+  right edge - slots now centered in the card (x-140/x/x+140) with
+  sprites setDisplaySize(84).
+- STATUS: playtest. NOTE window.prompt for rename is functional but
+  not pixel-styled; a custom name-entry panel is a polish candidate.
+
+----------------------------------------------------------------------
 [M3a] 2026-07-07 - Frontier Ledger, Posses, home carousel, font pass
 ----------------------------------------------------------------------
 - Removed the "RED HOT"/"BLAZING" combo toasts (numbers carry it now).

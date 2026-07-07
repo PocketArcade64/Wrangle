@@ -60,15 +60,17 @@ export class LedgerScene extends Phaser.Scene {
     const g = this.add.graphics();
     drawPixelPanel(g, pgX, pgY, pgW, pgH, COLORS.parchmentLight, COLORS.saddle);
 
-    // portrait plate
+    // portrait plate - seen reveals the sprite and name, dex-style
+    const seenN = gameState.data.seen[sp.id] ?? 0;
+    const revealed = count > 0 || seenN > 0;
     drawPixelPanel(g, pgX + 24, pgY + 24, 184, 184, COLORS.parchment, COLORS.saddleDark, 4);
     const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
     const portrait = this.add.image(pgX + 116, pgY + 116, texKey).setScale(1.7);
-    if (count === 0) portrait.setTintFill(COLORS.ink).setAlpha(0.85);
+    if (!revealed) portrait.setTintFill(COLORS.ink).setAlpha(0.85);
 
-    // name, types, tally
+    // name, types, seen/wrangled record
     const nx = pgX + 238;
-    this.add.text(nx, pgY + 28, count > 0 ? sp.name.toUpperCase() : '???', {
+    this.add.text(nx, pgY + 28, revealed ? sp.name.toUpperCase() : '???', {
       fontFamily: FONT.display,
       fontSize: '34px',
       color: HEX.ink
@@ -82,8 +84,11 @@ export class LedgerScene extends Phaser.Scene {
     } else {
       this.add.text(nx, pgY + 92, 'TYPE UNKNOWN', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage });
     }
-    this.add.text(nx, pgY + 148, 'WRANGLED', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    this.drawTally(g, nx, pgY + 176, count);
+    this.add.text(nx, pgY + 144, 'SEEN', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+    this.add
+      .text(nx + 100, pgY + 141, `${seenN}`, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.ink });
+    this.add.text(nx, pgY + 180, 'WRANGLED', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+    this.drawTally(g, nx + 130, pgY + 176, count);
 
     // ruled sections, revealed by capture count
     const entry =
@@ -142,7 +147,7 @@ export class LedgerScene extends Phaser.Scene {
       }
     }
     this.add
-      .text(x + 220, y + 13, `${count}`, { fontFamily: FONT.ui, fontSize: '22px', color: HEX.ink })
+      .text(x + 178, y + 13, `${count}`, { fontFamily: FONT.ui, fontSize: '22px', color: HEX.ink })
       .setOrigin(0, 0.5);
   }
 

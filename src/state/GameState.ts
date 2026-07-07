@@ -7,6 +7,8 @@ export interface WrangleSave {
   biome: string;
   /** Species ids of wrangled critters, in capture order (dupes allowed). */
   herd: string[];
+  /** Encounter counts per species id (incremented when a capture starts). */
+  seen: Record<string, number>;
   /** Lasso upgrade levels (definitions in src/data/lassoUpgrades.ts). */
   lasso: { rope: number; grit: number; charge: number };
   /** Posses: teams of up to 3 critters (species ids, null = empty slot). */
@@ -25,6 +27,7 @@ const DEFAULTS: WrangleSave = {
   leadCreatureId: 'herbifuzz',
   biome: 'DUSTY FLATS',
   herd: [],
+  seen: {},
   lasso: { rope: 0, grit: 0, charge: 0 },
   teams: [{ name: 'POSSE 1', members: [null, null, null] }],
   activeTeam: 0

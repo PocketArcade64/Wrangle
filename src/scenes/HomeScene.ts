@@ -322,19 +322,20 @@ export class HomeScene extends Phaser.Scene {
     });
     this.carousel.add(nameT);
 
+    // three slots centered as a row within the card
     for (let s = 0; s < 3; s++) {
-      const sx = x + 40 + s * 118;
-      const slot = this.add.rectangle(sx, cy + 8, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
+      const sx = x + (s - 1) * 140;
+      const slot = this.add.rectangle(sx, cy + 14, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
       this.carousel.add(slot);
       const memberId = team.members[s];
       if (memberId) {
         const sp = SPECIES.find((c) => c.id === memberId);
         const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-        const img = this.add.image(sx, cy + 8, texKey);
+        const img = this.add.image(sx, cy + 14, texKey).setDisplaySize(84, 84);
         this.carousel.add(img);
       } else {
         const plus = this.add
-          .text(sx, cy + 8, '+', { fontFamily: FONT.display, fontSize: '34px', color: HEX.saddle })
+          .text(sx, cy + 14, '+', { fontFamily: FONT.display, fontSize: '34px', color: HEX.saddle })
           .setOrigin(0.5);
         this.carousel.add(plus);
       }
