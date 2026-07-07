@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { gameState } from '../state/GameState';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
+import { makeButton } from '../ui/button';
 import { buildNav } from '../ui/nav';
 
 /** Player profile placeholder - stats fill in as the systems come online. */
@@ -52,6 +53,13 @@ export class PlayerScene extends Phaser.Scene {
         .text(width - 84, ry + 29, value, { fontFamily: FONT.ui, fontSize: '19px', color })
         .setOrigin(1, 0.5);
     });
+
+    // gear
+    const lassoY = 380 + rows.length * 74 + 40;
+    this.add.image(width / 2 - 130, lassoY, 'icon-lasso').setTint(COLORS.saddle);
+    makeButton(this, width / 2 + 30, lassoY, 300, 64, 'UPGRADE LASSO', () =>
+      this.scene.start('Lasso')
+    );
 
     buildNav(this, 'player');
   }

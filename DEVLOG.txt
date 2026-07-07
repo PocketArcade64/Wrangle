@@ -5,6 +5,32 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2d] 2026-07-07 - Lasso upgrade menu + logo-matched rope + gauge
+----------------------------------------------------------------------
+- NEW src/data/lassoUpgrades.ts: single source of truth for upgrade
+  defs/costs/effects. ROPE LENGTH (max 5, +150px budget/lvl), GRIT
+  (max 3, +1 health bar/lvl), CHARGE (max 5, +0.6s decay grace and
+  -8% drain/lvl - user asked "add a charge upgrade": with our
+  decay-based gauge, charge = the gauge holds its charge longer).
+  Cost of level n->n+1 = baseCost * (n+1). Levels persist in
+  gameState.data.lasso.
+- NEW LassoScene ("THE LASSO"): Dust balance, one pixel panel per
+  stat with desc, level pips, UPGRADE button + brass cost; NOT ENOUGH
+  DUST feedback; MAXED state. Entry: Player tab -> UPGRADE LASSO
+  button (lasso icon alongside). Registered in main.ts.
+- CaptureScene now derives budget/health-bars/decay from upgrade
+  levels (health bar layout sizes itself to the bar count).
+- Rope rendering rematched to the user's hand-drawn logo (viewed the
+  PNG: solid tan rope, dark twist ticks, wrapped knots): outline +
+  solid ROPE_BASE 0xd29a55 + slanted ROPE_TICK dashes every 13px,
+  knot with a dark wrap bar. Replaced the alternating band look.
+- Capture gauge under the creature restyled western: ink outline,
+  wood frame w/ corner rivets, dark socket, and the fill drawn as
+  coiled rope (tan with dark ticks) instead of a plain orange bar.
+- STATUS: playtest upgrades loop (capture -> Dust -> upgrade ->
+  easier capture). Balance knobs all in lassoUpgrades.ts.
+
+----------------------------------------------------------------------
 [M2c] 2026-07-06 - Title logo + bounty poster polish
 ----------------------------------------------------------------------
 - User uploaded their hand-made logo: public/sprites/"Wrangle

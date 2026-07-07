@@ -49,12 +49,18 @@ Direct adaptation of the Pokémon Ranger loop mechanic:
   teleport/counter, sleeping) and **attack pattern**; difficulty is tuned by
   pattern speed/size, not just loop count.
 
-### Lasso upgrades (post-capture progression)
+### Lasso upgrades (implemented v1 — src/data/lassoUpgrades.ts)
 
-Points spent on a menu of stats, each repeatable with progressively higher
-costs (diminishing returns → real build choices): max energy/HEALTH, power,
-max line length, damage reduction, reduced charge time, energy regained per
-capture, power when low.
+Dust spent in THE LASSO menu (Player tab → UPGRADE LASSO). Each stat is
+repeatable to a max with escalating costs (level n→n+1 costs base×(n+1)):
+
+- **ROPE LENGTH** (max 5, base 50): +150px hidden rope budget per level.
+- **GRIT** (max 3, base 75): +1 health bar per level (5 base).
+- **CHARGE** (max 5, base 50): gauge holds its charge longer — +0.6s decay
+  grace and −8% drain rate per level.
+
+Future candidates from the original design: capture power (gauge per loop),
+damage reduction, Dust earned per capture, power when low.
 
 ## Battle levels (Pokémon Rumble style)
 

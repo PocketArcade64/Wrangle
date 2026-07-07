@@ -7,6 +7,7 @@ import { CaptureScene } from './scenes/CaptureScene';
 import { AuctionScene } from './scenes/AuctionScene';
 import { BountiesScene } from './scenes/BountiesScene';
 import { PlayerScene } from './scenes/PlayerScene';
+import { LassoScene } from './scenes/LassoScene';
 
 // Logical width is fixed; logical height adapts to the device's aspect ratio
 // so tall phones (iPhone ~19.5:9) fill the screen instead of letterboxing.
@@ -33,6 +34,7 @@ new Phaser.Game({
     CaptureScene,
     AuctionScene,
     BountiesScene,
-    PlayerScene
+    PlayerScene,
+    LassoScene
   ]
 });

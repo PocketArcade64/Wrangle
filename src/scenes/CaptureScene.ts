@@ -6,26 +6,24 @@ import { dist, distPointToSegment, pointInPolygon, Vec2 } from '../capture/geome
 import { makeButton } from '../ui/button';
 import { gameState } from '../state/GameState';
 import { ensureIcons } from '../ui/icons';
+import { gaugeDecayDelay, gaugeDecayRate, healthBars, ropeBudget } from '../data/lassoUpgrades';
 
-// Tuning knobs for the capture mini-game live here.
-// Hidden rope budget (no meter shown, per design): max total line length on
-// the field. ~2.5 comfortable loops around a default creature, mirroring
-// Almia's starting styler line. Closing a loop refunds its length; future
-// lasso upgrades raise this.
-const LINE_BUDGET = 1500;
+// Tuning knobs for the capture mini-game live here. Rope budget, health
+// bars, and gauge decay are now functions of the lasso upgrade levels -
+// see src/data/lassoUpgrades.ts for the base values and per-level effects.
 const MIN_POINT_DIST = 8;
 const LINE_WIDTH = 7;
-const HEALTH_SEGMENTS = 5; // health is whole bars; attacks remove whole bars
 
-// rope palette (striped like a real lasso)
-const ROPE_OUTLINE = 0x4a2f16;
-const ROPE_LIGHT = 0xdca85e;
-const ROPE_DARK = 0xa8722f;
-const ROPE_BAND_LEN = 14; // px of arclength per stripe
+// rope palette matched to the hand-drawn logo: solid tan rope with dark
+// twist ticks and a deep outline
+const ROPE_OUTLINE = 0x4a2a12;
+const ROPE_BASE = 0xd29a55;
+const ROPE_TICK = 0x6b3a1e;
+const ROPE_TICK_SPACING = 13; // px of arclength between twist ticks
+
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
+const GAUGE_W = 120; // inner fill width of the capture gauge
 const CAPTURE_REWARD = 25; // Dust paid out per successful wrangle
-const GAUGE_DECAY_DELAY_S = 4; // seconds without a loop before decay kicks in
-const GAUGE_DECAY_PER_S = 0.75; // loops' worth of gauge drained per second
 
 interface Ring {
   x: number;
@@ -46,16 +44,19 @@ export class CaptureScene extends Phaser.Scene {
   private line!: LassoLine;
   private rings: Ring[] = [];
   private gfx!: Phaser.GameObjects.Graphics;
-  /** Remaining health, counted in whole bars. */
-  private health = HEALTH_SEGMENTS;
+  /** Max/remaining health in whole bars (max comes from the GRIT upgrade). */
+  private healthMax = 5;
+  private health = 5;
   /** Capture progress in loop units (float — decays over time). */
   private gaugeProgress = 0;
-  private decayCountdown = GAUGE_DECAY_DELAY_S;
+  private decayDelayS = 4;
+  private decayRatePerS = 0.75;
+  private decayCountdown = 4;
   private phase: 'active' | 'won' | 'lost' = 'active';
   private telegraphing = false;
 
   private gauge!: Phaser.GameObjects.Container;
-  private gaugeFill!: Phaser.GameObjects.Rectangle;
+  private gaugeFillG!: Phaser.GameObjects.Graphics;
   private healthCells: Phaser.GameObjects.Container[] = [];
   private toast!: Phaser.GameObjects.Text;
   private toastTween?: Phaser.Tweens.Tween;
@@ -67,11 +68,15 @@ export class CaptureScene extends Phaser.Scene {
   init(data: { speciesId: string }): void {
     this.species = speciesById(data.speciesId);
     // Scene objects persist across restarts — reset all round state here.
-    this.line = new LassoLine(LINE_BUDGET);
+    const lasso = gameState.data.lasso;
+    this.line = new LassoLine(ropeBudget(lasso.rope));
+    this.healthMax = healthBars(lasso.grit);
+    this.decayDelayS = gaugeDecayDelay(lasso.charge);
+    this.decayRatePerS = gaugeDecayRate(lasso.charge);
     this.rings = [];
-    this.health = HEALTH_SEGMENTS;
+    this.health = this.healthMax;
     this.gaugeProgress = 0;
-    this.decayCountdown = GAUGE_DECAY_DELAY_S;
+    this.decayCountdown = this.decayDelayS;
     this.phase = 'active';
     this.telegraphing = false;
     this.healthCells = [];
@@ -118,9 +123,23 @@ export class CaptureScene extends Phaser.Scene {
       .setVisible(false);
 
     // Capture gauge that follows below the creature; each loop adds +10.
-    const gaugeBg = this.add.rectangle(0, 0, 128, 16, 0x140a05).setStrokeStyle(3, 0x3a2415);
-    this.gaugeFill = this.add.rectangle(-60, 0, 120, 10, 0xf4a340).setOrigin(0, 0.5);
-    this.gauge = this.add.container(0, 0, [gaugeBg, this.gaugeFill]).setDepth(3);
+    // Western frame: ink outline, wood surround, corner rivets, and a fill
+    // drawn as coiled rope (tan bands with dark twist ticks).
+    const frame = this.add.graphics();
+    const fw = GAUGE_W + 16;
+    frame.fillStyle(0x2b221a);
+    frame.fillRect(-fw / 2 - 2, -13, fw + 4, 26);
+    frame.fillStyle(0x5c3720);
+    frame.fillRect(-fw / 2, -11, fw, 22);
+    frame.fillStyle(0x140a05);
+    frame.fillRect(-GAUGE_W / 2 - 2, -7, GAUGE_W + 4, 14);
+    frame.fillStyle(0xcfa96f);
+    frame.fillRect(-fw / 2, -11, 3, 3);
+    frame.fillRect(fw / 2 - 3, -11, 3, 3);
+    frame.fillRect(-fw / 2, 8, 3, 3);
+    frame.fillRect(fw / 2 - 3, 8, 3, 3);
+    this.gaugeFillG = this.add.graphics();
+    this.gauge = this.add.container(0, 0, [frame, this.gaugeFillG]).setDepth(3);
 
     this.buildHud();
     this.bindInput();
@@ -184,7 +203,7 @@ export class CaptureScene extends Phaser.Scene {
 
   private bankLoop(): void {
     this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + 1);
-    this.decayCountdown = GAUGE_DECAY_DELAY_S;
+    this.decayCountdown = this.decayDelayS;
     this.popGaugeGain();
     this.creatureImg.setScale(1.15);
     this.tweens.add({ targets: this.creatureImg, scale: 1, duration: 150 });
@@ -197,7 +216,7 @@ export class CaptureScene extends Phaser.Scene {
     if (this.gaugeProgress <= 0) return;
     this.decayCountdown -= dt;
     if (this.decayCountdown <= 0) {
-      this.gaugeProgress = Math.max(0, this.gaugeProgress - GAUGE_DECAY_PER_S * dt);
+      this.gaugeProgress = Math.max(0, this.gaugeProgress - this.decayRatePerS * dt);
     }
   }
 
@@ -347,41 +366,55 @@ export class CaptureScene extends Phaser.Scene {
     const pts = this.line.points;
     if (pts.length > 0) {
       if (pts.length > 1) {
-        // dark outline pass, then alternating light/dark stripes along the
-        // rope's arclength for a twisted-lasso look
-        this.gfx.lineStyle(LINE_WIDTH + 4, ROPE_OUTLINE, 1);
-        this.gfx.beginPath();
-        this.gfx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) this.gfx.lineTo(pts[i].x, pts[i].y);
-        this.gfx.strokePath();
-        this.drawRopeStripes(pts);
+        // matched to the hand-drawn logo rope: deep outline, solid tan
+        // rope, then short dark twist ticks across it at regular intervals
+        this.gfx.lineStyle(LINE_WIDTH + 3, ROPE_OUTLINE, 1);
+        this.strokePolyline(pts);
+        this.gfx.lineStyle(LINE_WIDTH, ROPE_BASE, 1);
+        this.strokePolyline(pts);
+        this.drawRopeTicks(pts);
       }
-      // knot at the anchor point
+      // knot at the anchor point, like the logo's wrapped knots
       this.gfx.fillStyle(ROPE_OUTLINE, 1);
       this.gfx.fillCircle(pts[0].x, pts[0].y, 9);
-      this.gfx.fillStyle(ROPE_LIGHT, 1);
-      this.gfx.fillCircle(pts[0].x, pts[0].y, 5);
+      this.gfx.fillStyle(ROPE_BASE, 1);
+      this.gfx.fillCircle(pts[0].x, pts[0].y, 6);
+      this.gfx.fillStyle(ROPE_TICK, 1);
+      this.gfx.fillRect(pts[0].x - 5, pts[0].y - 1.5, 10, 3);
     }
   }
 
-  private drawRopeStripes(pts: readonly Vec2[]): void {
+  private strokePolyline(pts: readonly Vec2[]): void {
+    this.gfx.beginPath();
+    this.gfx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) this.gfx.lineTo(pts[i].x, pts[i].y);
+    this.gfx.strokePath();
+  }
+
+  /** Short dark dashes across the rope every few px - the logo's twists. */
+  private drawRopeTicks(pts: readonly Vec2[]): void {
+    const half = LINE_WIDTH / 2 + 1;
     let arc = 0;
+    let nextTick = ROPE_TICK_SPACING;
+    this.gfx.lineStyle(3, ROPE_TICK, 1);
     for (let i = 0; i < pts.length - 1; i++) {
-      let a = pts[i];
+      const a = pts[i];
       const b = pts[i + 1];
-      let remaining = dist(a, b);
-      while (remaining > 0.5) {
-        const intoBand = arc % ROPE_BAND_LEN;
-        const step = Math.min(remaining, ROPE_BAND_LEN - intoBand);
-        const t = step / remaining;
-        const next = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-        const light = Math.floor(arc / ROPE_BAND_LEN) % 2 === 0;
-        this.gfx.lineStyle(LINE_WIDTH, light ? ROPE_LIGHT : ROPE_DARK, 1);
-        this.gfx.lineBetween(a.x, a.y, next.x, next.y);
-        arc += step;
-        remaining -= step;
-        a = next;
+      const segLen = dist(a, b);
+      if (segLen < 1e-6) continue;
+      const dx = (b.x - a.x) / segLen;
+      const dy = (b.y - a.y) / segLen;
+      while (nextTick <= arc + segLen) {
+        const t = nextTick - arc;
+        const px = a.x + dx * t;
+        const py = a.y + dy * t;
+        // slightly slanted across the rope, like a twist in the strands
+        const nx = -dy + dx * 0.35;
+        const ny = dx + dy * 0.35;
+        this.gfx.lineBetween(px - nx * half, py - ny * half, px + nx * half, py + ny * half);
+        nextTick += ROPE_TICK_SPACING;
       }
+      arc += segLen;
     }
   }
 
@@ -404,11 +437,12 @@ export class CaptureScene extends Phaser.Scene {
     this.add
       .text(30, height - 70, 'HEALTH', { fontFamily: 'Silkscreen', fontSize: '16px', color: '#e8d5b0' })
       .setDepth(11);
-    const segW = 84;
+    // segment layout adapts to the GRIT upgrade's bar count
     const gap = 10;
     const cy = height - 60;
     const x0 = 160;
-    for (let i = 0; i < HEALTH_SEGMENTS; i++) {
+    const segW = Math.floor((width - x0 - 30 - gap * (this.healthMax - 1)) / this.healthMax);
+    for (let i = 0; i < this.healthMax; i++) {
       const x = x0 + i * (segW + gap);
       // frame
       g.fillStyle(0x3a2415);
@@ -460,7 +494,19 @@ export class CaptureScene extends Phaser.Scene {
     for (let i = 0; i < this.healthCells.length; i++) {
       this.healthCells[i].setVisible(i < this.health);
     }
-    this.gaugeFill.scaleX = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
+    // gauge fill drawn as coiled rope: tan bar with dark twist ticks
+    const frac = Math.min(1, this.gaugeProgress / this.species.requiredLoops);
+    const fillW = Math.round(GAUGE_W * frac);
+    const g = this.gaugeFillG;
+    g.clear();
+    if (fillW > 0) {
+      g.fillStyle(ROPE_BASE);
+      g.fillRect(-GAUGE_W / 2, -5, fillW, 10);
+      g.fillStyle(ROPE_TICK);
+      for (let tx = 8; tx < fillW - 2; tx += 12) {
+        g.fillRect(-GAUGE_W / 2 + tx, -5, 3, 10);
+      }
+    }
   }
 
   private showToast(msg: string, color: string): void {

@@ -7,6 +7,8 @@ export interface WrangleSave {
   biome: string;
   /** Species ids of wrangled critters, in capture order (dupes allowed). */
   herd: string[];
+  /** Lasso upgrade levels (definitions in src/data/lassoUpgrades.ts). */
+  lasso: { rope: number; grit: number; charge: number };
 }
 
 const KEY = 'wrangle-save-v1';
@@ -18,7 +20,8 @@ const DEFAULTS: WrangleSave = {
   dailyAvailable: true,
   leadCreatureId: 'herbifuzz',
   biome: 'DUSTY FLATS',
-  herd: []
+  herd: [],
+  lasso: { rope: 0, grit: 0, charge: 0 }
 };
 
 /**
