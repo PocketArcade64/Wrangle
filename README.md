@@ -155,3 +155,59 @@ No red "urgency" numerals on stamina/timers — sage, not red, since running low
 Exactly one saturated color (clay) so the eye knows what's actionable
 Nav icons are flat single-color glyphs in saddle, active tab gets clay — no glossy 3D button chrome
 No gem-currency sparkle treatment on brass counters
+
+_____________________
+
+_________________________
+Updates 
+
+- Does this current build reflect how it will look like exactly as an app because there is a black bar at the top of my iPhone by the Dynamic Island 
+    - How will the iPhone Pro with a bigger screen work (will the elements scale to size (that would be good) or will there be empty space - not preferable)
+
+- figure out type chart and which types I will use
+    - Design the type icons and word icons
+
+- Make the title screen be a pixel art sun that reflects the current time of day corresponding to tour real time (sunset/sunrise and dark moon implemented) with random critters you have seen walking around)
+
+- There is a bounty board (Challenges) that rewards you based on challenges you complete and creatures you turn in. 
+    - Make some challenges require multiple pokemon (only if basic or stage 1) this posters are a little bigger and have a progress bar that fills in when you turn in a reward. 
+    - Make the bounty board show ??? If you have not seen that critter yet and show their name if you have encountered them before. 
+    - Below the creature turn in section have other daily challenges related to the game
+    - The critters on the bounty board are guaranteed to be found in the areas you explore that day - if you click close to a coordinate it forces a click on a close one that has that critter species (only does this until they are first seen that day)
+        - The Pokemon found on the maps in Coordinates change daily (like Pokemon Rumble Rush)
+    - You must catch a creature that day to be able to turn it in the bounty board
+- Add a menu to upgrade your lasso
+    - Make lasso look more like the logo
+    - redo bar under the pokemon to be western stylized
+    - Add a charge upgrade to lasso?
+- Make the user pick a profile icon and gain XP based on captures 
+- When you click explore show a map with coordinates that determines your stage and changes daily - at the top are different tabs that cost coins to unlock new maps
+- Creatures dex reveals more details like Pokédex entry, weaknesses, resistance and more depending on how many you capture/obtain for each species
+- Make app icon have 3 starters with a pixel art sunset western cactus background then stylized Wrangle below
+
+- Pokédex is Frontier Ledger
+- Pokemon are Critters (multiple are a herd) ✅ 
+- Record the design philosophy wording I used when first building the UI to replicate later on ‼️ 
+
+- Make the critters never touch the edge of the screen because when they do that you cannot lasso them
+
+Lasso refinements: 
+- Consecutive loop bonus that boosts your lasso bower after you land 5 consecutive loops
+- Each loop shows a number how much damage you added to that critter’s capture meter
+
+Critter menu:
+- Critters that are favorited cannot be turned in for bounties or put up for auction
+- In your player menu have a section for showcase and those critters are the ones that walk around on the title screen
+- Details shows where can be found
+
+
+- add a developer menu (will get removed later) that there are buttons to play test features and codes to enter to test features
+
+Later additions:
+- Critter assist like Poke Assists from Pokemon Ranger guardian signs
+- Each critter can be deployed and use a move to help and they can be resummoned infinitely until hit in each battle 
+- The assists fill the capture meter below the pokemon but you need to do a loop to deal the final 1 capture point to finish the meter
+- Critters of the same type have different moves so you can pick one over the other
+
+
+- The tutorial in a standard ranch that explains the basic concepts. Then, you get teleported to an alternate dimension and choose your first starter
