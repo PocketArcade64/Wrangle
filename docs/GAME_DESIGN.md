@@ -133,10 +133,22 @@ Navigation: 5 tabs - Auction (gavel) / Critters (lasso) / Home (house) /
 saddle; active tab clay. All glyphs are custom pixel bitmaps
 (src/ui/icons.ts).
 
-Critters screen: two tabs - **MY HERD** (wrangled critters, from the save)
-and **TALLY BOOK** (the full species register; a cattleman's tally book is
-the in-world "dex"). Wrangling a critter adds it to the herd and pays out
-Dust.
+Critters screen: three tabs - **POSSES** (build teams of 3 from the herd;
+up to 4 posses, slot picker modal), **MY HERD** (wrangled critters, from
+the save), and the **FRONTIER LEDGER** (the in-world dex: a rancher's
+record book). Ledger entries are ink silhouettes + "???" until caught;
+tapping any entry opens its ledger page, which fills in progressively:
+1 caught = portrait/name/types/entry notes, 2 = weaknesses + resistances
+(type chart in src/data/typeChart.ts), 3 = traits/base stats. Capture
+count shown as tally marks. (A temporary TEST WRANGLE button on each page
+starts the capture mini-game until the map exists.) Wrangling a critter
+adds it to the herd and pays out Dust.
+
+Home posse quick-select: a swipeable carousel between the diorama and the
+Explore CTA - one posse card at a time, next card peeking, rubber-band
+drag with eased snap. Tapping the visible card selects it: clay border +
+ACTIVE tag (the same accent as Explore). Page dots below; the active
+posse's dot is clay.
 
 Bounty board: 3 wanted posters daily, seeded from the date (stable across
 tab switches/restarts/devices, roll over at local midnight, live countdown

@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { gameState } from '../state/GameState';
-import { COLORS, FONT, HEX } from '../ui/theme';
+import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { buildNav, NAV_HEIGHT } from '../ui/nav';
 
 const STATUS_H = 96;
+const CARD_W = 560;
+const CARD_H = 150;
+const CARD_SPACING = 600;
 
 /**
  * Home: quiet status bar, the living diorama (signature element), one clay
@@ -14,6 +17,12 @@ const STATUS_H = 96;
  */
 export class HomeScene extends Phaser.Scene {
   private dioramaTimer?: Phaser.Time.TimerEvent;
+  private carousel!: Phaser.GameObjects.Container;
+  private cardBorders: Phaser.GameObjects.Rectangle[] = [];
+  private activeTags: Phaser.GameObjects.Text[] = [];
+  private dots: Phaser.GameObjects.Rectangle[] = [];
+  private page = 0;
+  private carDrag?: { startX: number; baseX: number; moved: number };
 
   constructor() {
     super('Home');
@@ -23,22 +32,25 @@ export class HomeScene extends Phaser.Scene {
     ensureIcons(this);
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
+    this.cardBorders = [];
+    this.activeTags = [];
+    this.dots = [];
+    this.carDrag = undefined;
 
     this.buildStatusBar();
 
-    // living diorama fills the space between status bar and CTA band
-    const dioX = 32;
+    // living diorama, sized to leave room for the posse carousel + CTA
     const dioY = STATUS_H + 30;
-    const dioW = width - 64;
-    const dioH = Phaser.Math.Clamp(height - STATUS_H - NAV_HEIGHT - 330, 400, 620);
-    this.buildDiorama(dioX, dioY, dioW, dioH);
+    const dioH = Phaser.Math.Clamp(height - 706, 340, 820);
+    this.buildDiorama(32, dioY, width - 64, dioH);
 
-    // single accent CTA, centered in the band below the diorama
-    const bandTop = dioY + dioH;
-    const bandBottom = height - NAV_HEIGHT;
-    const ctaY = bandTop + (bandBottom - bandTop) * 0.42;
+    // quick-select posse carousel between the diorama and the CTA
+    const cardCy = dioY + dioH + 24 + CARD_H / 2;
+    this.buildTeamCarousel(cardCy);
+
+    const ctaY = cardCy + CARD_H / 2 + 96;
     this.buildExploreCta(width / 2, ctaY);
-    this.buildSatchel(width / 2, ctaY + 104);
+    this.buildSatchel(width / 2, ctaY + 96);
 
     buildNav(this, 'home');
   }
@@ -77,7 +89,7 @@ export class HomeScene extends Phaser.Scene {
     this.add
       .text(pipX + gameState.data.staminaMax * 30 + 12, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
         fontFamily: FONT.ui,
-        fontSize: '16px',
+        fontSize: '18px',
         color: HEX.sage
       })
       .setOrigin(0, 0.5);
@@ -231,6 +243,135 @@ export class HomeScene extends Phaser.Scene {
     g.fillRect(x - 8 * s, y - 34 * s, 5 * s, 12 * s);
     g.fillRect(x + 9 * s, y - 18 * s, 8 * s, 5 * s);
     g.fillRect(x + 12 * s, y - 26 * s, 5 * s, 12 * s);
+  }
+
+  // ---------- posse quick-select carousel ----------
+
+  private buildTeamCarousel(cy: number): void {
+    const { width } = this.scale;
+    const teams = gameState.data.teams;
+
+    this.carousel = this.add.container(0, 0);
+    teams.forEach((team, i) => this.buildTeamCard(team, i, width / 2 + i * CARD_SPACING, cy));
+
+    this.page = Phaser.Math.Clamp(gameState.data.activeTeam, 0, teams.length - 1);
+    this.carousel.x = -this.page * CARD_SPACING;
+
+    // page dots - flat squares
+    const dotsY = cy + CARD_H / 2 + 22;
+    teams.forEach((_, i) => {
+      const dot = this.add.rectangle(width / 2 + (i - (teams.length - 1) / 2) * 30, dotsY, 11, 11, COLORS.parchmentDark);
+      this.dots.push(dot);
+    });
+    this.updateCarouselUi();
+
+    // drag with rubber-banding at the ends, snap with an eased tween
+    const bandTop = cy - CARD_H / 2 - 8;
+    const bandBottom = cy + CARD_H / 2 + 8;
+    const minX = -(teams.length - 1) * CARD_SPACING;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.y < bandTop || p.y > bandBottom) return;
+      this.tweens.killTweensOf(this.carousel);
+      this.carDrag = { startX: p.x, baseX: this.carousel.x, moved: 0 };
+    });
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (!this.carDrag || !p.isDown) return;
+      const dx = p.x - this.carDrag.startX;
+      this.carDrag.moved = Math.max(this.carDrag.moved, Math.abs(dx));
+      let nx = this.carDrag.baseX + dx;
+      if (nx > 0) nx *= 0.35;
+      if (nx < minX) nx = minX + (nx - minX) * 0.35;
+      this.carousel.x = nx;
+    });
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (!this.carDrag) return;
+      const dx = p.x - this.carDrag.startX;
+      const tapped = this.carDrag.moved < 10;
+      this.carDrag = undefined;
+      if (tapped) {
+        // tapping the visible card selects that posse
+        gameState.data.activeTeam = this.page;
+        gameState.save();
+      } else if (dx < -60) {
+        this.page++;
+      } else if (dx > 60) {
+        this.page--;
+      } else {
+        this.page = Math.round(-this.carousel.x / CARD_SPACING);
+      }
+      this.page = Phaser.Math.Clamp(this.page, 0, teams.length - 1);
+      this.tweens.add({
+        targets: this.carousel,
+        x: -this.page * CARD_SPACING,
+        duration: 300,
+        ease: 'Cubic.easeOut'
+      });
+      this.updateCarouselUi();
+    });
+  }
+
+  private buildTeamCard(team: { name: string; members: (string | null)[] }, index: number, x: number, cy: number): void {
+    const g = this.add.graphics();
+    drawPixelPanel(g, x - CARD_W / 2, cy - CARD_H / 2, CARD_W, CARD_H, COLORS.parchmentLight, COLORS.saddle);
+    this.carousel.add(g);
+
+    const nameT = this.add.text(x - CARD_W / 2 + 18, cy - CARD_H / 2 + 14, team.name, {
+      fontFamily: FONT.display,
+      fontSize: '22px',
+      color: HEX.ink
+    });
+    this.carousel.add(nameT);
+
+    for (let s = 0; s < 3; s++) {
+      const sx = x + 40 + s * 118;
+      const slot = this.add.rectangle(sx, cy + 8, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
+      this.carousel.add(slot);
+      const memberId = team.members[s];
+      if (memberId) {
+        const sp = SPECIES.find((c) => c.id === memberId);
+        const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
+        const img = this.add.image(sx, cy + 8, texKey);
+        this.carousel.add(img);
+      } else {
+        const plus = this.add
+          .text(sx, cy + 8, '+', { fontFamily: FONT.display, fontSize: '34px', color: HEX.saddle })
+          .setOrigin(0.5);
+        this.carousel.add(plus);
+      }
+    }
+
+    // selection: clay border + ACTIVE tag (clay is the actionable accent)
+    const border = this.add
+      .rectangle(x, cy, CARD_W + 12, CARD_H + 12)
+      .setStrokeStyle(6, COLORS.clay)
+      .setVisible(index === gameState.data.activeTeam);
+    this.carousel.add(border);
+    this.cardBorders.push(border);
+    const tag = this.add
+      .text(x + CARD_W / 2 - 16, cy - CARD_H / 2 + 16, 'ACTIVE', {
+        fontFamily: FONT.ui,
+        fontSize: '16px',
+        color: HEX.clay
+      })
+      .setOrigin(1, 0)
+      .setVisible(index === gameState.data.activeTeam);
+    this.carousel.add(tag);
+    this.activeTags.push(tag);
+  }
+
+  private updateCarouselUi(): void {
+    const active = gameState.data.activeTeam;
+    this.cardBorders.forEach((b, i) => b.setVisible(i === active));
+    this.activeTags.forEach((t, i) => t.setVisible(i === active));
+    this.dots.forEach((d, i) => {
+      if (i === active) {
+        d.setFillStyle(COLORS.clay).setStrokeStyle(0, 0);
+      } else if (i === this.page) {
+        d.setFillStyle(COLORS.saddle).setStrokeStyle(0, 0);
+      } else {
+        d.setFillStyle(COLORS.parchmentDark).setStrokeStyle(2, COLORS.saddle);
+      }
+    });
   }
 
   // ---------- CTA + satchel ----------

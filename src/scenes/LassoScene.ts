@@ -46,7 +46,7 @@ export class LassoScene extends Phaser.Scene {
     this.feedback = this.add
       .text(width / 2, 220 + LASSO_UPGRADES.length * 190 + 10, '', {
         fontFamily: FONT.ui,
-        fontSize: '16px',
+        fontSize: '18px',
         color: HEX.saddle
       })
       .setOrigin(0.5)
@@ -70,7 +70,7 @@ export class LassoScene extends Phaser.Scene {
     });
     this.add.text(70, y + 60, def.desc, {
       fontFamily: FONT.ui,
-      fontSize: '14px',
+      fontSize: '18px',
       color: HEX.sage,
       wordWrap: { width: width - 320 }
     });
@@ -102,10 +102,10 @@ export class LassoScene extends Phaser.Scene {
     const shadow = this.add.rectangle(0, 4, w, h, COLORS.ink);
     const face = this.add.rectangle(0, 0, w, h, COLORS.saddle).setStrokeStyle(2, COLORS.ink);
     const label = this.add
-      .text(0, -16, 'UPGRADE', { fontFamily: FONT.ui, fontSize: '17px', color: HEX.parchment })
+      .text(0, -16, 'UPGRADE', { fontFamily: FONT.ui, fontSize: '19px', color: HEX.parchment })
       .setOrigin(0.5);
     const costTxt = this.add
-      .text(0, 16, `${cost}`, { fontFamily: FONT.ui, fontSize: '15px', color: HEX.brass })
+      .text(0, 16, `${cost}`, { fontFamily: FONT.ui, fontSize: '17px', color: HEX.brass })
       .setOrigin(0, 0.5);
     const coin = this.add.image(0, 16, 'icon-coin').setTint(COLORS.brass).setScale(0.5);
     const coinW = 22;

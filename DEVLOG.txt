@@ -5,6 +5,37 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3a] 2026-07-07 - Frontier Ledger, Posses, home carousel, font pass
+----------------------------------------------------------------------
+- Removed the "RED HOT"/"BLAZING" combo toasts (numbers carry it now).
+- FONT PASS: iPhone math documented in theme.ts (720 logical px vs
+  ~393pt -> 1px ~ 0.55pt; HIG floor 11pt -> never below ~18-20px).
+  Raised nav labels 12->16, dex names 15->22, dex nums/types ->18,
+  most stub-scene text ->18/19. Dex cell icons scaled 1.1 -> 1.45
+  (+30%), CELL_H 250 -> 276.
+- TALLY BOOK renamed FRONTIER LEDGER and is now a real dex:
+  - Grid: uncaught species = ink silhouette + "???" (types hidden).
+  - Tap any entry -> NEW LedgerScene page: portrait plate, name,
+    type chips, capture count as TALLY MARKS, and ruled sections that
+    unlock progressively: 1 caught = entry notes; 2 = weaknesses/
+    resistances (NEW src/data/typeChart.ts - standard 13-type chart);
+    3 = traits/base stats. Locked sections say "wrangle N more".
+  - TEST WRANGLE button on each page starts the capture (temporary
+    test entry point - remove when the map/encounters exist).
+- NEW POSSES tab (left of MY HERD): up to 4 teams of 3; slots open a
+  picker modal (unique herd species + CLEAR). Teams persist in
+  gameState (teams + activeTeam).
+- NEW Home posse quick-select carousel between diorama and Explore
+  (CTA shifted down): one card at a time w/ next-card peek, rubber-
+  band drag, Cubic.easeOut snap, page dots. Tap the visible card to
+  select -> CLAY border + ACTIVE tag (same orange as Explore); active
+  posse's dot is clay. Diorama height formula adjusted.
+- CLAUDE.md: design canon pointer strengthened (apply UI system to
+  every screen unprompted; min font sizes).
+- STATUS: playtest ledger reveal pacing + carousel feel. Grid-tap no
+  longer starts captures directly - go through ledger pages.
+
+----------------------------------------------------------------------
 [M2f] 2026-07-07 - 100-pt capture meter, white +N, iPhone chrome blend
 ----------------------------------------------------------------------
 - Per-loop floating numbers now WHITE and spawn above the TOP-RIGHT of

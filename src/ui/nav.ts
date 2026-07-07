@@ -38,7 +38,7 @@ export function buildNav(scene: Phaser.Scene, active: NavTab): void {
     scene.add
       .text(cx, top + 84, t.label, {
         fontFamily: FONT.ui,
-        fontSize: '12px',
+        fontSize: '16px',
         color: isActive ? HEX.clay : HEX.saddle
       })
       .setOrigin(0.5)

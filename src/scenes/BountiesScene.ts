@@ -71,14 +71,14 @@ export class BountiesScene extends Phaser.Scene {
     this.add
       .text(width / 2, boardY + boardH + 30, 'DAILY BOUNTIES POST AT SUNUP', {
         fontFamily: FONT.ui,
-        fontSize: '16px',
+        fontSize: '18px',
         color: HEX.sage
       })
       .setOrigin(0.5);
     this.countdown = this.add
       .text(width / 2, boardY + boardH + 62, '', {
         fontFamily: FONT.ui,
-        fontSize: '17px',
+        fontSize: '19px',
         color: HEX.saddle
       })
       .setOrigin(0.5);
@@ -131,14 +131,14 @@ export class BountiesScene extends Phaser.Scene {
     this.add
       .text(x + w / 2, y + 184, sp.name.toUpperCase(), {
         fontFamily: FONT.ui,
-        fontSize: '17px',
+        fontSize: '19px',
         color: HEX.ink
       })
       .setOrigin(0.5);
 
     // reward row, centered as a unit under the name
     const rewardTxt = this.add
-      .text(0, 0, `${reward}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.brass })
+      .text(0, 0, `${reward}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.brass })
       .setOrigin(0, 0.5);
     const coin = this.add.image(0, 0, 'icon-coin').setTint(COLORS.brass).setScale(0.6);
     const coinW = 44 * 0.6;

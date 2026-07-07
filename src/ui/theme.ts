@@ -40,6 +40,12 @@ export const HEX = {
   wantedRed: '#a2261a'
 };
 
+/**
+ * Sizing: the logical canvas is 720px wide vs ~393pt on an iPhone, so
+ * 1 logical px ~ 0.55pt. Apple HIG floor is ~11pt => NEVER go below
+ * ~20 logical px for text the player must read; 16px only for tertiary
+ * labels; body text 22-26px.
+ */
 export const FONT = {
   /**
    * Display: chunky branding-iron feel for headers/logo. Pixelify Sans is

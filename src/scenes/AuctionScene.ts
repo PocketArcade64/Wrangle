@@ -38,7 +38,7 @@ export class AuctionScene extends Phaser.Scene {
     this.add
       .text(width / 2, cy + 196, 'Player-to-player trading opens\nwith the online update.', {
         fontFamily: FONT.ui,
-        fontSize: '14px',
+        fontSize: '18px',
         color: HEX.sage,
         align: 'center'
       })

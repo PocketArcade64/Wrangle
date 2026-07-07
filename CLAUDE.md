@@ -15,4 +15,8 @@ Hard rules:
 - Creature/content data is data-driven: creatures live in
   src/data/creatures.csv (user-editable spreadsheet, parsed/validated by
   src/data/species.ts). Column docs in docs/CREATURES.md.
-- Design reference: docs/GAME_DESIGN.md. Milestones: docs/ROADMAP.md.
+- Design reference: docs/GAME_DESIGN.md — its "UI design system" section is
+  CANON: apply it to every screen without being asked (pixel art, NO rounded
+  corners/gradients/glow, clay = only accent, brass = currency only, western
+  frontier grounding, min readable text ~18-20 logical px). Milestones:
+  docs/ROADMAP.md.

@@ -32,7 +32,7 @@ export class PlayerScene extends Phaser.Scene {
     this.add
       .text(width / 2, 310, 'A stranger from another range.', {
         fontFamily: FONT.ui,
-        fontSize: '15px',
+        fontSize: '18px',
         color: HEX.sage
       })
       .setOrigin(0.5);
@@ -47,7 +47,7 @@ export class PlayerScene extends Phaser.Scene {
       const rg = this.add.graphics();
       drawPixelPanel(rg, 60, ry, width - 120, 58, COLORS.parchmentLight, COLORS.saddle, 4);
       this.add
-        .text(84, ry + 29, label, { fontFamily: FONT.ui, fontSize: '17px', color: HEX.saddle })
+        .text(84, ry + 29, label, { fontFamily: FONT.ui, fontSize: '19px', color: HEX.saddle })
         .setOrigin(0, 0.5);
       this.add
         .text(width - 84, ry + 29, value, { fontFamily: FONT.ui, fontSize: '19px', color })

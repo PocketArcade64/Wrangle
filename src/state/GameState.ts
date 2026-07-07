@@ -9,6 +9,10 @@ export interface WrangleSave {
   herd: string[];
   /** Lasso upgrade levels (definitions in src/data/lassoUpgrades.ts). */
   lasso: { rope: number; grit: number; charge: number };
+  /** Posses: teams of up to 3 critters (species ids, null = empty slot). */
+  teams: { name: string; members: (string | null)[] }[];
+  /** Index of the posse selected on the home carousel. */
+  activeTeam: number;
 }
 
 const KEY = 'wrangle-save-v1';
@@ -21,7 +25,9 @@ const DEFAULTS: WrangleSave = {
   leadCreatureId: 'herbifuzz',
   biome: 'DUSTY FLATS',
   herd: [],
-  lasso: { rope: 0, grit: 0, charge: 0 }
+  lasso: { rope: 0, grit: 0, charge: 0 },
+  teams: [{ name: 'POSSE 1', members: [null, null, null] }],
+  activeTeam: 0
 };
 
 /**

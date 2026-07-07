@@ -221,8 +221,6 @@ export class CaptureScene extends Phaser.Scene {
     this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + mult);
     this.decayCountdown = this.decayDelayS;
     this.popGaugeGain(Math.round(GAUGE_PER_LOOP * mult), mult > 1);
-    if (this.streak === COMBO_HOT_AT) this.showToast("ROPE'S RED HOT! x1.5", '#f4a340');
-    if (this.streak === COMBO_BLAZING_AT) this.showToast('BLAZING ROPE! x2', '#e05c4a');
     this.creatureImg.setScale(1.15);
     this.tweens.add({ targets: this.creatureImg, scale: 1, duration: 150 });
     if (this.gaugeProgress >= this.species.requiredLoops - 1e-9) {
