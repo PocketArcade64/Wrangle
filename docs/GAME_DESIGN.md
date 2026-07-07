@@ -28,12 +28,13 @@ Direct adaptation of the Pokémon Ranger loop mechanic:
   shown**; running out snaps the line ("TOO MUCH ROPE!"). Closing a loop
   refunds that loop's length. Line length is a lasso-upgrade axis later.
 - When the line crosses itself with the target enclosed, that's **one loop**,
-  worth **+10 on the capture gauge** displayed under the creature; the gauge
-  full = captured. Per Shadows of Almia: closing a loop consumes ONLY the
-  loop portion — the tail drawn before the loop stays live on the field
-  (still loopable, still breakable) and drawing continues from the crossing
-  point. Each creature has a required loop count (weak: 2–3,
-  legendary-tier: much higher).
+  worth **+10 points on the capture gauge** displayed under the creature;
+  the gauge full = captured. **Base capture meter is 100 points** (10 loops);
+  the CSV `loops` column tunes per-critter difficulty (weak: less,
+  legendary-tier: much higher). Per Shadows of Almia: closing a loop
+  consumes ONLY the loop portion — the tail drawn before the loop stays
+  live on the field (still loopable, still breakable) and drawing continues
+  from the crossing point.
 - **Gauge decay**: if ~4 seconds pass without closing a loop around the
   target, the gauge drains quickly — sustained pressure is the skill, and
   releasing the line carries no penalty (this replaces the older

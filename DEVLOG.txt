@@ -5,6 +5,31 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M2f] 2026-07-07 - 100-pt capture meter, white +N, iPhone chrome blend
+----------------------------------------------------------------------
+- Per-loop floating numbers now WHITE and spawn above the TOP-RIGHT of
+  the capture gauge bar (were orange/red over the critter's head).
+- Base capture requirement is now 100 POINTS: DEFAULT_LOOPS 3 -> 10 in
+  species.ts (10 pts/loop x 10 loops = 100). CSV loops column still
+  tunes per-critter (all currently blank -> 100 pts). This makes the
+  hot-rope combo and CHARGE upgrade meaningful; captures take real
+  sustained looping now.
+- iPhone "black bar by the Dynamic Island" explained + mitigated:
+  browser Safari reserves the safe area and showed our black page bg.
+  index.html now uses parchment page bg + theme-color #e8d9b5 so
+  Safari's chrome/safe areas blend into the game, and added
+  apple-mobile-web-app metas so ADD TO HOME SCREEN runs fullscreen -
+  the closest preview of the wrapped app. The REAL app (Capacitor)
+  renders edge-to-edge; we'll pad HUDs with env(safe-area-inset-*) at
+  the M10 wrap step. Browser build != exact app look.
+- Screen-size answer (documented for the user): logical canvas is
+  720 x (aspect-derived 1280-1600); Scale.FIT scales everything
+  proportionally to fill any same-aspect screen (iPhone Pro/Max =
+  bigger elements, NO empty space). Only very different aspects
+  (iPad 4:3) letterbox at the sides - now parchment, not black.
+- STATUS: retune per-critter loops in CSV as capture data gets filled.
+
+----------------------------------------------------------------------
 [M2e] 2026-07-07 - Bandolier health, combo loops, edge fix, UI nits
 ----------------------------------------------------------------------
 - HEALTH bar redesigned as a BANDOLIER: leather strap across the

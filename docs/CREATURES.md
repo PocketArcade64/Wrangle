@@ -39,7 +39,7 @@ console / Vite error overlay.
 | type1 / type2 | Elemental types — used by battles from M3. type2 blank for mono-types. | none |
 | hp / attack / defense / spAttack / spDefense / speed | Battle base stats (M3). | TBD |
 | atkStyle | `physical` or `special` — which battle moveset it gets (M3). | TBD |
-| loops | Loops to fill the capture gauge. | 3 |
+| loops | Loops to fill the capture gauge (10 pts each; base meter = 100 pts). | 10 |
 | bodyRadius | Collision radius, px (sprites are ~80px, so ~40). | 40 |
 | moveSpeed | Capture-arena walk speed, px/s. | 100 |
 | movement | Catch behavior: `graze`, `flee`, or `charge`. | graze |

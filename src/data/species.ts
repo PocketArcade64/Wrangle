@@ -44,7 +44,8 @@ const ATK_STYLES: AtkStyle[] = ['physical', 'special'];
 
 // Defaults applied when capture-behavior columns are left blank, so a row
 // with just a name and types is immediately playable.
-const DEFAULT_LOOPS = 3;
+// Base capture meter is 100 points at 10 points per loop = 10 loops.
+const DEFAULT_LOOPS = 10;
 const DEFAULT_BODY_RADIUS = 40;
 const DEFAULT_MOVE_SPEED = 100;
 

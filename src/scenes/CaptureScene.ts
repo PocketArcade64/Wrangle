@@ -238,14 +238,19 @@ export class CaptureScene extends Phaser.Scene {
     }
   }
 
-  /** Floating number over the critter: how much this loop added. */
+  /** Floating number above the top-right of the capture gauge: points added. */
   private popGaugeGain(amount: number, hot: boolean): void {
     const t = this.add
-      .text(this.creature.pos.x, this.creature.pos.y - this.creature.radius - 60, `+${amount}`, {
-        fontFamily: 'Silkscreen',
-        fontSize: hot ? '36px' : '30px',
-        color: hot ? '#e05c4a' : '#f4a340'
-      })
+      .text(
+        this.creature.pos.x + GAUGE_W / 2 + 6,
+        this.creature.pos.y + this.creature.radius + 4,
+        `+${amount}`,
+        {
+          fontFamily: 'Silkscreen',
+          fontSize: hot ? '34px' : '28px',
+          color: '#ffffff'
+        }
+      )
       .setOrigin(0.5)
       .setDepth(12);
     this.tweens.add({
