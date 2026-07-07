@@ -131,3 +131,27 @@ ____________
 _____________
 
 Act as a world-class pixel art video game brand identity designer. I am creating my own take on a Pokemon Ranger video game but legally distinct and uses a lasso instead. Create a pixel art logo for "Wrangle" that communicates the lasso premise and targets pixel art video game enthusiasts. Style should feel premium, timeless, and globally recognizable. Avoid trends focus on longevity. The logo is just the word Wrangle but stylized with a lasso (the lasso rope fully connects and is not just segmented). Make the background green screen and include a a thin black border around the logo. Focus on its pixel art identity and western style font. Make one of the letters form into a throwing lasso
+
+__________________
+
+whole game menu structure working like an award winning polished finalized app project. Remember the game is all pixel art themed so there should no NO rounded edges at all - all custom made pixel art. Grounding it in the subject: 
+This isn't a generic monster-collector. It's specifically a western frontier one: lassos instead of pokéballs, calming twangy scores, dusty exploration by dropped map pins. Every design choice below leans into that instead of defaulting to "Pokémon-with-different-colors."
+One naming idea before the palette: your "?" tab is begging to be Bounties instead of a mystery icon. In-world, that's a wanted-poster board — daily quests/challenges. It's more legible than a question mark and it's free thematic reinforcement. I'll design around that; tell me if "?" meant something else (events, notifications, help).
+Color — named, not default
+Avoiding the AI-slop defaults (cream+terracotta, black+neon, gem-sparkle gacha colors). A sun-worn, screen-printed-poster palette:
+TokenHexRoleparchment#E8D9B5Base background — aged paper, not stark whitesaddle#7A4A2BStructural — frames, nav bar, bordersclay#C1652FThe one accent — Explore CTA, active statessage#7C8B6FCalm secondary — stamina, passive UIdusk-denim#3F5C6CCool counterpoint — water biome, special-attack tintink#2B221ATextbrass#B8912ACurrency only — reserved so it stays meaningful
+Restraint rule: clay is the only "loud" color, used only for the Explore button and the active nav tab. Brass is reserved for currency only, so it never dilutes into generic "gold UI" gloss. No gradients, no glow — flat fills read as more premium in a pixel-art context anyway; glow/gradient is what makes free-to-play games look cheap.
+Typography
+Two bitmap-style faces, not three, and no default pixel font (Press Start 2P is the "AI slop" tell of retro game UI):
+Display — a chunky stencil/branding-iron bitmap face for headers and the logo (think cattle-brand, not arcade font)
+UI/body — a plainer, tighter pixel-grid sans for numbers, labels, nav — has to stay legible at small mobile sizes, so it's less stylized than display
+Currency/stamina numbers use tabular pixel digits so they don't jitter as they tick up
+Layout concept
+Three horizontal zones + persistent nav, one CTA, nothing competing for attention on load:
+The signature element is that diorama panel: instead of a static logo or a generic grid of buttons, it's a small parallax postcard of wherever you last explored — the actual biome art, your lead creature standing in it idle-animating, framed like a wood-bordered photograph. It's the one place I'd spend "boldness" — everything else stays quiet and functional. It also does real work: it's a preview of what "Explore" will drop you into, and it changes with the region music, so home screen and gameplay feel like one continuous world instead of a menu bolted onto a game.
+What keeps this from feeling like slop
+No forced popup on launch (daily wheel becomes a badge dot on a satchel icon — opened on tap, not shoved in your face)
+No red "urgency" numerals on stamina/timers — sage, not red, since running low isn't a failure state
+Exactly one saturated color (clay) so the eye knows what's actionable
+Nav icons are flat single-color glyphs in saddle, active tab gets clay — no glossy 3D button chrome
+No gem-currency sparkle treatment on brass counters
