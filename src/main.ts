@@ -34,7 +34,12 @@ const game = new Phaser.Game({
   pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    // #game centers the canvas with flexbox. CENTER_BOTH would ALSO center
+    // by adding margins to the canvas - flex then centers the margin box,
+    // shifting the canvas down/right by half the margin whenever the boot
+    // measurement disagrees with the settled container (the intermittent
+    // standalone launch shift). Exactly one centerer: the CSS.
+    autoCenter: Phaser.Scale.NO_CENTER
   },
   scene: [
     BootScene,

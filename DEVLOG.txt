@@ -5,6 +5,25 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3m] 2026-07-08 - ROOT CAUSE of the launch shift: double centering
+----------------------------------------------------------------------
+- M3l's timer spread did NOT cure the intermittent down+right shift.
+  Real cause found: #game centers the canvas with FLEXBOX while
+  Phaser's autoCenter CENTER_BOTH centers it AGAIN by setting CSS
+  margins on the canvas. Flex then centers the MARGIN BOX, so the
+  canvas lands offset down/right by margin/2. Margins are 0 whenever
+  the boot-time aspect measurement exactly matches the container
+  (browser always; standalone only when insets settle before our
+  script runs) - hence 1-in-3 launches bad, and scale.refresh()
+  recomputed the same margins so it could never self-heal.
+- FIX: exactly one centerer. autoCenter -> Phaser.Scale.NO_CENTER;
+  the flex CSS in index.html now solely centers the canvas. Any boot
+  aspect mismatch just letterboxes into parchment, centered.
+- Timer/viewport refreshes from M3l kept (they let FIT re-size to the
+  settled container; flex re-centers automatically).
+- STATUS: cold-launch the home screen app repeatedly - the shift
+  should be impossible now, not just unlikely.
+----------------------------------------------------------------------
 [M3l] 2026-07-08 - Standalone settle race fix + horseshoe spacing
 ----------------------------------------------------------------------
 - M3k's layout CONFIRMED WORKING on the iPhone (screenshot: parchment
