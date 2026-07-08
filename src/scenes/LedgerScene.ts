@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES, speciesById, SpeciesDef } from '../data/species';
 import { gameState } from '../state/GameState';
-import { badgeName, defenseProfile } from '../data/typeChart';
+import { DefenseProfile, defenseProfile } from '../data/typeChart';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
@@ -12,9 +12,9 @@ import { buildNav, NAV_HEIGHT } from '../ui/nav';
  * One page of the Frontier Ledger - the in-world dex. A rancher's record
  * book: each page fills in the more of that species you wrangle.
  *   0 caught: silhouette + ??? only
- *   1+: portrait, name, types, entry notes
- *   2+: weaknesses / resistances
- *   3+: traits (base stats)
+ *   1+: portrait, name, types, entry notes, where to find (placeholder)
+ *   2+: weaknesses / resistances (rendered with the type badge art)
+ *   3+: base stats
  */
 export class LedgerScene extends Phaser.Scene {
   private species!: SpeciesDef;
@@ -92,23 +92,18 @@ export class LedgerScene extends Phaser.Scene {
         ? sp.blurb
         : `The rancher's notes on ${sp.name} are sparse. More study needed out on the range.`;
     const prof = defenseProfile(sp.type1, sp.type2);
-    // display with Wrangle's western type names (Air, Frost, Lightning...)
-    const disp = (s: string) => {
-      const [t, ...rest] = s.split(' ');
-      return [badgeName(t).toUpperCase(), ...rest].join(' ');
-    };
-    const weakLine = prof.weak.length > 0 ? prof.weak.map(disp).join(' / ') : 'None recorded';
-    let resistLine = prof.resist.length > 0 ? prof.resist.map(disp).join(' / ') : 'None recorded';
-    if (prof.immune.length > 0) resistLine += `   IMMUNE: ${prof.immune.map(disp).join(' / ')}`;
     const stat = (v?: number) => (v === undefined ? '--' : `${v}`);
     const statsLine = `HP ${stat(sp.hp)}   ATK ${stat(sp.attack)}   DEF ${stat(sp.defense)}   SPA ${stat(sp.spAttack)}   SPD ${stat(sp.spDefense)}   SPE ${stat(sp.speed)}`;
 
-    this.section(g, pgX, pgY + 236, pgW, 'ENTRY', count >= 1, count, 1, [entry]);
-    this.section(g, pgX, pgY + 396, pgW, 'WEAKNESSES + RESISTANCES', count >= 2, count, 2, [
-      `WEAK: ${weakLine}`,
-      `RESIST: ${resistLine}`
+    let cy = pgY + 236;
+    this.section(g, pgX, cy, pgW, 'ENTRY', count >= 1, count, 1, [entry]);
+    cy += 150;
+    cy = this.matchupSection(g, pgX, cy, pgW, count >= 2, count, prof);
+    this.section(g, pgX, cy, pgW, 'BASE STATS', count >= 3, count, 3, [statsLine]);
+    cy += 108;
+    this.section(g, pgX, cy, pgW, 'WHERE TO FIND', count >= 1, count, 1, [
+      'Range unknown. Habitat notes will be inked in once the frontier map is charted.'
     ]);
-    this.section(g, pgX, pgY + 546, pgW, 'TRAITS', count >= 3, count, 3, [statsLine]);
 
     // temporary testing entry point into the capture mini-game
     makeButton(this, width / 2, pgY + pgH - 64, 340, 70, 'TEST WRANGLE', () =>
@@ -127,6 +122,85 @@ export class LedgerScene extends Phaser.Scene {
     this.add
       .text(x + 90, y + 48, `${value}`, { fontFamily: FONT.ui, fontSize: '26px', color: HEX.ink })
       .setOrigin(0.5);
+  }
+
+  /**
+   * WEAKNESSES + RESISTANCES rendered with the user's type badge art (x4
+   * marks kept as text). Rows wrap when a type list runs long, so this
+   * section is variable-height: returns the y where the next section starts.
+   */
+  private matchupSection(
+    g: Phaser.GameObjects.Graphics,
+    pgX: number,
+    y: number,
+    pgW: number,
+    unlocked: boolean,
+    count: number,
+    prof: DefenseProfile
+  ): number {
+    g.fillStyle(COLORS.saddle);
+    g.fillRect(pgX + 24, y, pgW - 48, 2);
+    this.add.text(pgX + 24, y + 12, 'WEAKNESSES + RESISTANCES', {
+      fontFamily: FONT.ui,
+      fontSize: '17px',
+      color: HEX.saddle
+    });
+    if (!unlocked) {
+      this.add.text(pgX + 24, y + 48, `RECORD INCOMPLETE - WRANGLE ${2 - count} MORE`, {
+        fontFamily: FONT.ui,
+        fontSize: '18px',
+        color: HEX.sage
+      });
+      return y + 108;
+    }
+    const x0 = pgX + 120;
+    const maxX = pgX + pgW - 24;
+    let rowY = this.matchupRow(pgX, x0, maxX, y + 70, 'WEAK', prof.weak);
+    rowY = this.matchupRow(pgX, x0, maxX, rowY + 48, 'RESIST', prof.resist);
+    if (prof.immune.length > 0) {
+      rowY = this.matchupRow(pgX, x0, maxX, rowY + 48, 'IMMUNE', prof.immune);
+    }
+    return rowY + 52;
+  }
+
+  /**
+   * One labeled row of type badges (entries are chart names, optionally
+   * suffixed like "Fire x4"); wraps past maxX. Returns the last row's y.
+   */
+  private matchupRow(
+    pgX: number,
+    x0: number,
+    maxX: number,
+    rowY: number,
+    label: string,
+    entries: string[]
+  ): number {
+    this.add
+      .text(pgX + 24, rowY, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.sage })
+      .setOrigin(0, 0.5);
+    if (entries.length === 0) {
+      this.add
+        .text(x0, rowY, 'NONE RECORDED', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
+        .setOrigin(0, 0.5);
+      return rowY;
+    }
+    let x = x0;
+    for (const e of entries) {
+      const [type, mark] = e.split(' ');
+      const w = mark ? 138 : 100; // badge is 92px at x2, plus the x4 tag
+      if (x + w - 8 > maxX) {
+        x = x0;
+        rowY += 44;
+      }
+      addTypeBadge(this, x + 46, rowY, type, 2);
+      if (mark) {
+        this.add
+          .text(x + 96, rowY, mark.toUpperCase(), { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+          .setOrigin(0, 0.5);
+      }
+      x += w;
+    }
+    return rowY;
   }
 
   private section(

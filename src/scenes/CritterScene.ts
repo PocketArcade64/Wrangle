@@ -22,18 +22,26 @@ const STAT_LABELS: [keyof CritterInstance['pedigree'], string][] = [
 const PROVISIONAL_BASE = 50;
 const STAT_SCALE_MAX = 165; // display ceiling: strong base 150 + pedigree 15
 
-type ChartTab = 'bars' | 'hex';
+type ChartTab = 'current' | 'base' | 'hex' | 'pedhex';
+
+const CHART_TABS: { tab: ChartTab; label: string }[] = [
+  { tab: 'current', label: 'CURRENT' },
+  { tab: 'base', label: 'BASE' },
+  { tab: 'hex', label: 'HEX' },
+  { tab: 'pedhex', label: 'PEDIGREE' }
+];
 
 /**
  * One specific critter from your herd (Pokemon GO-style page, frontier
  * flavored): portrait on a scenic band, types, attacker style, current
- * moves, and a BARS/HEX view of its stats - base plus this individual's
- * PEDIGREE (its rolled bloodline bonus).
+ * moves, and a four-tab stat view - CURRENT (base + pedigree, horizontal
+ * bars), BASE (base only bars), HEX (current-stat radar) and PEDIGREE
+ * (bloodline-bonus radar, 0-15 scale).
  */
 export class CritterScene extends Phaser.Scene {
   private critter!: CritterInstance;
   private species!: SpeciesDef;
-  private chartTab: ChartTab = 'bars';
+  private chartTab: ChartTab = 'current';
   private favStar!: Phaser.GameObjects.Image;
   private tempMsg?: Phaser.GameObjects.Text;
 
@@ -49,7 +57,7 @@ export class CritterScene extends Phaser.Scene {
     }
     this.critter = found;
     this.species = SPECIES.find((s) => s.id === found.speciesId) ?? SPECIES[0];
-    this.chartTab = data.chart ?? 'bars';
+    this.chartTab = data.chart ?? 'current';
   }
 
   create(): void {
@@ -72,7 +80,17 @@ export class CritterScene extends Phaser.Scene {
     g.fillStyle(COLORS.ink, 0.14);
     g.fillRect(width / 2 - 62, 288, 124, 8);
     const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-    this.add.image(width / 2, 204, texKey).setDisplaySize(176, 176);
+    // every critter renders at the same fixed portrait size (source PNGs
+    // vary), feet grounded on the shadow, with a gentle idle bob
+    const sprite = this.add.image(width / 2, 186, texKey).setDisplaySize(224, 224);
+    this.tweens.add({
+      targets: sprite,
+      y: 178,
+      duration: 700,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     makeButton(this, 84, 52, 130, 54, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'herd' }), '18px');
 
@@ -104,9 +122,11 @@ export class CritterScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.buildMoves(500);
-    this.buildChartTabs(676);
-    if (this.chartTab === 'bars') this.buildBars(714);
-    else this.buildHexChart(714);
+    this.buildChartTabs(690);
+    const chartY = 728;
+    if (this.chartTab === 'current') this.buildBars(chartY, true);
+    else if (this.chartTab === 'base') this.buildBars(chartY, false);
+    else this.buildHexChart(chartY, this.chartTab === 'pedhex');
 
     makeButton(this, width / 2, height - NAV_HEIGHT - 56, 300, 66, 'TURN LOOSE', () => this.tryRelease(), '18px');
 
@@ -161,16 +181,16 @@ export class CritterScene extends Phaser.Scene {
 
   private buildChartTabs(y: number): void {
     const { width } = this.scale;
-    (['bars', 'hex'] as ChartTab[]).forEach((tab, i) => {
-      const x = width / 2 + (i - 0.5) * 160;
+    CHART_TABS.forEach(({ tab, label }, i) => {
+      const x = width / 2 + (i - (CHART_TABS.length - 1) / 2) * 164;
       const active = tab === this.chartTab;
       const bg = this.add
-        .rectangle(x, y, 150, 48, active ? COLORS.parchmentLight : COLORS.parchmentDark)
+        .rectangle(x, y, 158, 48, active ? COLORS.parchmentLight : COLORS.parchmentDark)
         .setStrokeStyle(active ? 3 : 2, active ? COLORS.saddle : COLORS.saddleDark);
       this.add
-        .text(x, y, tab === 'bars' ? 'BARS' : 'HEX', {
+        .text(x, y, label, {
           fontFamily: FONT.ui,
-          fontSize: '18px',
+          fontSize: '16px',
           color: active ? HEX.ink : HEX.saddle
         })
         .setOrigin(0.5);
@@ -182,7 +202,8 @@ export class CritterScene extends Phaser.Scene {
     });
   }
 
-  private buildBars(y: number): void {
+  /** Horizontal stat bars: base in sage, plus the pedigree bonus in denim. */
+  private buildBars(y: number, withPedigree: boolean): void {
     const { width } = this.scale;
     const g = this.add.graphics();
     drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
@@ -190,40 +211,56 @@ export class CritterScene extends Phaser.Scene {
     g.fillStyle(COLORS.sage);
     g.fillRect(64, y + 16, 14, 14);
     this.add.text(86, y + 15, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    g.fillStyle(COLORS.denim);
-    g.fillRect(170, y + 16, 14, 14);
-    this.add.text(192, y + 15, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-
-    const baseline = y + 272;
-    const maxH = 200;
-    STAT_LABELS.forEach(([key, label], i) => {
-      const bx = 92 + i * 100;
-      const { base, ped } = this.statTotal(key);
-      const baseH = Math.max(4, Math.round((base / STAT_SCALE_MAX) * maxH));
-      const pedH = Math.round((ped / STAT_SCALE_MAX) * maxH);
-      g.fillStyle(COLORS.ink);
-      g.fillRect(bx - 26, baseline - baseH - pedH - 2, 52, baseH + pedH + 4);
-      g.fillStyle(COLORS.sage);
-      g.fillRect(bx - 24, baseline - baseH, 48, baseH);
+    if (withPedigree) {
       g.fillStyle(COLORS.denim);
-      g.fillRect(bx - 24, baseline - baseH - pedH, 48, pedH);
+      g.fillRect(170, y + 16, 14, 14);
+      this.add.text(192, y + 15, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+    }
+
+    const barX = 130;
+    const maxW = 460;
+    STAT_LABELS.forEach(([key, label], i) => {
+      const ry = y + 74 + i * 42;
+      const { base, ped } = this.statTotal(key);
+      const shownPed = withPedigree ? ped : 0;
+      const baseW = Math.max(4, Math.round((base / STAT_SCALE_MAX) * maxW));
+      const pedW = Math.round((shownPed / STAT_SCALE_MAX) * maxW);
       this.add
-        .text(bx, baseline - baseH - pedH - 16, `${base + ped}`, {
+        .text(64, ry, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+        .setOrigin(0, 0.5);
+      g.fillStyle(COLORS.ink);
+      g.fillRect(barX - 2, ry - 15, baseW + pedW + 4, 30);
+      g.fillStyle(COLORS.sage);
+      g.fillRect(barX, ry - 13, baseW, 26);
+      if (pedW > 0) {
+        g.fillStyle(COLORS.denim);
+        g.fillRect(barX + baseW, ry - 13, pedW, 26);
+      }
+      this.add
+        .text(barX + baseW + pedW + 12, ry, `${base + shownPed}`, {
           fontFamily: FONT.ui,
           fontSize: '17px',
           color: HEX.ink
         })
-        .setOrigin(0.5);
-      this.add
-        .text(bx, baseline + 14, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
-        .setOrigin(0.5);
+        .setOrigin(0, 0.5);
     });
   }
 
-  private buildHexChart(y: number): void {
+  /** Radar chart: current stats (sage) or the pedigree alone on a 0-15 scale (denim). */
+  private buildHexChart(y: number, pedigreeOnly: boolean): void {
     const { width } = this.scale;
     const g = this.add.graphics();
     drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
+    this.add.text(64, y + 14, pedigreeOnly ? 'PEDIGREE (MAX 15)' : 'CURRENT STATS', {
+      fontFamily: FONT.ui,
+      fontSize: '16px',
+      color: HEX.saddle
+    });
+    const scaleMax = pedigreeOnly ? 15 : STAT_SCALE_MAX;
+    const statValue = (key: keyof CritterInstance['pedigree']): number => {
+      const { base, ped } = this.statTotal(key);
+      return pedigreeOnly ? ped : base + ped;
+    };
     const cx = width / 2;
     const cy = y + 172;
     const R = 118;
@@ -250,12 +287,11 @@ export class CritterScene extends Phaser.Scene {
     }
 
     // data polygon
-    g.fillStyle(COLORS.sage, 0.55);
+    g.fillStyle(pedigreeOnly ? COLORS.denim : COLORS.sage, 0.55);
     g.lineStyle(3, COLORS.ink, 0.9);
     g.beginPath();
     STAT_LABELS.forEach(([key], i) => {
-      const { base, ped } = this.statTotal(key);
-      const v = vertex(i, (Math.min(base + ped, STAT_SCALE_MAX) / STAT_SCALE_MAX) * R);
+      const v = vertex(i, (Math.min(statValue(key), scaleMax) / scaleMax) * R);
       if (i === 0) g.moveTo(v.x, v.y);
       else g.lineTo(v.x, v.y);
     });
@@ -266,12 +302,11 @@ export class CritterScene extends Phaser.Scene {
     // labels + values at the vertices
     STAT_LABELS.forEach(([key, label], i) => {
       const v = vertex(i, R + 34);
-      const { base, ped } = this.statTotal(key);
       this.add
         .text(v.x, v.y - 9, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
         .setOrigin(0.5);
       this.add
-        .text(v.x, v.y + 11, `${base + ped}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+        .text(v.x, v.y + 11, `${statValue(key)}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
         .setOrigin(0.5);
     });
   }

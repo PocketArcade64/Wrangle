@@ -5,6 +5,35 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3d] 2026-07-08 - Critter page stat tabs + ledger badge matchups
+----------------------------------------------------------------------
+- CRITTER PAGE (CritterScene) per feedback:
+  - Chart tabs expanded 2 -> 4: CURRENT (base+pedigree), BASE (base
+    only), HEX (current-stat radar), PEDIGREE (bloodline-bonus radar
+    on its own 0-15 scale, filled denim to match the legend color).
+  - Bar charts are now HORIZONTAL (label left, sage base bar + denim
+    pedigree segment, total at the bar's end). Legend shows PEDIGREE
+    only on the CURRENT tab.
+  - Added breathing room above the tab row (moves panel 648 ->
+    tabs top 666; chart panel moved 714 -> 728).
+  - Sprite enlarged 176 -> 224 and every critter now renders at the
+    SAME fixed display size (setDisplaySize handles varying source
+    PNG dims), grounded on the shadow, with a subtle Pokemon-style
+    idle bob (sine yoyo tween, 8px, ~1.4s round trip).
+- FRONTIER LEDGER (LedgerScene):
+  - WEAKNESSES + RESISTANCES now rendered with the user's type badge
+    art (x2 scale) instead of text lists: WEAK / RESIST / IMMUNE
+    labeled rows, badges wrap to extra rows when a list runs long
+    (5 per row), x4 weaknesses keep a small "X4" tag beside the
+    badge. Empty lists say NONE RECORDED.
+  - TRAITS section renamed BASE STATS (same 3-caught unlock).
+  - NEW "WHERE TO FIND" section below it (unlocks at 1 caught):
+    placeholder text until the M4 map/habitat data exists.
+  - Sections now flow from a y cursor since the badge section is
+    variable-height.
+- STATUS: playtest the 4 stat tabs, sprite bob feel, and badge-row
+  wrapping on dual types with long weakness lists (e.g. Grass duals).
+----------------------------------------------------------------------
 [M3c] 2026-07-07 - Individual critters, type badges, asset re-org
 ----------------------------------------------------------------------
 - ASSET RE-ORG (user uploaded type badges + first map): public/ is now
