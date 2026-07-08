@@ -214,6 +214,7 @@ Later additions:
 
 ____________________________
 
+here is the full type chart. Add a quick view button on the herd individual creatures page, individual ledger page near the restistances and also under the how to play button in the player's profile.
 Type	Strong vs (2x)	Weak vs (0.5x)	Vulnerable to (takes 2x)	Immune to
 Fire	Grass, Frost, Metal, Bug	Fire, Water, Earth, Dragon	Water, Earth, Fire	—
 Water	Fire, Earth	Water, Grass, Dragon	Grass, Lightning	—
@@ -233,6 +234,10 @@ Bug	Grass, Psychic, Dark	Fire, Fighting, Poison, Frost, Ghost, Air, Metal	Fire, 
 Frost	Grass, Earth, Air, Dragon	Fire, Water, Frost, Metal	Fire, Fighting, Metal	—
 Dragon	Dragon	Frost, Dragon	Frost, Mystical, Dragon	—
 
+Also add a pixel art daily login bonus (like a stamp hole punch card but make it western themed)
+and a wheel you can spin daily
+    - If you watch an ad you can spin a wheel with worse rewards endlessly
+
 Frontier Flats
 * Sunny prairie (Normal, Grass)
 * Flower fields (Grass, Bug)
@@ -244,12 +249,12 @@ Frontier Flats
 
 Gameplay Loop (Inspired by the structure of Pokémon Rumble Rush, but with original mechanics)
 Tap Explore to open the world map.
-Tap any location on the map to drop a pin. The pin's coordinates generate a unique stage.
+Tap any location on the map to drop a pin. The pin's coordinates generate a unique stage with different critter spwans. (the coordinate system changes daily)
 The coordinates determine the stage's biome/theme, available hazards, and the pool of critters that can appear.
 Each stage contains predefined spawn locations, but an RNG seed decides which critter species occupy each spawn group, making every generated stage unique while preserving level layout.
 Critters appear in groups of the same species. Occasionally, a rare variant or rarer species appears in the center of a group.
 Progress through the stage by clearing encounters until reaching the boss at the end.
-Completing a stage permanently saves its generated seed. Players can store up to 3 pinned stages and replay them infinitely without spending stamina.
+Completing a stage permanently saves its generated seed. Players can store up to 3 pinned stages and replay them infinitely without spending stamina. (you can mark a single location as a favorite to not lose it, your new explorations do not overwrite that location)
 Creating a new pin consumes stamina and replaces one of the stored stage slots if all three are occupied.
 When a player encounters a critter for the first time, a small notification slides in on the left side of the screen showing:
 Critter icon/sprite
@@ -257,4 +262,5 @@ Critter name
 Type(s)
 NEW badge
 Newly discovered critters are immediately added to the player's Field Guide (or equivalent encyclopedia), encouraging exploration of new coordinates to complete the collection.
-Different coordinates should produce meaningful variation through biome, encounter tables, boss selection, environmental hazards, and collectible rewards, giving players a reason to continually explore new locations instead of replaying the same stages.
+if you come across a critter group you have seen before still show Critter icon/sprite, Critter name, Type(s) 
+Different coordinates should produce meaningful variation through biome, encounter tables, boss selection, environmental hazards, and collectible rewards, giving players a reason to continually explore new locations instead of replaying the same stages. controls during a stage: exactly like Pokemon Rumble Rush (with some minor changes)- When in a level, your critter moves forward automatically towards enemies and there are 2 buttons on the bottom of the screen and you click each one for a different attack (only 1 button if our creature is a single type) the buttons reflect cooldown to indicate when you can use a move again. Each creature is either a physical or special attacker and has the corresponding moves (I will add in more moves later). you can swipe to make the critter reposition itself (just like in Rumble Rush). You can bring 3 critters into a level and they gain XP with each monster they defeat (add levels like in pokemon with max 100 and add their level and xp bar in the herd menu when you click on a critter)
