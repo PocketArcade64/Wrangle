@@ -214,4 +214,47 @@ Later additions:
 
 ____________________________
 
-I just uploaded the type symbols and the first map and map logo - would it be better to organize the public folder into a sprites folder with neatly segmented folder for each sprite area? On my herd page, when you click into a critter make it show a different page than the ledger - these are your specific creatures, each with specific stats and moves. Each creature is either a physical or special attacker (indicated in the csv file) .Each create caught has base stats that are static for each creature (will be in the csv and needs balancing) and also random IVs (rename from IVs and also show these in each specific critter page). When you click into each creature, their menu is structured like Pokemon go but with a western influence - Critters that are favorited cannot be turned in for bounties or put up for auction. Below their current moves section shows a tab system that shows their current stats in a vertical bar chart then as a hexagon. Do not allow the user to release their last critter - implement a confirmation button when deleting posse teams and releasing critters - take inspiration how Pokemon Go has a system where you can select some then mass release them. In the ledger, please remove the tally mark system and just use a number (if you catch 500 critters of that type then the tally marks wouldnt fit on screen) - structure the seen/caught like an expert designer and please have those stats next to each other left and right.
+Type	Strong vs (2x)	Weak vs (0.5x)	Vulnerable to (takes 2x)	Immune to
+Fire	Grass, Frost, Metal, Bug	Fire, Water, Earth, Dragon	Water, Earth, Fire	—
+Water	Fire, Earth	Water, Grass, Dragon	Grass, Lightning	—
+Grass	Water, Earth	Fire, Grass, Frost, Poison, Bug, Metal, Dragon, Air	Fire, Frost, Poison, Bug, Air	—
+Lightning	Water, Air	Grass, Lightning, Dragon	Earth	—
+Earth	Fire, Lightning, Poison, Metal	Grass (resist, not weak), Bug	Water, Frost	Lightning
+Air	Grass, Fighting, Bug	Lightning, Metal	Lightning, Frost, Earth	—
+Dark	Psychic, Ghost	Dark, Fighting, Mystical	Fighting, Bug, Mystical	Psychic
+Psychic	Fighting, Poison	Psychic, Metal, Dark	Bug, Ghost, Dark	—
+Ghost	Psychic, Ghost	Dark	Ghost, Dark	Normal, Fighting
+Metal	Frost, Mystical, Earth	Fire, Water, Lightning, Metal	Fire, Fighting, Earth	Poison
+Mystical	Fighting, Dragon, Dark	Fire, Poison, Metal	Poison, Metal	Dragon
+Normal	—	—	Fighting	Ghost
+Fighting	Normal, Frost, Earth, Metal, Dark	Air, Psychic, Mystical, Bug	Air, Psychic, Mystical	—
+Poison	Grass, Mystical	Poison, Earth, Ghost, Fire	Earth, Psychic	—
+Bug	Grass, Psychic, Dark	Fire, Fighting, Poison, Frost, Ghost, Air, Metal	Fire, Air, Frost	—
+Frost	Grass, Earth, Air, Dragon	Fire, Water, Frost, Metal	Fire, Fighting, Metal	—
+Dragon	Dragon	Frost, Dragon	Frost, Mystical, Dragon	—
+
+Frontier Flats
+* Sunny prairie (Normal, Grass)
+* Flower fields (Grass, Bug)
+* Small river and ponds (Water)
+* Windmill ranch (Normal)
+* Oak grove (Grass)
+* Rocky creek (occasional Earth)
+* Wooden bridges and fences connecting everything together
+
+Gameplay Loop (Inspired by the structure of Pokémon Rumble Rush, but with original mechanics)
+Tap Explore to open the world map.
+Tap any location on the map to drop a pin. The pin's coordinates generate a unique stage.
+The coordinates determine the stage's biome/theme, available hazards, and the pool of critters that can appear.
+Each stage contains predefined spawn locations, but an RNG seed decides which critter species occupy each spawn group, making every generated stage unique while preserving level layout.
+Critters appear in groups of the same species. Occasionally, a rare variant or rarer species appears in the center of a group.
+Progress through the stage by clearing encounters until reaching the boss at the end.
+Completing a stage permanently saves its generated seed. Players can store up to 3 pinned stages and replay them infinitely without spending stamina.
+Creating a new pin consumes stamina and replaces one of the stored stage slots if all three are occupied.
+When a player encounters a critter for the first time, a small notification slides in on the left side of the screen showing:
+Critter icon/sprite
+Critter name
+Type(s)
+NEW badge
+Newly discovered critters are immediately added to the player's Field Guide (or equivalent encyclopedia), encouraging exploration of new coordinates to complete the collection.
+Different coordinates should produce meaningful variation through biome, encounter tables, boss selection, environmental hazards, and collectible rewards, giving players a reason to continually explore new locations instead of replaying the same stages.
