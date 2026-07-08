@@ -112,6 +112,32 @@ const ICONS: Record<string, string[]> = {
     'XXX.....XXX',
     'XX.......XX'
   ],
+  'icon-gate': [
+    'XXXXXXX....',
+    'X..........',
+    'X.....X....',
+    'X.....XX...',
+    'X.XXXXXXX..',
+    'X.XXXXXXXX.',
+    'X.XXXXXXX..',
+    'X.....XX...',
+    'X.....X....',
+    'X..........',
+    'XXXXXXX....'
+  ],
+  'icon-chart': [
+    'XXXXXXXXXXX',
+    'X....X....X',
+    'X....X....X',
+    'X....X....X',
+    'X....X....X',
+    'XXXXXXXXXXX',
+    'X....X....X',
+    'X....X....X',
+    'X....X....X',
+    'X....X....X',
+    'XXXXXXXXXXX'
+  ],
   'icon-ledger': [
     '.XXXXXXXXX.',
     '.XX......X.',

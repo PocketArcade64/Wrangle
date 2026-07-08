@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { gameState } from '../state/GameState';
+import { dateKey } from '../util/daily';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
-import { buildNav, NAV_HEIGHT } from '../ui/nav';
+import { openPossePicker } from '../ui/possePicker';
+import { buildNav } from '../ui/nav';
 
 const STATUS_H = 96;
 const CARD_W = 560;
@@ -322,7 +324,8 @@ export class HomeScene extends Phaser.Scene {
     });
     this.carousel.add(nameT);
 
-    // three slots centered as a row within the card
+    // three slots centered as a row within the card. Tap a filled slot to
+    // open that critter's page; long-press any slot to change/clear it.
     for (let s = 0; s < 3; s++) {
       const sx = x + (s - 1) * 140;
       const slot = this.add.rectangle(sx, cy + 14, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
@@ -339,6 +342,34 @@ export class HomeScene extends Phaser.Scene {
           .setOrigin(0.5);
         this.carousel.add(plus);
       }
+
+      const openPicker = () => openPossePicker(this, index, s, () => this.scene.restart());
+      let pressTimer: Phaser.Time.TimerEvent | undefined;
+      let longFired = false;
+      slot
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          longFired = false;
+          pressTimer = this.time.delayedCall(450, () => {
+            if (this.carDrag && this.carDrag.moved >= 10) return;
+            longFired = true;
+            openPicker();
+          });
+        })
+        .on('pointerout', () => pressTimer?.remove())
+        .on('pointerup', () => {
+          pressTimer?.remove();
+          if (longFired) return;
+          if (this.carDrag && this.carDrag.moved >= 10) return;
+          if (memberId) {
+            const inst = gameState.data.herd.find((c) => c.speciesId === memberId);
+            if (inst) {
+              this.scene.start('Critter', { uid: inst.uid });
+              return;
+            }
+          }
+          openPicker();
+        });
     }
 
     // selection: clay border + ACTIVE tag (clay is the actionable accent)
@@ -425,53 +456,14 @@ export class HomeScene extends Phaser.Scene {
 
   private buildSatchel(cx: number, cy: number): void {
     this.add.image(cx, cy, 'icon-satchel').setTint(COLORS.saddle);
-    let badge: Phaser.GameObjects.Rectangle | null = null;
-    if (gameState.data.dailyAvailable) {
-      badge = this.add.rectangle(cx + 20, cy - 20, 10, 10, COLORS.clay);
+    const d = gameState.data.daily;
+    const today = dateKey();
+    if (d.lastPunch !== today || d.lastSpin !== today) {
+      this.add.rectangle(cx + 20, cy - 20, 10, 10, COLORS.clay);
     }
     this.add
       .rectangle(cx, cy, 70, 70, 0xffffff, 0)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', () => this.openDailyStub(badge));
-  }
-
-  private openDailyStub(badge: Phaser.GameObjects.Rectangle | null): void {
-    const { width, height } = this.scale;
-    const dim = this.add.rectangle(width / 2, height / 2, width, height, COLORS.ink, 0.6).setDepth(60);
-    const panel = this.add.graphics().setDepth(61);
-    panel.fillStyle(COLORS.ink);
-    panel.fillRect(width / 2 - 262, height / 2 - 152, 524, 304);
-    panel.fillStyle(COLORS.parchment);
-    panel.fillRect(width / 2 - 256, height / 2 - 146, 512, 292);
-    const title = this.add
-      .text(width / 2, height / 2 - 90, 'DAILY BONUS', {
-        fontFamily: FONT.display,
-        fontSize: '34px',
-        color: HEX.ink
-      })
-      .setOrigin(0.5)
-      .setDepth(62);
-    const body = this.add
-      .text(width / 2, height / 2 - 10, 'The bonus wheel rolls into town\nin a later update.', {
-        fontFamily: FONT.ui,
-        fontSize: '17px',
-        color: HEX.saddle,
-        align: 'center'
-      })
-      .setOrigin(0.5)
-      .setDepth(62);
-    const close = this.add
-      .rectangle(width / 2, height / 2 + 90, 180, 56, COLORS.saddle)
-      .setStrokeStyle(2, COLORS.ink)
-      .setDepth(62)
-      .setInteractive({ useHandCursor: true });
-    const closeTxt = this.add
-      .text(width / 2, height / 2 + 90, 'CLOSE', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.parchment })
-      .setOrigin(0.5)
-      .setDepth(63);
-    close.on('pointerup', () => {
-      [dim, panel, title, body, close, closeTxt].forEach((o) => o.destroy());
-      badge?.destroy();
-    });
+      .on('pointerup', () => this.scene.start('Daily'));
   }
 }

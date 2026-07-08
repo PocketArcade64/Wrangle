@@ -5,6 +5,66 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3g] 2026-07-08 - Full 17-type chart, level/XP, daily bonus, posse QoL
+----------------------------------------------------------------------
+BIG batch per user feedback:
+- FULL TYPE CHART (src/data/typeChart.ts rewritten): user supplied the
+  complete 17-type table; CHART is now keyed by CANON western names
+  and defenseProfile() normalizes CSV classic names via badgeName().
+  Reconciliation calls (FLAG FOR USER TO CONFIRM): (1) Earth deals 2x
+  to Air and Frost 2x to Bug - only present in the defensive columns,
+  honored; (2) "Fire vulnerable to ...Fire" contradicted Fire
+  resisting Fire - resolved as resist (0.5x); (3) Dragon appeared in
+  both Dragon's strong AND weak columns - resolved as 2x.
+  New offenseProfile() + ALL_TYPES power the quick-view scene.
+- NEW TypeChartScene ('TypeChart'): drag-scrolling reference, one
+  ruled section per type w/ STRONG/WEAK/NO EFFECT badge rows. Entry
+  points: critter page icon rail, ledger FULL CHART button (in the
+  weaknesses section), Player profile button. BACK returns to
+  whichever page opened it (back {scene,data} routing).
+  NOTE: PlayerScene has no HOW TO PLAY button yet (user assumed one)
+  - TYPE CHART sits under UPGRADE LASSO; slot a HOW TO PLAY above it
+  when that screen exists.
+- CRITTER PAGE: BACK now at y55 = ledger's BACK (no more jump between
+  the two pages). Icon rail under the star: LEDGER, TURN LOOSE (new
+  icon-gate glyph - exit arrow through a gate frame), TYPE CHART (new
+  icon-chart grid glyph). Bottom TURN LOOSE button REMOVED. NEW level
+  block under the attacker line: big display-font "LV. n" flanked by
+  poster rules + square nubs, over a full-width XP meter (wood frame,
+  corner rivets, ash-gray track, denim fill, quarter notches, "x / y
+  XP" readout). Moves/tabs/chart shifted down (594/778/816).
+- LEVEL/XP DATA: CritterInstance gains level (1) + xp (0);
+  xpForNextLevel() = 100 + 50*(lv-1) placeholder; migrate() fills old
+  saves via newCritter spread. XP is display-only until M3 battles.
+- CONFIRM DIALOG: new danger flag paints the confirm button the new
+  adobeRed token (0xc06f5f - muted brick, the sanctioned attention
+  red for destructive confirms; wantedRed stays poster-only). Used by
+  both TURN LOOSE flows (single + mass). ashGray token added for
+  empty meter tracks.
+- NEW DailyScene ('Daily', satchel now opens it): STAMP CARD - 7-day
+  ticket-stub punch card (perforation line, brass day rewards
+  25->250, punched holes show a stamped star, streak counter;
+  PUNCH IT once per local day, streak continues only if yesterday was
+  punched) + FORTUNE WHEEL - octagonal wagon wheel (8 straight-edged
+  wedges, alternating parchment/sand, saddle hub, ink pointer), one
+  free spin/day (50-250 Dust wedges), then WATCH AD + SPIN endlessly
+  on a stingier table (5-50). Ad is a 1.4s STUB until the real
+  rewarded-ad SDK at the M10 wrap. Save gains daily {lastPunch,
+  punchStreak, lastSpin}. Home satchel badge = punch or spin still
+  available today.
+- POSSE QoL (both the POSSES tab and the home carousel): TAP a filled
+  slot -> that critter's herd page (first herd critter of the
+  species); LONG-PRESS (450ms) -> slot picker; empty-slot tap also
+  opens the picker; picker's CLEAR removes from the slot. Picker
+  extracted to shared src/ui/possePicker.ts (CaptureSelect's copy
+  deleted). Home slot taps are drag-aware (ignored after >10px
+  carousel drags).
+- KNOWN QUIRK: scene-level drag handlers still run under open modals
+  (carousel can pan beneath the picker dim) - polish candidate.
+- STATUS: playtest the wheel feel + punch flow, confirm the 3 type
+  chart reconciliation calls above, and check icon-gate reads as
+  "turn loose" at 44px.
+----------------------------------------------------------------------
 [M3f] 2026-07-08 - Hex vertex order, ledger shortcut, 18px text floor
 ----------------------------------------------------------------------
 - HEX VERTEX ORDER now matches the classic Pokemon layout (user

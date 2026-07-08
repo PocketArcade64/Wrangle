@@ -5,13 +5,16 @@ import { makeButton } from './button';
 /**
  * Flat pixel confirmation dialog for destructive actions (releasing
  * critters, deleting posses). Dim tap or CANCEL dismisses.
+ * danger = true paints the confirm button adobe red (muted brick - the
+ * sanctioned attention-getter for irreversible actions).
  */
 export function confirmDialog(
   scene: Phaser.Scene,
   title: string,
   body: string,
   confirmLabel: string,
-  onConfirm: () => void
+  onConfirm: () => void,
+  danger = false
 ): void {
   const { width, height } = scene.scale;
   const objs: Phaser.GameObjects.GameObject[] = [];
@@ -67,7 +70,7 @@ export function confirmDialog(
         onConfirm();
       },
       '18px',
-      COLORS.saddleDark
+      danger ? COLORS.adobeRed : COLORS.saddleDark
     ).setDepth(82)
   );
 }

@@ -160,6 +160,20 @@ export class LedgerScene extends Phaser.Scene {
       fontSize: '17px',
       color: HEX.saddle
     });
+    // quick view of the full 17-type chart
+    makeButton(
+      this,
+      pgX + pgW - 109,
+      y + 24,
+      170,
+      42,
+      'FULL CHART',
+      () =>
+        this.scene.start('TypeChart', {
+          back: { scene: 'Ledger', data: { speciesId: this.species.id, fromUid: this.fromUid } }
+        }),
+      '18px'
+    );
     if (!unlocked) {
       this.add.text(pgX + 24, y + 48, `RECORD INCOMPLETE - WRANGLE ${2 - count} MORE`, {
         fontFamily: FONT.ui,

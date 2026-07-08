@@ -19,6 +19,15 @@ export interface CritterInstance {
   /** Favorites can't be released, turned in for bounties, or auctioned. */
   favorite: boolean;
   caughtAt: number;
+  /** Battle level - XP is earned once battles land in M3. */
+  level: number;
+  /** XP into the current level (resets to 0 on level-up). */
+  xp: number;
+}
+
+/** XP needed to go from `level` to `level + 1` (placeholder curve). */
+export function xpForNextLevel(level: number): number {
+  return 100 + (level - 1) * 50;
 }
 
 export interface WrangleSave {
@@ -37,6 +46,8 @@ export interface WrangleSave {
   teams: { name: string; members: (string | null)[] }[];
   /** Index of the posse selected on the home carousel. */
   activeTeam: number;
+  /** Daily bonus state - values are local dateKey() strings. */
+  daily: { lastPunch: string; punchStreak: number; lastSpin: string };
 }
 
 const KEY = 'wrangle-save-v1';
@@ -52,7 +63,8 @@ const DEFAULTS: WrangleSave = {
   seen: {},
   lasso: { rope: 0, grit: 0, charge: 0 },
   teams: [{ name: 'POSSE 1', members: [null, null, null] }],
-  activeTeam: 0
+  activeTeam: 0,
+  daily: { lastPunch: '', punchStreak: 0, lastSpin: '' }
 };
 
 export function rollPedigree(): Pedigree {
@@ -66,7 +78,9 @@ export function newCritter(speciesId: string): CritterInstance {
     speciesId,
     pedigree: rollPedigree(),
     favorite: false,
-    caughtAt: Date.now()
+    caughtAt: Date.now(),
+    level: 1,
+    xp: 0
   };
 }
 
@@ -88,11 +102,15 @@ class GameStateStore {
     this.migrate();
   }
 
-  /** Older saves stored the herd as plain species-id strings. */
+  /**
+   * Older saves stored the herd as plain species-id strings, and critters
+   * from before the level system lack level/xp - spreading a fresh critter
+   * under the saved fields fills any missing ones with defaults.
+   */
   private migrate(): void {
     const herd = this.data.herd as unknown as (string | CritterInstance)[];
     this.data.herd = herd.map((entry) =>
-      typeof entry === 'string' ? newCritter(entry) : entry
+      typeof entry === 'string' ? newCritter(entry) : { ...newCritter(entry.speciesId), ...entry }
     );
   }
 

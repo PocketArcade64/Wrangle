@@ -22,7 +22,14 @@ export const COLORS = {
   brass: 0xb8912a,
   sand: 0xd9bd8d,
   /** In-world print red for MOST WANTED posters only - never UI urgency. */
-  wantedRed: 0xa2261a
+  wantedRed: 0xa2261a,
+  /**
+   * Muted adobe-brick red for DESTRUCTIVE confirm buttons only (turn
+   * loose). Catches the eye without the brightness of wantedRed.
+   */
+  adobeRed: 0xc06f5f,
+  /** Warm light gray - empty meter tracks (XP). */
+  ashGray: 0xc6c0b2
 };
 
 export const HEX = {
@@ -37,7 +44,9 @@ export const HEX = {
   denim: '#3f5c6c',
   ink: '#2b221a',
   brass: '#b8912a',
-  wantedRed: '#a2261a'
+  wantedRed: '#a2261a',
+  adobeRed: '#c06f5f',
+  ashGray: '#c6c0b2'
 };
 
 /**

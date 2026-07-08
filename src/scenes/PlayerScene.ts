@@ -54,10 +54,13 @@ export class PlayerScene extends Phaser.Scene {
         .setOrigin(1, 0.5);
     });
 
-    // gear
+    // gear + references
     const lassoY = 380 + rows.length * 74 + 40;
     makeButton(this, width / 2, lassoY, 300, 64, 'UPGRADE LASSO', () =>
       this.scene.start('Lasso')
+    );
+    makeButton(this, width / 2, lassoY + 84, 300, 64, 'TYPE CHART', () =>
+      this.scene.start('TypeChart', { back: { scene: 'Player' } })
     );
 
     buildNav(this, 'player');

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
 import { badgeName } from '../data/typeChart';
-import { CritterInstance, gameState } from '../state/GameState';
+import { CritterInstance, gameState, xpForNextLevel } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
@@ -83,7 +83,7 @@ export class CritterScene extends Phaser.Scene {
   create(): void {
     if (!this.critter) return;
     ensureIcons(this);
-    const { width, height } = this.scale;
+    const { width } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
     const sp = this.species;
 
@@ -112,7 +112,8 @@ export class CritterScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    makeButton(this, 84, 52, 130, 54, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'herd' }), '18px');
+    // same spot as the ledger page's BACK so it doesn't jump between scenes
+    makeButton(this, 84, 55, 130, 54, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'herd' }), '18px');
 
     // favorite: clay = active state. Favorites can't be released, turned in
     // for bounties, or auctioned.
@@ -124,7 +125,7 @@ export class CritterScene extends Phaser.Scene {
       this.paintFavStar();
     });
 
-    // jump straight to this species' page in the Frontier Ledger
+    // icon rail below the favorite star: ledger page, turn loose, type chart
     this.add
       .image(width - 56, 122, 'icon-ledger')
       .setTint(COLORS.saddle)
@@ -132,6 +133,20 @@ export class CritterScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerup', () =>
         this.scene.start('Ledger', { speciesId: this.species.id, fromUid: this.critter.uid })
+      );
+    this.add
+      .image(width - 56, 192, 'icon-gate')
+      .setTint(COLORS.saddle)
+      .setScale(1.1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', () => this.tryRelease());
+    this.add
+      .image(width - 56, 262, 'icon-chart')
+      .setTint(COLORS.saddle)
+      .setScale(1.1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', () =>
+        this.scene.start('TypeChart', { back: { scene: 'Critter', data: { uid: this.critter.uid } } })
       );
 
     this.add
@@ -151,14 +166,78 @@ export class CritterScene extends Phaser.Scene {
       .text(width / 2, 466, style, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
       .setOrigin(0.5);
 
-    this.buildMoves(500);
-    this.buildChartTabs(690);
-    if (this.chartView === 'bars') this.buildBars(728);
-    else this.buildHexChart(728);
-
-    makeButton(this, width / 2, height - NAV_HEIGHT - 56, 300, 66, 'TURN LOOSE', () => this.tryRelease(), '18px');
+    this.buildLevelXp(508);
+    this.buildMoves(594);
+    this.buildChartTabs(778);
+    if (this.chartView === 'bars') this.buildBars(816);
+    else this.buildHexChart(816);
 
     buildNav(this, 'collection');
+  }
+
+  /**
+   * Big branding-iron level number flanked by poster rules, over a full-
+   * width XP meter: wood frame with corner rivets, ash-gray empty track,
+   * denim fill, quarter notches.
+   */
+  private buildLevelXp(y: number): void {
+    const { width } = this.scale;
+    const lv = this.add
+      .text(width / 2, y, `LV. ${this.critter.level}`, {
+        fontFamily: FONT.display,
+        fontSize: '40px',
+        color: HEX.ink
+      })
+      .setOrigin(0.5);
+
+    const g = this.add.graphics();
+    // ornamental side rules with square nubs, like a poster divider
+    g.fillStyle(COLORS.saddle);
+    const ruleW = 90;
+    const gap = lv.width / 2 + 26;
+    g.fillRect(width / 2 - gap - ruleW, y - 2, ruleW, 4);
+    g.fillRect(width / 2 + gap, y - 2, ruleW, 4);
+    g.fillRect(width / 2 - gap - 8, y - 5, 10, 10);
+    g.fillRect(width / 2 + gap - 2, y - 5, 10, 10);
+
+    const need = xpForNextLevel(this.critter.level);
+    this.add
+      .text(width - 42, y + 34, `${this.critter.xp} / ${need} XP`, {
+        fontFamily: FONT.ui,
+        fontSize: '18px',
+        color: HEX.saddle
+      })
+      .setOrigin(1, 1);
+
+    // XP meter
+    const bx = 40;
+    const bw = width - 80;
+    const by = y + 40;
+    const bh = 30;
+    g.fillStyle(COLORS.ink);
+    g.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+    g.fillStyle(COLORS.saddle);
+    g.fillRect(bx, by, bw, bh);
+    const ix = bx + 5;
+    const iy = by + 5;
+    const iw = bw - 10;
+    const ih = bh - 10;
+    g.fillStyle(COLORS.ashGray);
+    g.fillRect(ix, iy, iw, ih);
+    const frac = Phaser.Math.Clamp(this.critter.xp / need, 0, 1);
+    if (frac > 0) {
+      g.fillStyle(COLORS.denim);
+      g.fillRect(ix, iy, Math.round(iw * frac), ih);
+    }
+    g.fillStyle(COLORS.ink, 0.25);
+    for (const q of [0.25, 0.5, 0.75]) {
+      g.fillRect(ix + Math.round(iw * q) - 1, iy, 2, ih);
+    }
+    g.fillStyle(COLORS.saddleDark);
+    g.fillRect(bx + 2, by + 2, 4, 4);
+    g.fillRect(bx + bw - 6, by + 2, 4, 4);
+    g.fillRect(bx + 2, by + bh - 6, 4, 4);
+    g.fillRect(bx + bw - 6, by + bh - 6, 4, 4);
   }
 
   private paintFavStar(): void {
@@ -412,7 +491,8 @@ export class CritterScene extends Phaser.Scene {
       () => {
         releaseCritters([this.critter.uid]);
         this.scene.start('CaptureSelect', { tab: 'herd' });
-      }
+      },
+      true
     );
   }
 

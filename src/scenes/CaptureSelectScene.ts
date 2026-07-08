@@ -6,6 +6,7 @@ import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
 import { confirmDialog } from '../ui/confirm';
+import { openPossePicker } from '../ui/possePicker';
 import { buildNav, NAV_HEIGHT } from '../ui/nav';
 
 const TOP_BAR_H = 110;
@@ -312,7 +313,8 @@ export class CaptureSelectScene extends Phaser.Scene {
       () => {
         releaseCritters([...this.selected]);
         this.scene.restart({ tab: 'herd' });
-      }
+      },
+      true
     );
   }
 
@@ -384,6 +386,10 @@ export class CaptureSelectScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Posse slot: tap a filled slot to open that critter's page; long-press
+   * (or tap an empty slot) to open the picker, which includes CLEAR.
+   */
   private makeSlot(memberId: string | null, ti: number, si: number, x: number, y: number): void {
     const slot = this.add
       .rectangle(x, y, 108, 108, COLORS.parchmentDark)
@@ -397,73 +403,36 @@ export class CaptureSelectScene extends Phaser.Scene {
         .text(x, y, '+', { fontFamily: FONT.display, fontSize: '40px', color: HEX.saddle })
         .setOrigin(0.5);
     }
-    slot.setInteractive({ useHandCursor: true }).on('pointerup', () => this.openSlotPicker(ti, si));
-  }
 
-  private openSlotPicker(ti: number, si: number): void {
-    const { width, height } = this.scale;
-    const unique = [...new Set(gameState.data.herd.map((c) => c.speciesId))];
-    if (unique.length === 0) {
-      this.showTempMsg('WRANGLE SOME CRITTERS FIRST');
-      return;
-    }
-
-    const modal: Phaser.GameObjects.GameObject[] = [];
-    const dim = this.add
-      .rectangle(width / 2, height / 2, width, height, COLORS.ink, 0.6)
-      .setDepth(60)
-      .setInteractive();
-    modal.push(dim);
-    const g = this.add.graphics().setDepth(61);
-    drawPixelPanel(g, 50, 190, width - 100, 700, COLORS.parchment, COLORS.saddle);
-    modal.push(g);
-    modal.push(
-      this.add
-        .text(width / 2, 236, 'PICK A CRITTER', { fontFamily: FONT.display, fontSize: '28px', color: HEX.ink })
-        .setOrigin(0.5)
-        .setDepth(62)
-    );
-
-    const pick = (id: string | null) => {
-      gameState.data.teams[ti].members[si] = id;
-      gameState.save();
-      this.scene.restart({ tab: 'posses' });
-    };
-
-    const options: (string | null)[] = [null, ...unique.slice(0, 15)];
-    options.forEach((id, i) => {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const x = 130 + col * 154;
-      const y = 330 + row * 156;
-      const cell = this.add
-        .rectangle(x, y, 136, 136, COLORS.parchmentLight)
-        .setStrokeStyle(3, COLORS.saddle)
-        .setDepth(62)
-        .setInteractive({ useHandCursor: true })
-        .on('pointerup', () => pick(id));
-      modal.push(cell);
-      if (id) {
-        const sp = SPECIES.find((s) => s.id === id);
-        const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-        modal.push(this.add.image(x, y - 14, texKey).setDisplaySize(84, 84).setDepth(63));
-        modal.push(
-          this.add
-            .text(x, y + 46, sp ? sp.name : id, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
-            .setOrigin(0.5)
-            .setDepth(63)
-        );
-      } else {
-        modal.push(
-          this.add
-            .text(x, y, 'CLEAR', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
-            .setOrigin(0.5)
-            .setDepth(63)
-        );
+    const openPicker = () => {
+      if (!openPossePicker(this, ti, si, () => this.scene.restart({ tab: 'posses' }))) {
+        this.showTempMsg('WRANGLE SOME CRITTERS FIRST');
       }
-    });
-
-    dim.on('pointerup', () => modal.forEach((o) => o.destroy()));
+    };
+    let pressTimer: Phaser.Time.TimerEvent | undefined;
+    let longFired = false;
+    slot
+      .setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        longFired = false;
+        pressTimer = this.time.delayedCall(450, () => {
+          longFired = true;
+          openPicker();
+        });
+      })
+      .on('pointerout', () => pressTimer?.remove())
+      .on('pointerup', () => {
+        pressTimer?.remove();
+        if (longFired) return;
+        if (memberId) {
+          const inst = gameState.data.herd.find((c) => c.speciesId === memberId);
+          if (inst) {
+            this.scene.start('Critter', { uid: inst.uid });
+            return;
+          }
+        }
+        openPicker();
+      });
   }
 
   private showTempMsg(msg: string): void {
