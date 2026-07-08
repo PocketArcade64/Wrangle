@@ -16,7 +16,12 @@ export interface StageTheme {
   ground: number;
   groundDark: number;
   trail: number;
+  /** Out-of-bounds terrain flanking the corridor + its inner edge trim. */
+  wall: number;
+  wallEdge: number;
   prop: 'grass' | 'flower' | 'reed' | 'tree' | 'rock' | 'fence';
+  /** Environmental hazard flavor for the theme. */
+  hazard: 'tumbleweed' | 'drop' | 'slick';
   /** Capture-arena backdrop when the lasso minigame fires mid-stage. */
   captureBg: number;
 }
@@ -29,7 +34,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0xc9c25e,
     groundDark: 0xb0aa4c,
     trail: 0xb08d54,
+    wall: 0x99923e,
+    wallEdge: 0xb5ae52,
     prop: 'grass',
+    hazard: 'tumbleweed',
     captureBg: 0xc9c25e
   },
   flower: {
@@ -39,7 +47,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0xa8c05a,
     groundDark: 0x92a94b,
     trail: 0xb08d54,
+    wall: 0x5f8a3c,
+    wallEdge: 0x79a44e,
     prop: 'flower',
+    hazard: 'slick',
     captureBg: 0xa8c05a
   },
   water: {
@@ -49,7 +60,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0x9db86a,
     groundDark: 0x86a458,
     trail: 0xa9895a,
+    wall: 0x4f7ea0,
+    wallEdge: 0x6f9cba,
     prop: 'reed',
+    hazard: 'slick',
     captureBg: 0x7fa8c4
   },
   ranch: {
@@ -59,7 +73,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0xc2b06a,
     groundDark: 0xab9a58,
     trail: 0xa9895a,
+    wall: 0x7a5a34,
+    wallEdge: 0x94714a,
     prop: 'fence',
+    hazard: 'tumbleweed',
     captureBg: 0xc2b06a
   },
   grove: {
@@ -69,7 +86,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0x7d9c4f,
     groundDark: 0x6a8842,
     trail: 0x96794c,
+    wall: 0x46612f,
+    wallEdge: 0x5a7a3e,
     prop: 'tree',
+    hazard: 'drop',
     captureBg: 0x7d9c4f
   },
   creek: {
@@ -80,7 +100,10 @@ export const STAGE_THEMES: Record<string, StageTheme> = {
     ground: 0xa8a08a,
     groundDark: 0x92897a,
     trail: 0x8d8272,
+    wall: 0x6f6a5e,
+    wallEdge: 0x8a8478,
     prop: 'rock',
+    hazard: 'drop',
     captureBg: 0xa8a08a
   }
 };

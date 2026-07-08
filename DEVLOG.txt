@@ -5,6 +5,58 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4b] 2026-07-08 - DROP 2: winding trails, walls, all 34 moves, hazards
+----------------------------------------------------------------------
+- FIXED "BACK TO MAP does nothing": drop 1 used setScrollFactor(0) on
+  makeButton CONTAINERS for stage UI - Phaser renders those right but
+  its input hit-testing doesn't compensate, so with the camera ~3000px
+  deep the tap area sat far from the drawn button (FLEE had the same
+  latent bug). StageScene was REBUILT on a WORLD CONTAINER: the world
+  scrolls (world.y = -scroll), the camera never moves, and ALL UI is
+  plain screen-space objects - the whole bug class is gone.
+- WINDING TRAILS (Rumble-style): the corridor now bends left/right up
+  the stage - seeded waypoints every 340px, smoothstep-interpolated
+  into a per-16px-row path table (center + half-width, breathing
+  width, straight centered stretch + wide bulge at the boss arena).
+  Player, enemies, projectiles and hazards all clamp to the corridor;
+  bullets die on the walls (cover matters now).
+- CONTOURED PIXEL WALLS + ART POLISH: out-of-bounds terrain per theme
+  (dry-grass banks / hedges / deep water / timber / oak canopy /
+  rock cliffs) drawn row-by-row with 8px staircase-quantized edges,
+  edge-trim highlight band + ink seam. Wall decor hugs the corridor
+  edge (canopy blobs, cliff rocks, foam dashes, fence posts, flower
+  dots); corridor props got ink outlines + hard offset shadows; all
+  detail quantized to the 4px grid; entities cast flat shadows;
+  enemy/player bullets are pixel squares, not circles.
+- ALL 34 MOVES IN (17 types x phys/spec). New this drop: Canyon
+  Crush (self slam + recovery lockout), Dust Reckoning (accuracy-down
+  dust cone -> enemies MISS), Backalley Bite (backstab bonus vs
+  enemy facing), Shadow Bounty (blink behind target + vulnerable
+  window), Mindspur Strike (scramble - reversed enemy movement),
+  Farsight Pulse (3-orb fan), Grave Grapple (360 phase strike),
+  Wailing Curse (slow orb -> 3s delayed detonation mark), Rivet Ram
+  (self shield on hit), Shrapnel Volley (5-pellet spread, 260 range),
+  Charmspur Kick (charm - target won't attack), Lucky Star Waltz
+  (homing + 30% crit x1.7), Iron Grip Toss (point-blank stun),
+  Focused Roar (hard-tracking shot, 8s cd), Venom Spur Kick (6s
+  poison), Toxic Bloomcloud (stationary poison cloud), Pincer Rush
+  (double hit), Swarmcall (+50% per Bug ally), Permafrost Fang
+  (35% freeze), Blizzard Veil (0 dmg: slow foes + haste self),
+  Ridgeback Slam (biggest hit, 7s cd), DRACONIC SURGE (hold the
+  button to grow the beam, release to fire; interrupts fire weak).
+  Generic melee behavior carries effect payloads; status marks render
+  above enemy HP bars (burn/poison/soak/root/stun/slow/charm/
+  scramble/atkDown/accDown/curse, color-coded).
+- HAZARDS per theme: TUMBLEWEEDS (prairie/ranch - roll across the
+  corridor), TELEGRAPHED DROPS (creek rockfall / grove acorns - ring
+  warning then impact), SLICK ZONES (water puddles / flower pollen -
+  slow the player, baked into the terrain).
+- Normal fallback for typeless moves stays only as a safety net -
+  every CSV type now has real moves.
+- STATUS: BIG playtest round 2 - trail winding feel, wall readability
+  per theme, all-new move feels (esp. channel + blink + curse),
+  hazard fairness, and confirm BACK TO MAP + FLEE now work.
+----------------------------------------------------------------------
 [M4a] 2026-07-08 - THE GAMEPLAY LOOP, DROP 1 of 2 (map+stages+audio)
 ----------------------------------------------------------------------
 The core loop shipped: Explore -> map pin -> generated stage -> Rumble
