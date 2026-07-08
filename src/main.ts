@@ -12,6 +12,9 @@ import { LedgerScene } from './scenes/LedgerScene';
 import { CritterScene } from './scenes/CritterScene';
 import { TypeChartScene } from './scenes/TypeChartScene';
 import { DailyScene } from './scenes/DailyScene';
+import { MapScene } from './scenes/MapScene';
+import { StageScene } from './scenes/StageScene';
+import { unlockAudio } from './audio/audio';
 
 // Logical width is fixed; logical height adapts to the device's aspect ratio
 // so tall phones (iPhone ~19.5:9) fill the screen instead of letterboxing.
@@ -54,9 +57,14 @@ const game = new Phaser.Game({
     LedgerScene,
     CritterScene,
     TypeChartScene,
-    DailyScene
+    DailyScene,
+    MapScene,
+    StageScene
   ]
 });
+
+// browsers gate audio behind a user gesture - unlock on the first tap
+window.addEventListener('pointerdown', () => unlockAudio(), { once: true });
 
 // iOS standalone (home-screen) launches settle their safe-area insets at an
 // unpredictable moment in the first couple of seconds, without firing any

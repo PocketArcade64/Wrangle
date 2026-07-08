@@ -30,10 +30,27 @@ export function xpForNextLevel(level: number): number {
   return 100 + (level - 1) * 50;
 }
 
+/** A saved exploration pin - its seed regenerates the exact same stage. */
+export interface StagePin {
+  cellX: number;
+  cellY: number;
+  seed: string;
+  themeId: string;
+  name: string;
+  /** Only one pin may be favorited; favorites are never overwritten. */
+  favorite: boolean;
+  completed: boolean;
+  createdAt: number;
+}
+
 export interface WrangleSave {
   currency: number;
   stamina: number;
   staminaMax: number;
+  /** Timestamp stamina last regenerated (1 point per hour up to max). */
+  staminaUpdatedAt: number;
+  /** Up to 3 saved stages, replayable free. */
+  pins: StagePin[];
   dailyAvailable: boolean;
   leadCreatureId: string;
   biome: string;
@@ -64,6 +81,8 @@ const DEFAULTS: WrangleSave = {
   currency: 250,
   stamina: 5,
   staminaMax: 5,
+  staminaUpdatedAt: 0,
+  pins: [],
   dailyAvailable: true,
   leadCreatureId: 'herbifuzz',
   biome: 'DUSTY FLATS',
@@ -147,6 +166,23 @@ class GameStateStore {
         taken.add(inst.uid);
         return inst.uid;
       });
+    }
+  }
+
+  /** Regenerate 1 stamina per hour offline/online, up to the cap. */
+  refreshStamina(): void {
+    const HOUR = 3600000;
+    const now = Date.now();
+    if (this.data.staminaUpdatedAt === 0) this.data.staminaUpdatedAt = now;
+    if (this.data.stamina >= this.data.staminaMax) {
+      this.data.staminaUpdatedAt = now;
+      return;
+    }
+    const gained = Math.floor((now - this.data.staminaUpdatedAt) / HOUR);
+    if (gained > 0) {
+      this.data.stamina = Math.min(this.data.staminaMax, this.data.stamina + gained);
+      this.data.staminaUpdatedAt += gained * HOUR;
+      this.save();
     }
   }
 

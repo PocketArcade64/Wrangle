@@ -5,6 +5,75 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4a] 2026-07-08 - THE GAMEPLAY LOOP, DROP 1 of 2 (map+stages+audio)
+----------------------------------------------------------------------
+The core loop shipped: Explore -> map pin -> generated stage -> Rumble
+combat -> XP/gold/captures -> back to map. Agreed 2-drop plan; drop 2
+adds the other 11 types' moves + hazards + polish from playtest.
+
+- NEW MapScene ('Map', Explore CTA goes here now): Frontier Flats art
+  fit 720x720, tap anywhere = SCOUT REPORT modal. CONTENT-AWARE theme
+  classification (src/data/stages.ts classifyMapPoint): 81-pixel
+  majority vote around the tap sorts into water / rocky creek /
+  flower fields / windmill ranch / oak grove / sunny prairie - a blue
+  flower can't trigger a water stage. Thresholds are constants
+  (N_WATER etc) for playtest tuning. Cell grid 32px; stage seed =
+  stage-<dateKey>-<cellX>-<cellY> (coords rotate DAILY; saved pins
+  keep their seed forever). RIDE OUT costs 1 stamina; 3 pin slots,
+  oldest non-favorite replaced; max 1 favorite (never overwritten);
+  RIDE FREE replays; CLEARED tag. Stamina regens 1/hour
+  (gameState.refreshStamina, staminaUpdatedAt in save).
+- NEW StageScene ('Stage'): vertical trail (3800 world px), active
+  critter auto-runs up, stops at spawn groups (4-5 seeded + boss),
+  can't pass uncleared groups. SWIPE = dash reposition (600ms cd).
+  1-2 MOVE BUTTONS (dual/single type) w/ cooldown drain overlays +
+  type badge art. Party = active posse (fallback: first 3 herd);
+  faint swaps the next critter in; all 3 down = fail (XP/gold kept).
+  Enemies wander/chase, contact damage, telegraphed '!' attacks
+  (lunge or projectile by atkStyle); boss = 1.6x sprite, 3.2x HP,
+  radial 8-bullet volleys. Discovery toasts slide in from the left
+  (sprite/name/type badges, wantedRed NEW! badge for first-ever
+  sightings) and mark the ledger's seen count. Kills: gold (+2, boss
+  +25, clear +40), XP full to active + half to living reserves,
+  level-ups heal 30% + refresh stats live. Rares (25% of groups,
+  gold-tinted center critter) + boss ALWAYS offer the lasso; other
+  kills 1-in-5. Capture = Stage SLEEPS, CaptureScene runs with the
+  stage theme's backdrop, one attempt, BACK TO THE TRAIL wakes the
+  stage exactly where it left off (cooldowns frozen).
+- BATTLE MATH (src/battle/stats.ts): Pokemon-style stats from base+
+  pedigree+level (blank CSV bases = provisional 50), damage formula
+  w/ type effectiveness (17-type chart) + soak x1.5 Lightning combo,
+  level cap 100, xpForNextLevel linear curve.
+- MOVES DROP 1 (src/battle/moves.ts): Fire/Water/Grass/Lightning/
+  Air/Normal, 1 phys + 1 spec each, every hitbox distinct: Burning
+  Lash (arc+burn), Wildfire Lob (arcing lob -> ground fire patch),
+  Riptide Slam (cone knockback), Flash Flood (traveling wave wall +
+  soak), Bramble Lasso (line tether root), Bloomburst (lob -> radial
+  burst), Live Wire Jab (poke + 1 chain arc), Overcharge Bolt
+  (telegraphed beam), Talon Dive (dash-line, user is the hitbox),
+  Gale Herd (wide cone knockback), Roundup Tackle (forgiving arc),
+  Echoing Holler (self burst + atk down). Unimplemented types borrow
+  Normal's moves so every critter fights until drop 2.
+- AUDIO (src/audio/): 100% synthesized WebAudio - no files, all
+  original. Chip tracker (square lead / triangle bass / noise perc)
+  playing three compositions: DUSTY HOMESTEAD (menus, A-min pent,
+  92bpm), RIDE THE LINE (stages, D-mixo gallop, 132), SHOWDOWN
+  (boss, E-min, 148). ~24 synthesized SFX wired: every button (via
+  makeButton), all 12 moves, hits/hurts/faints/swap, coin, level-up
+  fanfare, discovery chime, boss sting, clear/fail jingles, capture
+  win/bust, daily punch + wheel payout. Audio unlocks on first tap
+  (iOS). NOTE for user: this is deliberate chiptune - judge the
+  compositions, and the mix volumes are all constants in audio.ts.
+- No difficulty-by-distance (user call): stage levels seeded 2-7ish
+  everywhere, boss +4.
+- ONBOARDING GAP (known): new players need >=1 critter to ride out -
+  the ledger's TEST WRANGLE remains the first-capture path until a
+  proper tutorial/starter flow lands.
+- STATUS: BIG playtest - classifier accuracy per region, combat feel
+  (speeds/cooldowns/damage all in constants), capture round trip,
+  swipe dash feel, music/sfx mix, XP pacing. Drop 2 next: 11 more
+  types' moves, hazards, status icons, polish list from playtest.
+----------------------------------------------------------------------
 [M3m] 2026-07-08 - ROOT CAUSE of the launch shift: double centering
 ----------------------------------------------------------------------
 - M3l's timer spread did NOT cure the intermittent down+right shift.

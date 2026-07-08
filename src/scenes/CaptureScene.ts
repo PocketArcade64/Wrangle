@@ -7,6 +7,8 @@ import { makeButton } from '../ui/button';
 import { gameState, newCritter } from '../state/GameState';
 import { ensureIcons } from '../ui/icons';
 import { gaugeDecayDelay, gaugeDecayRate, healthBars, ropeBudget } from '../data/lassoUpgrades';
+import { STAGE_THEMES } from '../data/stages';
+import { sfx } from '../audio/audio';
 
 // Tuning knobs for the capture mini-game live here. Rope budget, health
 // bars, and gauge decay are now functions of the lasso upgrade levels -
@@ -68,13 +70,18 @@ export class CaptureScene extends Phaser.Scene {
   private healthCells: Phaser.GameObjects.Container[] = [];
   private toast!: Phaser.GameObjects.Text;
   private toastTween?: Phaser.Tweens.Tween;
+  /** True when launched mid-stage - exits wake the sleeping StageScene. */
+  private fromStage = false;
+  private stageThemeId?: string;
 
   constructor() {
     super('Capture');
   }
 
-  init(data: { speciesId: string }): void {
+  init(data: { speciesId: string; fromStage?: boolean; themeId?: string }): void {
     this.species = speciesById(data.speciesId);
+    this.fromStage = data.fromStage ?? false;
+    this.stageThemeId = data.themeId;
     // Scene objects persist across restarts — reset all round state here.
     const lasso = gameState.data.lasso;
     this.line = new LassoLine(ropeBudget(lasso.rope));
@@ -99,7 +106,10 @@ export class CaptureScene extends Phaser.Scene {
     gameState.save();
     const { width, height } = this.scale;
     this.arena = { left: 30, top: 120, right: width - 30, bottom: height - 140 };
-    this.cameras.main.setBackgroundColor('#d9a066');
+    // mid-stage captures take the stage's ground color as their backdrop
+    const theme = this.stageThemeId ? STAGE_THEMES[this.stageThemeId] : undefined;
+    if (theme) this.cameras.main.setBackgroundColor(theme.captureBg);
+    else this.cameras.main.setBackgroundColor('#d9a066');
     this.drawArena();
 
     this.creature = new CreatureActor(
@@ -334,6 +344,7 @@ export class CaptureScene extends Phaser.Scene {
       });
     }
 
+    sfx(won ? 'capture' : 'bust');
     this.time.delayedCall(500, () => {
       const { width, height } = this.scale;
       this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.65).setDepth(20);
@@ -356,6 +367,13 @@ export class CaptureScene extends Phaser.Scene {
           .setOrigin(0, 0.5)
           .setDepth(21);
       }
+      if (this.fromStage) {
+        // mid-stage: one shot at the lasso, then back to the trail
+        makeButton(this, width / 2, height * 0.57, 340, 70, 'BACK TO THE TRAIL', () =>
+          this.exitToStage()
+        ).setDepth(21);
+        return;
+      }
       makeButton(this, width / 2, height * 0.57, 320, 70, 'TRY AGAIN', () =>
         this.scene.restart({ speciesId: this.species.id })
       ).setDepth(21);
@@ -363,6 +381,12 @@ export class CaptureScene extends Phaser.Scene {
         this.scene.start('CaptureSelect', { tab: 'tally' })
       ).setDepth(21);
     });
+  }
+
+  /** Return to the sleeping StageScene exactly where the run left off. */
+  private exitToStage(): void {
+    this.scene.wake('Stage');
+    this.scene.stop();
   }
 
   // ---------- rendering ----------
@@ -458,7 +482,10 @@ export class CaptureScene extends Phaser.Scene {
     this.add
       .text(30, 34, this.species.name, { fontFamily: 'Silkscreen', fontSize: '26px', color: '#ffe9c9' })
       .setDepth(11);
-    makeButton(this, width - 80, 50, 110, 50, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'tally' }), '16px').setDepth(11);
+    makeButton(this, width - 80, 50, 110, 50, 'BACK', () => {
+      if (this.fromStage) this.exitToStage();
+      else this.scene.start('CaptureSelect', { tab: 'tally' });
+    }, '16px').setDepth(11);
 
     // HEALTH as a bandolier: leather strap with red cartridge shells in
     // loops. Losing a bar = an empty loop. Layout adapts to GRIT bar count.

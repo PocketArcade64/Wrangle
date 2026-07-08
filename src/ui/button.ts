@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sfx } from '../audio/audio';
 import { COLORS, FONT, HEX } from './theme';
 
 /**
@@ -34,6 +35,7 @@ export function makeButton(
     .on('pointerout', () => press(false))
     .on('pointerup', () => {
       press(false);
+      sfx('ui');
       onClick();
     });
   return container;

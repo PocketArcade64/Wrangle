@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { gameState } from '../state/GameState';
 import { dateKey, msUntilMidnight } from '../util/daily';
+import { sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { addGoldCounter } from '../ui/goldCounter';
@@ -174,6 +175,7 @@ export class DailyScene extends Phaser.Scene {
     const reward = PUNCH_REWARDS[(d.punchStreak - 1) % 7];
     gameState.data.currency += reward;
     gameState.save();
+    sfx('punch');
     this.scene.restart({ toast: `+${reward} GOLD` });
   }
 
@@ -276,6 +278,7 @@ export class DailyScene extends Phaser.Scene {
         const reward = table[idx];
         gameState.data.currency += reward;
         gameState.save();
+        sfx('coin');
         this.goldText.setText(`${gameState.data.currency}`);
         this.showToast(`+${reward} GOLD`);
         this.spinning = false;

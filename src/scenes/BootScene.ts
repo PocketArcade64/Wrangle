@@ -27,6 +27,8 @@ export class BootScene extends Phaser.Scene {
       console.warn(`Wrangle: no sprite found for "${file.key}" (${file.url})`);
     });
     this.load.image('title-logo', `sprites/ui/${encodeURIComponent('Wrangle logo_216x107')}.png`);
+    this.load.image('map-frontier', `sprites/maps/${encodeURIComponent('Frontier Flats Map_1024x1024')}.png`);
+    this.load.image('map-logo', `sprites/maps/${encodeURIComponent('Frontier Flats Logo_218x91')}.png`);
     for (const sp of SPECIES) {
       if (!sp.textureKey.startsWith('pl-')) {
         // Filenames can contain spaces/parens (as the user named them) -

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { gameState, xpForNextLevel } from '../state/GameState';
 import { dateKey } from '../util/daily';
+import { playMusic } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { addGoldCounter } from '../ui/goldCounter';
@@ -34,6 +35,8 @@ export class HomeScene extends Phaser.Scene {
 
   create(): void {
     ensureIcons(this);
+    gameState.refreshStamina();
+    playMusic('home');
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
     this.cardBorders = [];
@@ -464,7 +467,7 @@ export class HomeScene extends Phaser.Scene {
       .on('pointerup', () => {
         drawFace(0);
         label.y = cy - 2;
-        this.scene.start('CaptureSelect', { tab: 'tally' });
+        this.scene.start('Map');
       });
   }
 
