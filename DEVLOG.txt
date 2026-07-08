@@ -5,6 +5,30 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3e] 2026-07-08 - Stat tabs restructured: 3 tabs x BARS/HEX toggle
+----------------------------------------------------------------------
+Feedback round on M3d, all in CritterScene:
+- Tabs are now STATS / BASE STATS / PEDIGREE (200px wide, 3-up). HEX
+  is no longer a tab: every tab has a BARS/HEX toggle at the top
+  right INSIDE the chart panel (shared buildPanelHeader: title
+  top-left, toggle top-right). Defaults: STATS + BASE STATS open as
+  bars, PEDIGREE opens as hex; switching tabs resets to that tab's
+  default view (DEFAULT_VIEW map).
+- Bar legends moved from the top of the panel to the BOTTOM RIGHT
+  (STATS: BASE + PEDIGREE swatches; BASE STATS: BASE swatch;
+  PEDIGREE bars need none - see below). Bar rows tightened to
+  38px steps starting y+72 to make room.
+- NEW pedigree bar view: denim fill inside a full-length ink-framed
+  socket (empty track = parchmentDark) so the 15-point ceiling is
+  visible at a glance; values printed as "n/15". Title reads
+  PEDIGREE (MAX 15).
+- FIXED hex chart clipping: radar center/radius were y+172 / R118,
+  putting the bottom vertex's value text at ~y+343 in a 330px panel.
+  Now y+168 / R100 - labels + values verified inside the panel top
+  and bottom, clear of the header toggle.
+- Scene restart data is now { uid, chart, view }.
+- STATUS: playtest tab/toggle flow + pedigree socket readability.
+----------------------------------------------------------------------
 [M3d] 2026-07-08 - Critter page stat tabs + ledger badge matchups
 ----------------------------------------------------------------------
 - CRITTER PAGE (CritterScene) per feedback:
