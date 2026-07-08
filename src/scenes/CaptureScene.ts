@@ -137,7 +137,8 @@ export class CaptureScene extends Phaser.Scene {
 
     this.gfx = this.add.graphics().setDepth(1);
     const texKey = this.textures.exists(this.species.textureKey) ? this.species.textureKey : 'pl-unknown';
-    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, texKey).setDepth(2);
+    // drawn a third larger than the source art (gameplay radius unchanged)
+    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, texKey).setScale(1.3).setDepth(2);
     this.alertText = this.add
       .text(0, 0, '!', { fontFamily: 'Silkscreen', fontSize: '44px', color: '#e01c1c' })
       .setOrigin(0.5)

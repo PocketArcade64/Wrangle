@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playMusic } from '../audio/audio';
 import { FONT, HEX, COLORS } from '../ui/theme';
 
 export class TitleScene extends Phaser.Scene {
@@ -9,6 +10,10 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
+    // Queue the theme immediately: browsers keep audio suspended until the
+    // first tap, so the tracker idles at time zero and the music starts the
+    // instant the unlock gesture lands - no dead air on the menus.
+    playMusic('home');
 
     // the hand-made logo (216x107 pixel art, integer-scaled to stay crisp)
     if (this.textures.exists('title-logo')) {

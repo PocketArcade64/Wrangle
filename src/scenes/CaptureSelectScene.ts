@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
+import { badgeName } from '../data/typeChart';
 import { CritterInstance, gameState } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -219,17 +220,31 @@ export class CaptureSelectScene extends Phaser.Scene {
         wordWrap: { width: CELL_W - 24 }
       })
       .setOrigin(0.5, 0);
-    const typeLabel =
-      this.activeTab !== 'tally' || caught ? [sp.type1, sp.type2].filter(Boolean).join('/') : '???';
-    const types = this.add
-      .text(x, y + (CELL_H - 16) / 2 - 26, typeLabel, {
-        fontFamily: FONT.ui,
-        fontSize: '18px',
-        color: HEX.sage
-      })
-      .setOrigin(0.5, 0);
-
-    const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name, types];
+    // types shown as the badge art (caught reveals them in the ledger)
+    const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name];
+    const tyY = y + (CELL_H - 16) / 2 - 18;
+    if (this.activeTab !== 'tally' || caught) {
+      const tlist = [sp.type1, sp.type2].filter((t): t is string => !!t);
+      tlist.forEach((t, i) => {
+        const bx = x + (i - (tlist.length - 1) / 2) * 62;
+        const key = `type-${badgeName(t)}`;
+        if (this.textures.exists(key)) {
+          parts.push(this.add.image(bx, tyY, key).setScale(1.2));
+        } else {
+          parts.push(
+            this.add
+              .text(bx, tyY, badgeName(t), { fontFamily: FONT.ui, fontSize: '16px', color: HEX.sage })
+              .setOrigin(0.5)
+          );
+        }
+      });
+    } else {
+      parts.push(
+        this.add
+          .text(x, tyY, '???', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
+          .setOrigin(0.5)
+      );
+    }
 
     if (inst) {
       if (inst.favorite) {

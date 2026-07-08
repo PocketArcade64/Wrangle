@@ -37,9 +37,13 @@ export function wildStats(sp: SpeciesDef, level: number): BattleStats {
   return battleStats(sp, WILD_PEDIGREE, level);
 }
 
-/** Pokemon-flavored damage roll; mult carries type effectiveness etc. */
+/**
+ * Pokemon-flavored damage roll; mult carries type effectiveness etc.
+ * The +4 floor keeps level-1 critters meaningful against level 1-5 wilds
+ * (2-3 hits per basic enemy) instead of chip damage.
+ */
 export function damageRoll(level: number, power: number, atk: number, def: number, mult: number): number {
-  const base = Math.floor(((((2 * level) / 5 + 2) * power * atk) / Math.max(1, def)) / 50) + 2;
+  const base = Math.floor(((((2 * level) / 5 + 4) * power * atk) / Math.max(1, def)) / 40) + 3;
   const varied = base * (0.9 + Math.random() * 0.2) * mult;
   return Math.max(1, Math.round(varied));
 }

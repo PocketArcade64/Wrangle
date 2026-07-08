@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { gameState, StagePin } from '../state/GameState';
-import { classifyMapPoint, StageTheme } from '../data/stages';
+import { classifyMapPoint, FRONTIER_LEVELS, StageTheme } from '../data/stages';
 import { dateKey } from '../util/daily';
 import { playMusic, sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -8,7 +8,9 @@ import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
 
 const TOP_BAR_H = 110;
-const MAP_Y = 120;
+/** Map-select tabs sit between the top bar and the map. */
+const TABS_Y = 142;
+const MAP_Y = 190;
 const MAP_TEX = 1024;
 /** Pin coordinates quantize to this texture-space grid. */
 const CELL = 32;
@@ -71,7 +73,35 @@ export class MapScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
       .setDepth(11);
 
-    this.buildPinSlots(MAP_Y + 720 + 14);
+    this.buildMapTabs();
+    this.buildPinSlots(MAP_Y + 720 + 8);
+  }
+
+  /** Region tabs above the map: Frontier Flats now, more maps later. */
+  private buildMapTabs(): void {
+    const { width } = this.scale;
+    // active: Frontier Flats with its critter level band
+    this.add
+      .rectangle(width / 2 - 174, TABS_Y, 330, 60, COLORS.parchmentLight)
+      .setStrokeStyle(3, COLORS.saddle);
+    this.add
+      .text(width / 2 - 174, TABS_Y - 12, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
+      .setOrigin(0.5);
+    this.add
+      .text(width / 2 - 174, TABS_Y + 14, `CRITTERS LV ${FRONTIER_LEVELS.min}-${FRONTIER_LEVELS.max}`, {
+        fontFamily: FONT.ui,
+        fontSize: '16px',
+        color: HEX.sage
+      })
+      .setOrigin(0.5);
+    // placeholder for the next region
+    this.add
+      .rectangle(width / 2 + 174, TABS_Y, 330, 60, COLORS.parchmentDark)
+      .setStrokeStyle(2, COLORS.saddleDark);
+    this.add
+      .text(width / 2 + 174, TABS_Y, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+      .setOrigin(0.5)
+      .setAlpha(0.6);
   }
 
   // ---------- pins ----------

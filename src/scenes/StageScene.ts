@@ -308,7 +308,7 @@ export class StageScene extends Phaser.Scene {
     const active = this.team[this.activeIdx];
     const texKey = this.textures.exists(active.sp.textureKey) ? active.sp.textureKey : 'pl-unknown';
     const startY = STAGE_LENGTH - 240;
-    this.playerImg = this.add.image(this.rowAt(startY).cx, startY, texKey).setDisplaySize(84, 84);
+    this.playerImg = this.add.image(this.rowAt(startY).cx, startY, texKey).setDisplaySize(100, 100);
     this.entityLayer.add(this.playerImg);
 
     this.buildHud();
@@ -593,7 +593,7 @@ export class StageScene extends Phaser.Scene {
     const stats = wildStats(sp, level);
     const maxHp = Math.round(stats.hp * (boss ? 3.2 : 1));
     const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-    const size = boss ? 150 : rare ? 92 : 76;
+    const size = boss ? 170 : rare ? 112 : 92;
     const px = this.clampX(x, y, 40);
     const img = this.add.image(px, y, texKey).setDisplaySize(size, size);
     this.entityLayer.add(img);
@@ -903,10 +903,10 @@ export class StageScene extends Phaser.Scene {
       if (e.lungeUntil > time) {
         e.img.x += e.lungeVx * dt;
         e.img.y += e.lungeVy * dt;
-        if (!e.lungeHit && dist < 78) {
+        if (!e.lungeHit && dist < 86) {
           e.lungeHit = true;
           if (this.blindMiss(e, time)) this.popup(e.img.x, e.img.y - 30, 'MISS', '#9aa4ac');
-          else this.hurtPlayer(damageRoll(e.level, 32, this.enemyAtk(e, time), f.stats.def, 1));
+          else this.hurtPlayer(damageRoll(e.level, 22, this.enemyAtk(e, time), f.stats.def, 1));
         }
       } else if (!rooted && !telegraphing) {
         const flip = e.scrambleUntil > time ? -1 : 1;
@@ -942,12 +942,12 @@ export class StageScene extends Phaser.Scene {
       e.img.x = this.clampX(e.img.x, e.img.y, 34);
 
       // contact damage
-      if (dist < (e.boss ? 95 : 62) && time > e.nextContact && e.stunUntil < time) {
+      if (dist < (e.boss ? 105 : 70) && time > e.nextContact && e.stunUntil < time) {
         e.nextContact = time + 900;
         if (this.blindMiss(e, time)) this.popup(e.img.x, e.img.y - 30, 'MISS', '#9aa4ac');
         else {
           const mult = e.atkDownUntil > time ? 0.6 : 1;
-          this.hurtPlayer(damageRoll(e.level, 20, e.stats.atk * mult, f.stats.def, 1));
+          this.hurtPlayer(damageRoll(e.level, 14, e.stats.atk * mult, f.stats.def, 1));
         }
       }
       // telegraphed attack (charmed critters don't attack)
@@ -1027,10 +1027,10 @@ export class StageScene extends Phaser.Scene {
         b.gone = true;
         continue;
       }
-      if (Phaser.Math.Distance.Between(b.x, b.y, this.playerImg.x, this.playerImg.y) < 40) {
+      if (Phaser.Math.Distance.Between(b.x, b.y, this.playerImg.x, this.playerImg.y) < 44) {
         b.gone = true;
         if (b.blind && Math.random() < MISS_CHANCE) this.popup(this.playerImg.x, this.playerImg.y - 40, 'MISS', '#9aa4ac');
-        else this.hurtPlayer(damageRoll(b.level, 30, b.atk, f.stats.spd, 1));
+        else this.hurtPlayer(damageRoll(b.level, 22, b.atk, f.stats.spd, 1));
       }
     }
     this.bullets = this.bullets.filter((b) => !b.gone);
@@ -1706,7 +1706,7 @@ export class StageScene extends Phaser.Scene {
     sfx('swap');
     const n = this.team[next];
     const texKey = this.textures.exists(n.sp.textureKey) ? n.sp.textureKey : 'pl-unknown';
-    this.playerImg.setTexture(texKey).setDisplaySize(84, 84);
+    this.playerImg.setTexture(texKey).setDisplaySize(100, 100);
     this.cooldownAt = [0, 0];
     this.pendingBeam = undefined;
     this.channel = undefined;

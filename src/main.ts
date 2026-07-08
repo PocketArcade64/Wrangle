@@ -14,6 +14,7 @@ import { TypeChartScene } from './scenes/TypeChartScene';
 import { DailyScene } from './scenes/DailyScene';
 import { MapScene } from './scenes/MapScene';
 import { StageScene } from './scenes/StageScene';
+import { DevScene } from './scenes/DevScene';
 import { unlockAudio } from './audio/audio';
 
 // Logical width is fixed; logical height adapts to the device's aspect ratio
@@ -59,7 +60,8 @@ const game = new Phaser.Game({
     TypeChartScene,
     DailyScene,
     MapScene,
-    StageScene
+    StageScene,
+    DevScene
   ]
 });
 

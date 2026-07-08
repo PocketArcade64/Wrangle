@@ -193,6 +193,16 @@ class GameStateStore {
       // storage full/unavailable - non-fatal
     }
   }
+
+  /** Dev menu: wipe the save and reboot the game clean. */
+  hardReset(): void {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      // unavailable storage - reload anyway
+    }
+    window.location.reload();
+  }
 }
 
 export const gameState = new GameStateStore();

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from './species';
+import { EVOLUTIONS, EVOLVED_IDS } from './evolutions';
 import { seededRng } from '../util/daily';
 
 /**
@@ -162,6 +163,10 @@ export function classifyMapPoint(scene: Phaser.Scene, texKey: string, px: number
 // ---------- stage generation ----------
 
 export const STAGE_LENGTH = 3800;
+/** Frontier Flats critter level band (shown on the map tab). */
+export const FRONTIER_LEVELS = { min: 1, max: 5 };
+/** Chance a group's center is the species' evolved form. */
+const RARE_EVO_CHANCE = 0.12;
 
 export interface StageGroup {
   y: number;
@@ -180,22 +185,28 @@ export interface StageDef {
   bossLevel: number;
 }
 
-/** Species whose type1/type2 fits the theme; padded if the pool runs thin. */
+/**
+ * BASIC species (never an evolved form) whose type1/type2 fits the theme;
+ * padded with random basics if the pool runs thin.
+ */
 function themePool(theme: StageTheme, rng: () => number): SpeciesDef[] {
-  const pool = SPECIES.filter((sp) => theme.types.includes(sp.type1 ?? '') || theme.types.includes(sp.type2 ?? ''));
+  const basics = SPECIES.filter((sp) => !EVOLVED_IDS.has(sp.id));
+  const pool = basics.filter((sp) => theme.types.includes(sp.type1 ?? '') || theme.types.includes(sp.type2 ?? ''));
   if (pool.length >= 3) return pool;
   const padded = [...pool];
-  while (padded.length < 3) {
-    const sp = SPECIES[Math.floor(rng() * SPECIES.length)];
+  while (padded.length < 3 && padded.length < basics.length) {
+    const sp = basics[Math.floor(rng() * basics.length)];
     if (!padded.includes(sp)) padded.push(sp);
   }
-  return padded;
+  return padded.length > 0 ? padded : SPECIES.slice(0, 3);
 }
 
 /**
  * Deterministic stage from a seed: same layout skeleton every time (spawn
  * groups along the trail, boss at the end), the seed picking species per
- * group, rare centers, counts and levels.
+ * group, counts and levels. Groups are Rumble-style: a pack of one BASIC
+ * species, with a small chance its EVOLVED form stands in the center.
+ * Frontier Flats runs levels 1-4 with a level-5 boss.
  */
 export function generateStage(seed: string, themeId: string): StageDef {
   const theme = STAGE_THEMES[themeId] ?? STAGE_THEMES.prairie;
@@ -204,21 +215,20 @@ export function generateStage(seed: string, themeId: string): StageDef {
   const pick = () => pool[Math.floor(rng() * pool.length)];
 
   const groupCount = 4 + Math.floor(rng() * 2); // 4-5 plus the boss
-  const baseLevel = 2 + Math.floor(rng() * 3);
   const groups: StageGroup[] = [];
   for (let i = 0; i < groupCount; i++) {
     // evenly spaced up the trail, small seeded jitter
     const y = STAGE_LENGTH - 800 - i * ((STAGE_LENGTH - 1300) / groupCount) + Math.floor(rng() * 120 - 60);
     const sp = pick();
-    const rare = rng() < 0.25 ? pick() : undefined;
+    const evo = EVOLUTIONS[sp.id];
     groups.push({
       y,
       speciesId: sp.id,
       count: 3 + Math.floor(rng() * 2),
-      rareId: rare && rare.id !== sp.id ? rare.id : undefined,
-      level: baseLevel + Math.floor(rng() * 3)
+      rareId: evo && rng() < RARE_EVO_CHANCE ? evo : undefined,
+      level: FRONTIER_LEVELS.min + Math.floor(rng() * (FRONTIER_LEVELS.max - FRONTIER_LEVELS.min))
     });
   }
   const boss = pick();
-  return { seed, themeId: theme.id, groups, bossId: boss.id, bossLevel: baseLevel + 4 };
+  return { seed, themeId: theme.id, groups, bossId: boss.id, bossLevel: FRONTIER_LEVELS.max };
 }

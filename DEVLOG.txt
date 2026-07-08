@@ -5,6 +5,48 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4c] 2026-07-08 - Menu theme v2, dev menu, evolutions, pacing fixes
+----------------------------------------------------------------------
+- MUSIC START EXPLAINED + FIXED: the theme only began when HomeScene
+  was created (after the title tap), and browsers hold the audio
+  context suspended until the first gesture. TitleScene now queues
+  playMusic('home') immediately - the tracker idles at time zero and
+  sound begins the instant the unlock tap lands. No dead air.
+- NEW MENU THEME "PORCHLIGHT WALTZ" (v2, replaces Dusty Homestead):
+  84bpm G major w/ mixolydian lean, 8 bars - soft rising G-Em-C-D
+  call, high lonesome answer, gentle settle home; long bass roots
+  with walking fifths, whisper drone, rocking-chair brushes. Calm,
+  relaxing, cowboy. Old tune fully removed.
+- NAV TABS now click (sfx in nav.ts).
+- MAP TABS: map shifted down; two tabs above it - FRONTIER FLATS with
+  "CRITTERS LV 1-5" (FRONTIER_LEVELS const in stages.ts) and a grayed
+  COMING SOON slot for the next region.
+- LEVEL PACING FIX (the "my critters do no damage" report): Frontier
+  stages now roll enemy levels 1-4 with a LV5 boss (was 2-7/+4), and
+  damageRoll's floor was raised (((2L/5+4)*P*A/D)/40+3) so a LV1
+  critter 2-3-shots a basic enemy. Enemy contact/lunge/projectile
+  powers trimmed (14/22/22) to keep incoming damage fair.
+- NEW src/data/evolutions.ts: basic->evolved lines INFERRED FROM CSV
+  NAME STEMS (herbifuzz->telefluff->bloomancer, flambaa line, narqua
+  line, chipper, cocoonir line, picodew line, toxnome, shrimpulse
+  line). USER MUST VERIFY - uncertain guesses are commented out in
+  the file. Spawn groups are now Rumble-true: a pack of ONE BASIC
+  species; 12% of groups put its EVOLVED form in the center (rare,
+  gold-tinted, guaranteed capture offer). Evolved species never
+  appear as wild basics; bosses/pools draw from basics only.
+- NEW DEV MENU: Player screen button -> window.prompt password
+  ("critter45", pulls up the phone keyboard) -> DevScene: +1000 gold,
+  refill stamina, grant random critter, herd +5 levels / back to LV1,
+  mark all species seen, reset daily bonus, wipe save (confirm,
+  adobe red). gameState.hardReset() clears storage + reloads.
+- LEDGER GRID: type text replaced by the badge art (x1.2) in herd +
+  ledger cells; uncaught stays '???'.
+- BIGGER CRITTERS: stage enemies 76->92px (rares 112, boss 170),
+  player 84->100; lasso arena creature drawn x1.3 (capture hitbox
+  radius unchanged).
+- STATUS: verify evolutions.ts families and enable/correct the
+  commented guesses; playtest LV1 pacing + the new menu theme.
+----------------------------------------------------------------------
 [M4b] 2026-07-08 - DROP 2: winding trails, walls, all 34 moves, hazards
 ----------------------------------------------------------------------
 - FIXED "BACK TO MAP does nothing": drop 1 used setScrollFactor(0) on

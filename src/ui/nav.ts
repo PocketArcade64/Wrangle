@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sfx } from '../audio/audio';
 import { COLORS, FONT, HEX } from './theme';
 import { ensureIcons } from './icons';
 
@@ -51,7 +52,10 @@ export function buildNav(scene: Phaser.Scene, active: NavTab): void {
         .rectangle(cx, top + NAV_HEIGHT / 2, slot, NAV_HEIGHT, 0xffffff, 0)
         .setDepth(52)
         .setInteractive({ useHandCursor: true })
-        .on('pointerup', () => scene.scene.start(t.scene));
+        .on('pointerup', () => {
+          sfx('ui');
+          scene.scene.start(t.scene);
+        });
     }
   });
 }

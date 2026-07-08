@@ -62,6 +62,11 @@ export class PlayerScene extends Phaser.Scene {
     makeButton(this, width / 2, lassoY + 84, 300, 64, 'TYPE CHART', () =>
       this.scene.start('TypeChart', { back: { scene: 'Player' } })
     );
+    // password-gated playtest tools (prompt pulls up the phone keyboard)
+    makeButton(this, width / 2, lassoY + 168, 300, 64, 'DEV MENU', () => {
+      const entered = window.prompt('Dev password:');
+      if (entered === 'critter45') this.scene.start('Dev');
+    });
 
     buildNav(this, 'player');
   }
