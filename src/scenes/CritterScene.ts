@@ -22,26 +22,36 @@ const STAT_LABELS: [keyof CritterInstance['pedigree'], string][] = [
 const PROVISIONAL_BASE = 50;
 const STAT_SCALE_MAX = 165; // display ceiling: strong base 150 + pedigree 15
 
-type ChartTab = 'current' | 'base' | 'hex' | 'pedhex';
+type ChartTab = 'stats' | 'base' | 'pedigree';
+type ChartView = 'bars' | 'hex';
 
 const CHART_TABS: { tab: ChartTab; label: string }[] = [
-  { tab: 'current', label: 'CURRENT' },
-  { tab: 'base', label: 'BASE' },
-  { tab: 'hex', label: 'HEX' },
-  { tab: 'pedhex', label: 'PEDIGREE' }
+  { tab: 'stats', label: 'STATS' },
+  { tab: 'base', label: 'BASE STATS' },
+  { tab: 'pedigree', label: 'PEDIGREE' }
 ];
+
+/** Pedigree reads best as a radar; the stat tabs default to bars. */
+const DEFAULT_VIEW: Record<ChartTab, ChartView> = { stats: 'bars', base: 'bars', pedigree: 'hex' };
+
+const CHART_TITLE: Record<ChartTab, string> = {
+  stats: 'STATS',
+  base: 'BASE STATS',
+  pedigree: 'PEDIGREE (MAX 15)'
+};
 
 /**
  * One specific critter from your herd (Pokemon GO-style page, frontier
  * flavored): portrait on a scenic band, types, attacker style, current
- * moves, and a four-tab stat view - CURRENT (base + pedigree, horizontal
- * bars), BASE (base only bars), HEX (current-stat radar) and PEDIGREE
- * (bloodline-bonus radar, 0-15 scale).
+ * moves, and a three-tab stat view - STATS (base + pedigree), BASE STATS
+ * (base only) and PEDIGREE (bloodline bonus, 0-15 scale) - each of which
+ * can be toggled between horizontal bars and a hex radar.
  */
 export class CritterScene extends Phaser.Scene {
   private critter!: CritterInstance;
   private species!: SpeciesDef;
-  private chartTab: ChartTab = 'current';
+  private chartTab: ChartTab = 'stats';
+  private chartView: ChartView = 'bars';
   private favStar!: Phaser.GameObjects.Image;
   private tempMsg?: Phaser.GameObjects.Text;
 
@@ -49,7 +59,7 @@ export class CritterScene extends Phaser.Scene {
     super('Critter');
   }
 
-  init(data: { uid: string; chart?: ChartTab }): void {
+  init(data: { uid: string; chart?: ChartTab; view?: ChartView }): void {
     const found = gameState.data.herd.find((c) => c.uid === data.uid);
     if (!found) {
       this.scene.start('CaptureSelect', { tab: 'herd' });
@@ -57,7 +67,8 @@ export class CritterScene extends Phaser.Scene {
     }
     this.critter = found;
     this.species = SPECIES.find((s) => s.id === found.speciesId) ?? SPECIES[0];
-    this.chartTab = data.chart ?? 'current';
+    this.chartTab = data.chart ?? 'stats';
+    this.chartView = data.view ?? DEFAULT_VIEW[this.chartTab];
   }
 
   create(): void {
@@ -123,10 +134,8 @@ export class CritterScene extends Phaser.Scene {
 
     this.buildMoves(500);
     this.buildChartTabs(690);
-    const chartY = 728;
-    if (this.chartTab === 'current') this.buildBars(chartY, true);
-    else if (this.chartTab === 'base') this.buildBars(chartY, false);
-    else this.buildHexChart(chartY, this.chartTab === 'pedhex');
+    if (this.chartView === 'bars') this.buildBars(728);
+    else this.buildHexChart(728);
 
     makeButton(this, width / 2, height - NAV_HEIGHT - 56, 300, 66, 'TURN LOOSE', () => this.tryRelease(), '18px');
 
@@ -182,10 +191,10 @@ export class CritterScene extends Phaser.Scene {
   private buildChartTabs(y: number): void {
     const { width } = this.scale;
     CHART_TABS.forEach(({ tab, label }, i) => {
-      const x = width / 2 + (i - (CHART_TABS.length - 1) / 2) * 164;
+      const x = width / 2 + (i - (CHART_TABS.length - 1) / 2) * 212;
       const active = tab === this.chartTab;
       const bg = this.add
-        .rectangle(x, y, 158, 48, active ? COLORS.parchmentLight : COLORS.parchmentDark)
+        .rectangle(x, y, 200, 48, active ? COLORS.parchmentLight : COLORS.parchmentDark)
         .setStrokeStyle(active ? 3 : 2, active ? COLORS.saddle : COLORS.saddleDark);
       this.add
         .text(x, y, label, {
@@ -202,68 +211,122 @@ export class CritterScene extends Phaser.Scene {
     });
   }
 
-  /** Horizontal stat bars: base in sage, plus the pedigree bonus in denim. */
-  private buildBars(y: number, withPedigree: boolean): void {
-    const { width } = this.scale;
-    const g = this.add.graphics();
-    drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
-    // legend
-    g.fillStyle(COLORS.sage);
-    g.fillRect(64, y + 16, 14, 14);
-    this.add.text(86, y + 15, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    if (withPedigree) {
-      g.fillStyle(COLORS.denim);
-      g.fillRect(170, y + 16, 14, 14);
-      this.add.text(192, y + 15, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    }
-
-    const barX = 130;
-    const maxW = 460;
-    STAT_LABELS.forEach(([key, label], i) => {
-      const ry = y + 74 + i * 42;
-      const { base, ped } = this.statTotal(key);
-      const shownPed = withPedigree ? ped : 0;
-      const baseW = Math.max(4, Math.round((base / STAT_SCALE_MAX) * maxW));
-      const pedW = Math.round((shownPed / STAT_SCALE_MAX) * maxW);
-      this.add
-        .text(64, ry, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
-        .setOrigin(0, 0.5);
-      g.fillStyle(COLORS.ink);
-      g.fillRect(barX - 2, ry - 15, baseW + pedW + 4, 30);
-      g.fillStyle(COLORS.sage);
-      g.fillRect(barX, ry - 13, baseW, 26);
-      if (pedW > 0) {
-        g.fillStyle(COLORS.denim);
-        g.fillRect(barX + baseW, ry - 13, pedW, 26);
-      }
-      this.add
-        .text(barX + baseW + pedW + 12, ry, `${base + shownPed}`, {
-          fontFamily: FONT.ui,
-          fontSize: '17px',
-          color: HEX.ink
-        })
-        .setOrigin(0, 0.5);
-    });
-  }
-
-  /** Radar chart: current stats (sage) or the pedigree alone on a 0-15 scale (denim). */
-  private buildHexChart(y: number, pedigreeOnly: boolean): void {
-    const { width } = this.scale;
-    const g = this.add.graphics();
-    drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
-    this.add.text(64, y + 14, pedigreeOnly ? 'PEDIGREE (MAX 15)' : 'CURRENT STATS', {
+  /** Panel header shared by both views: title top-left, BARS/HEX toggle top-right. */
+  private buildPanelHeader(y: number): void {
+    this.add.text(64, y + 14, CHART_TITLE[this.chartTab], {
       fontFamily: FONT.ui,
       fontSize: '16px',
       color: HEX.saddle
     });
-    const scaleMax = pedigreeOnly ? 15 : STAT_SCALE_MAX;
+    (['bars', 'hex'] as ChartView[]).forEach((view, i) => {
+      const x = 534 + i * 78;
+      const active = view === this.chartView;
+      const bg = this.add
+        .rectangle(x, y + 30, 74, 34, active ? COLORS.parchmentLight : COLORS.parchmentDark)
+        .setStrokeStyle(active ? 3 : 2, active ? COLORS.saddle : COLORS.saddleDark);
+      this.add
+        .text(x, y + 30, view.toUpperCase(), {
+          fontFamily: FONT.ui,
+          fontSize: '16px',
+          color: active ? HEX.ink : HEX.saddle
+        })
+        .setOrigin(0.5);
+      if (!active) {
+        bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
+          this.scene.restart({ uid: this.critter.uid, chart: this.chartTab, view })
+        );
+      }
+    });
+  }
+
+  /**
+   * Horizontal stat bars. STATS = sage base + denim pedigree stack;
+   * BASE STATS = sage only; PEDIGREE = denim fill in a full-length socket
+   * so the 15-point ceiling is visible, values shown as n/15.
+   */
+  private buildBars(y: number): void {
+    const { width } = this.scale;
+    const mode = this.chartTab;
+    const g = this.add.graphics();
+    drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
+    this.buildPanelHeader(y);
+
+    const barX = 130;
+    const maxW = 440;
+    STAT_LABELS.forEach(([key, label], i) => {
+      const ry = y + 72 + i * 38;
+      const { base, ped } = this.statTotal(key);
+      this.add
+        .text(64, ry, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+        .setOrigin(0, 0.5);
+      if (mode === 'pedigree') {
+        g.fillStyle(COLORS.ink);
+        g.fillRect(barX - 2, ry - 15, maxW + 4, 30);
+        g.fillStyle(COLORS.parchmentDark);
+        g.fillRect(barX, ry - 13, maxW, 26);
+        const w = Math.round((ped / 15) * maxW);
+        if (w > 0) {
+          g.fillStyle(COLORS.denim);
+          g.fillRect(barX, ry - 13, w, 26);
+        }
+        this.add
+          .text(barX + maxW + 12, ry, `${ped}/15`, { fontFamily: FONT.ui, fontSize: '17px', color: HEX.ink })
+          .setOrigin(0, 0.5);
+      } else {
+        const shownPed = mode === 'stats' ? ped : 0;
+        const baseW = Math.max(4, Math.round((base / STAT_SCALE_MAX) * maxW));
+        const pedW = Math.round((shownPed / STAT_SCALE_MAX) * maxW);
+        g.fillStyle(COLORS.ink);
+        g.fillRect(barX - 2, ry - 15, baseW + pedW + 4, 30);
+        g.fillStyle(COLORS.sage);
+        g.fillRect(barX, ry - 13, baseW, 26);
+        if (pedW > 0) {
+          g.fillStyle(COLORS.denim);
+          g.fillRect(barX + baseW, ry - 13, pedW, 26);
+        }
+        this.add
+          .text(barX + baseW + pedW + 12, ry, `${base + shownPed}`, {
+            fontFamily: FONT.ui,
+            fontSize: '17px',
+            color: HEX.ink
+          })
+          .setOrigin(0, 0.5);
+      }
+    });
+
+    // legend, bottom right of the panel
+    const ly = y + 296;
+    if (mode === 'stats') {
+      g.fillStyle(COLORS.sage);
+      g.fillRect(400, ly, 14, 14);
+      this.add.text(422, ly - 1, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+      g.fillStyle(COLORS.denim);
+      g.fillRect(506, ly, 14, 14);
+      this.add.text(528, ly - 1, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+    } else if (mode === 'base') {
+      g.fillStyle(COLORS.sage);
+      g.fillRect(556, ly, 14, 14);
+      this.add.text(578, ly - 1, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+    }
+  }
+
+  /** Radar chart of the active tab's values (denim for pedigree, sage otherwise). */
+  private buildHexChart(y: number): void {
+    const { width } = this.scale;
+    const mode = this.chartTab;
+    const g = this.add.graphics();
+    drawPixelPanel(g, 40, y, width - 80, 330, COLORS.parchmentLight, COLORS.saddle);
+    this.buildPanelHeader(y);
+    const scaleMax = mode === 'pedigree' ? 15 : STAT_SCALE_MAX;
     const statValue = (key: keyof CritterInstance['pedigree']): number => {
       const { base, ped } = this.statTotal(key);
-      return pedigreeOnly ? ped : base + ped;
+      return mode === 'pedigree' ? ped : mode === 'base' ? base : base + ped;
     };
     const cx = width / 2;
-    const cy = y + 172;
-    const R = 118;
+    // center + radius chosen so the vertex labels AND the value text under
+    // them stay inside the 330px panel (the old 172/118 clipped the bottom)
+    const cy = y + 168;
+    const R = 100;
     const vertex = (i: number, r: number) => {
       const ang = -Math.PI / 2 + (i * Math.PI) / 3;
       return { x: cx + Math.cos(ang) * r, y: cy + Math.sin(ang) * r };
@@ -287,7 +350,7 @@ export class CritterScene extends Phaser.Scene {
     }
 
     // data polygon
-    g.fillStyle(pedigreeOnly ? COLORS.denim : COLORS.sage, 0.55);
+    g.fillStyle(mode === 'pedigree' ? COLORS.denim : COLORS.sage, 0.55);
     g.lineStyle(3, COLORS.ink, 0.9);
     g.beginPath();
     STAT_LABELS.forEach(([key], i) => {
