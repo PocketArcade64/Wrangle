@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { gameState, StagePin } from '../state/GameState';
-import { classifyMapPoint, FRONTIER_LEVELS, StageTheme } from '../data/stages';
+import { SpeciesDef } from '../data/species';
+import { classifyMapPoint, FRONTIER_LEVELS, STAGE_THEMES, StageTheme, themeSpeciesPool } from '../data/stages';
 import { dateKey } from '../util/daily';
 import { playMusic, sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -11,6 +12,8 @@ const TOP_BAR_H = 110;
 /** Map-select tabs sit between the top bar and the map. */
 const TABS_Y = 142;
 const MAP_Y = 190;
+const MAP_X = 30;
+const MAP_VIEW = 660;
 const MAP_TEX = 1024;
 /** Pin coordinates quantize to this texture-space grid. */
 const CELL = 32;
@@ -23,7 +26,7 @@ const CELL = 32;
  * favorited and is never overwritten.
  */
 export class MapScene extends Phaser.Scene {
-  private mapScale = 720 / MAP_TEX;
+  private mapScale = MAP_VIEW / MAP_TEX;
   private tempMsg?: Phaser.GameObjects.Text;
 
   constructor() {
@@ -39,10 +42,10 @@ export class MapScene extends Phaser.Scene {
     this.tempMsg = undefined;
 
     // the map itself
-    const map = this.add.image(0, MAP_Y, 'map-frontier').setOrigin(0);
-    map.setDisplaySize(720, 720);
+    const map = this.add.image(MAP_X, MAP_Y, 'map-frontier').setOrigin(0);
+    map.setDisplaySize(MAP_VIEW, MAP_VIEW);
     map.setInteractive({ useHandCursor: true }).on('pointerup', (p: Phaser.Input.Pointer) => {
-      const tx = Phaser.Math.Clamp((p.x - 0) / this.mapScale, 0, MAP_TEX - 1);
+      const tx = Phaser.Math.Clamp((p.x - MAP_X) / this.mapScale, 0, MAP_TEX - 1);
       const ty = Phaser.Math.Clamp((p.y - MAP_Y) / this.mapScale, 0, MAP_TEX - 1);
       this.scoutPoint(tx, ty);
     });
@@ -74,7 +77,8 @@ export class MapScene extends Phaser.Scene {
       .setDepth(11);
 
     this.buildMapTabs();
-    this.buildPinSlots(MAP_Y + 720 + 8);
+    makeButton(this, width / 2, MAP_Y + MAP_VIEW + 34, 300, 48, 'AREA GUIDE', () => this.openAreaGuide(), '18px');
+    this.buildPinSlots(MAP_Y + MAP_VIEW + 66);
   }
 
   /** Region tabs above the map: Frontier Flats now, more maps later. */
@@ -108,7 +112,7 @@ export class MapScene extends Phaser.Scene {
 
   private drawPinMarkers(): void {
     for (const pin of gameState.data.pins) {
-      const sx = (pin.cellX * CELL + CELL / 2) * this.mapScale;
+      const sx = MAP_X + (pin.cellX * CELL + CELL / 2) * this.mapScale;
       const sy = MAP_Y + (pin.cellY * CELL + CELL / 2) * this.mapScale;
       const g = this.add.graphics().setDepth(5);
       g.fillStyle(COLORS.ink);
@@ -143,6 +147,11 @@ export class MapScene extends Phaser.Scene {
         fontSize: '18px',
         color: pin.completed ? HEX.sage : HEX.saddle
       });
+      // tap the pin's name area to preview what critters roam there
+      this.add
+        .rectangle(200, sy + 48, 330, 92, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => this.openSpeciesList(pin.themeId));
       // favorite star - only one pin may hold it
       const star = this.add.image(width - 260, sy + 48, 'icon-star').setScale(0.9);
       star.setTint(pin.favorite ? COLORS.clay : COLORS.saddle).setAlpha(pin.favorite ? 1 : 0.4);
@@ -155,6 +164,105 @@ export class MapScene extends Phaser.Scene {
       });
       makeButton(this, width - 130, sy + 48, 170, 56, 'RIDE FREE', () => this.startStage(pin), '18px');
     }
+  }
+
+  // ---------- area guide ----------
+
+  /** All six regions of the map; tap one to see its critter pool. */
+  private openAreaGuide(): void {
+    const { width, height } = this.scale;
+    const modal: Phaser.GameObjects.GameObject[] = [];
+    const close = () => modal.forEach((o) => o.destroy());
+    const dim = this.add
+      .rectangle(width / 2, height / 2, width, height, COLORS.ink, 0.6)
+      .setDepth(60)
+      .setInteractive();
+    dim.on('pointerup', close);
+    modal.push(dim);
+    const g = this.add.graphics().setDepth(61);
+    drawPixelPanel(g, 60, 170, width - 120, 760, COLORS.parchment, COLORS.saddle);
+    modal.push(g);
+    modal.push(
+      this.add
+        .text(width / 2, 216, 'AREA GUIDE', { fontFamily: FONT.display, fontSize: '28px', color: HEX.ink })
+        .setOrigin(0.5)
+        .setDepth(62)
+    );
+    Object.values(STAGE_THEMES).forEach((theme, i) => {
+      const ry = 286 + i * 104;
+      const row = this.add
+        .rectangle(width / 2, ry, width - 180, 92, COLORS.parchmentLight)
+        .setStrokeStyle(3, COLORS.saddle)
+        .setDepth(62)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => {
+          close();
+          this.openSpeciesList(theme.id);
+        });
+      modal.push(row);
+      const sw = this.add.rectangle(width / 2 - 220, ry, 44, 44, theme.ground).setStrokeStyle(2, COLORS.ink).setDepth(63);
+      modal.push(sw);
+      modal.push(
+        this.add
+          .text(width / 2 - 180, ry - 20, theme.name, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.ink })
+          .setOrigin(0, 0)
+          .setDepth(63)
+      );
+      modal.push(
+        this.add
+          .text(width / 2 - 180, ry + 8, `${theme.types.join(' / ')} COUNTRY`, {
+            fontFamily: FONT.ui,
+            fontSize: '16px',
+            color: HEX.sage
+          })
+          .setOrigin(0, 0)
+          .setDepth(63)
+      );
+    });
+  }
+
+  /** The critters findable under a theme - silhouettes until first seen. */
+  private openSpeciesList(themeId: string): void {
+    const { width, height } = this.scale;
+    const theme = STAGE_THEMES[themeId] ?? STAGE_THEMES.prairie;
+    const pool = themeSpeciesPool(themeId).slice(0, 24);
+    const modal: Phaser.GameObjects.GameObject[] = [];
+    const close = () => modal.forEach((o) => o.destroy());
+    const dim = this.add
+      .rectangle(width / 2, height / 2, width, height, COLORS.ink, 0.6)
+      .setDepth(60)
+      .setInteractive();
+    dim.on('pointerup', close);
+    modal.push(dim);
+    const rows = Math.max(1, Math.ceil(pool.length / 4));
+    const panelH = 120 + rows * 140;
+    const panelY = Math.max(130, (height - panelH) / 2);
+    const g = this.add.graphics().setDepth(61);
+    drawPixelPanel(g, 50, panelY, width - 100, panelH, COLORS.parchment, COLORS.saddle);
+    modal.push(g);
+    modal.push(
+      this.add
+        .text(width / 2, panelY + 44, `${theme.name} CRITTERS`, { fontFamily: FONT.display, fontSize: '26px', color: HEX.ink })
+        .setOrigin(0.5)
+        .setDepth(62)
+    );
+    pool.forEach((sp: SpeciesDef, i: number) => {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const cx = 128 + col * 155;
+      const cy = panelY + 150 + row * 140;
+      const seen = (gameState.data.seen[sp.id] ?? 0) > 0 || gameState.data.herd.some((c) => c.speciesId === sp.id);
+      const texKey = this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
+      const img = this.add.image(cx, cy - 14, texKey).setDisplaySize(78, 78).setDepth(62);
+      if (!seen) img.setTintFill(COLORS.ink).setAlpha(0.8);
+      modal.push(img);
+      modal.push(
+        this.add
+          .text(cx, cy + 40, seen ? sp.name : '???', { fontFamily: FONT.ui, fontSize: '16px', color: seen ? HEX.ink : HEX.sage })
+          .setOrigin(0.5)
+          .setDepth(62)
+      );
+    });
   }
 
   // ---------- scouting a new spot ----------
@@ -276,7 +384,7 @@ export class MapScene extends Phaser.Scene {
     const { width } = this.scale;
     this.tempMsg?.destroy();
     this.tempMsg = this.add
-      .text(width / 2, MAP_Y + 660, msg, {
+      .text(width / 2, MAP_Y + 600, msg, {
         fontFamily: FONT.ui,
         fontSize: '18px',
         color: HEX.parchment,

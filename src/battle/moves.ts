@@ -88,6 +88,16 @@ export interface MoveDef {
   channelMaxS?: number;
 }
 
+/**
+ * Global cooldown pacing knob: every move's cooldownS is multiplied by
+ * this at use time. Playtest said full values felt way too slow.
+ */
+export const COOLDOWN_SCALE = 0.5;
+
+export function cooldownMs(move: MoveDef): number {
+  return move.cooldownS * COOLDOWN_SCALE * 1000;
+}
+
 const M = (def: MoveDef): MoveDef => def;
 
 export const MOVES: Record<string, MoveDef> = {

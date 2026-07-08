@@ -64,6 +64,8 @@ export class TitleScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setAlpha(0.6);
 
-    this.input.once('pointerdown', () => this.scene.start('Home'));
+    // start on pointerUP: switching on pointerdown let the same tap's
+    // release land on freshly-created Home buttons (double-press bug)
+    this.input.once('pointerup', () => this.scene.start('Home'));
   }
 }

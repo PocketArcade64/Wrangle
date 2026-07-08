@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
 import { badgeName } from '../data/typeChart';
+import { movesForSpecies } from '../battle/moves';
 import { CritterInstance, gameState } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -36,6 +37,9 @@ export class CaptureSelectScene extends Phaser.Scene {
   private dragStartY = 0;
   private scrollStart = 0;
   private dragDist = 0;
+  private scrollVel = 0;
+  private lastMoveY = 0;
+  private lastMoveT = 0;
   private tempMsg?: Phaser.GameObjects.Text;
   // herd select mode
   private selectMode = false;
@@ -60,6 +64,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     this.dragging = false;
     this.dragDist = 0;
     this.minScroll = 0;
+    this.scrollVel = 0;
     this.tempMsg = undefined;
     this.selected = new Set();
     this.selectRects = new Map();
@@ -170,6 +175,9 @@ export class CaptureSelectScene extends Phaser.Scene {
       this.dragStartY = p.y;
       this.scrollStart = this.scrollY;
       this.dragDist = 0;
+      this.scrollVel = 0;
+      this.lastMoveY = p.y;
+      this.lastMoveT = this.time.now;
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (!this.dragging || !p.isDown) return;
@@ -177,10 +185,31 @@ export class CaptureSelectScene extends Phaser.Scene {
       this.dragDist = Math.max(this.dragDist, Math.abs(dy));
       this.scrollY = Phaser.Math.Clamp(this.scrollStart + dy, this.minScroll, 0);
       this.listContainer.y = this.scrollY;
+      // track flick velocity (px per ~frame) for momentum on release
+      const now = this.time.now;
+      const dtm = Math.max(1, now - this.lastMoveT);
+      this.scrollVel = ((p.y - this.lastMoveY) / dtm) * 16.7;
+      this.lastMoveY = p.y;
+      this.lastMoveT = now;
     });
     this.input.on('pointerup', () => {
       this.dragging = false;
     });
+  }
+
+  /** Momentum: released flicks glide and ease out instead of hard-stopping. */
+  update(_time: number, delta: number): void {
+    if (this.dragging || !this.listContainer || Math.abs(this.scrollVel) < 0.5) return;
+    const step = delta / 16.7;
+    let ny = this.scrollY + this.scrollVel * step;
+    if (ny > 0 || ny < this.minScroll) {
+      ny = Phaser.Math.Clamp(ny, this.minScroll, 0);
+      this.scrollVel = 0;
+    } else {
+      this.scrollVel *= Math.pow(0.94, step);
+    }
+    this.scrollY = ny;
+    this.listContainer.y = ny;
   }
 
   private makeCell(sp: SpeciesDef, index: number, x: number, y: number, inst?: CritterInstance): void {
@@ -220,16 +249,17 @@ export class CaptureSelectScene extends Phaser.Scene {
         wordWrap: { width: CELL_W - 24 }
       })
       .setOrigin(0.5, 0);
-    // types shown as the badge art (caught reveals them in the ledger)
+    // types shown as the badge art, sized so left/middle/right padding
+    // inside the 210px cell are equal (scale 1.8 = 82.8px, ~15px gaps)
     const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name];
-    const tyY = y + (CELL_H - 16) / 2 - 18;
+    const tyY = y + (CELL_H - 16) / 2 - 24;
     if (this.activeTab !== 'tally' || caught) {
       const tlist = [sp.type1, sp.type2].filter((t): t is string => !!t);
       tlist.forEach((t, i) => {
-        const bx = x + (i - (tlist.length - 1) / 2) * 62;
+        const bx = x + (i - (tlist.length - 1) / 2) * 98;
         const key = `type-${badgeName(t)}`;
         if (this.textures.exists(key)) {
-          parts.push(this.add.image(bx, tyY, key).setScale(1.2));
+          parts.push(this.add.image(bx, tyY, key).setScale(1.8));
         } else {
           parts.push(
             this.add
@@ -340,9 +370,9 @@ export class CaptureSelectScene extends Phaser.Scene {
     const teams = gameState.data.teams;
 
     teams.forEach((team, ti) => {
-      const py = TOP_BAR_H + 34 + ti * 204;
+      const py = TOP_BAR_H + 34 + ti * 232;
       const g = this.add.graphics();
-      drawPixelPanel(g, 40, py, width - 80, 186, COLORS.parchmentLight, COLORS.saddle);
+      drawPixelPanel(g, 40, py, width - 80, 214, COLORS.parchmentLight, COLORS.saddle);
       // name - tap to rename (underline hints it's editable)
       const nameTxt = this.add.text(70, py + 20, team.name, {
         fontFamily: FONT.display,
@@ -362,12 +392,12 @@ export class CaptureSelectScene extends Phaser.Scene {
       del.setInteractive({ useHandCursor: true }).on('pointerup', () => this.deletePosse(ti));
       // three slots, evenly spaced across the panel
       for (let si = 0; si < 3; si++) {
-        this.makeSlot(team.members[si], ti, si, width / 2 + (si - 1) * 200, py + 118);
+        this.makeSlot(team.members[si], ti, si, width / 2 + (si - 1) * 200, py + 110);
       }
     });
 
     if (teams.length < MAX_TEAMS) {
-      makeButton(this, width / 2, TOP_BAR_H + 34 + teams.length * 204 + 46, 300, 64, '+ NEW POSSE', () => {
+      makeButton(this, width / 2, TOP_BAR_H + 34 + teams.length * 232 + 46, 300, 64, '+ NEW POSSE', () => {
         teams.push({ name: `POSSE ${teams.length + 1}`, members: [null, null, null] });
         gameState.save();
         this.scene.restart({ tab: 'posses' });
@@ -415,6 +445,14 @@ export class CaptureSelectScene extends Phaser.Scene {
       const sp = SPECIES.find((s) => s.id === inst.speciesId);
       const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
       this.add.image(x, y, texKey).setDisplaySize(92, 92);
+      // move loadout as circular type dots under the slot
+      if (sp) {
+        const moves = movesForSpecies(sp);
+        moves.forEach((mv, i) => {
+          const key = this.textures.exists(`typedot-${mv.type}`) ? `typedot-${mv.type}` : 'typedot-Normal';
+          this.add.image(x + (i - (moves.length - 1) / 2) * 48, y + 80, key).setScale(2);
+        });
+      }
     } else {
       this.add
         .text(x, y, '+', { fontFamily: FONT.display, fontSize: '40px', color: HEX.saddle })

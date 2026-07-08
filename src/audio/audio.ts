@@ -103,6 +103,7 @@ function noise(dur: number, opts: { vol?: number; freq?: number; slide?: number;
 
 export type SfxName =
   | 'ui'
+  | 'loop'
   | 'coin'
   | 'capture'
   | 'bust'
@@ -135,6 +136,12 @@ export function sfx(name: SfxName): void {
   switch (name) {
     case 'ui':
       tone(520, 0.05, { vol: 0.06 });
+      break;
+    case 'loop':
+      // the every-few-seconds sound of the whole game: a soft rope pluck
+      // with a bright answer - satisfying, never harsh
+      tone(660, 0.06, { wave: 'triangle', vol: 0.1, slide: 1.3 });
+      tone(1320, 0.08, { vol: 0.045, at: t + 0.035 });
       break;
     case 'coin':
       tone(880, 0.06, { vol: 0.08 });

@@ -28,6 +28,7 @@ export class HomeScene extends Phaser.Scene {
   private dots: Phaser.GameObjects.Rectangle[] = [];
   private page = 0;
   private carDrag?: { startX: number; baseX: number; moved: number };
+  private staminaCont?: Phaser.GameObjects.Container;
 
   constructor() {
     super('Home');
@@ -45,6 +46,7 @@ export class HomeScene extends Phaser.Scene {
     this.carDrag = undefined;
 
     this.buildStatusBar();
+    this.time.addEvent({ delay: 1000, loop: true, callback: () => this.drawStamina() });
     this.buildPlayerRow(STATUS_H + 28);
 
     // living diorama, sized to leave room for the posse carousel + CTA
@@ -77,24 +79,60 @@ export class HomeScene extends Phaser.Scene {
     g.fillStyle(COLORS.saddle);
     g.fillRect(0, STATUS_H - 4, width, 4);
 
-    // stamina, top left: horseshoe pips - sage, calm; running low is not
-    // a failure state. Shoes render at the coin glyph's native 44px with
-    // a small even gap between each.
-    for (let i = 0; i < gameState.data.staminaMax; i++) {
-      const shoe = this.add.image(44 + i * 52, STATUS_H / 2, 'icon-horseshoe');
-      if (i < gameState.data.stamina) shoe.setTint(COLORS.sage);
-      else shoe.setTint(COLORS.saddle).setAlpha(0.3);
-    }
-    this.add
-      .text(44 + (gameState.data.staminaMax - 1) * 52 + 36, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
-        fontFamily: FONT.ui,
-        fontSize: '32px',
-        color: HEX.sage
-      })
-      .setOrigin(0, 0.5);
+    this.drawStamina();
 
     // GOLD, top right - brass, and only brass
     addGoldCounter(this, STATUS_H / 2);
+  }
+
+  /**
+   * Stamina horseshoes, redrawn every second: spent shoes are faded, the
+   * one currently refilling fills bottom-up over the hour, and a countdown
+   * to the next point sits right of the tally.
+   */
+  private drawStamina(): void {
+    gameState.refreshStamina();
+    this.staminaCont?.destroy();
+    const c = this.add.container(0, 0);
+    this.staminaCont = c;
+    const d = gameState.data;
+    const HOUR = 3600000;
+    const cy = STATUS_H / 2;
+    const filling = d.stamina < d.staminaMax;
+    const frac = filling ? Phaser.Math.Clamp((Date.now() - d.staminaUpdatedAt) / HOUR, 0, 1) : 0;
+    for (let i = 0; i < d.staminaMax; i++) {
+      const x = 44 + i * 52;
+      if (i < d.stamina) {
+        c.add(this.add.image(x, cy, 'icon-horseshoe').setTint(COLORS.sage));
+      } else {
+        c.add(this.add.image(x, cy, 'icon-horseshoe').setTint(COLORS.saddle).setAlpha(0.3));
+        if (i === d.stamina && frac > 0) {
+          const fillPx = Math.round(44 * frac);
+          const over = this.add.image(x, cy, 'icon-horseshoe').setTint(COLORS.sage);
+          over.setCrop(0, 44 - fillPx, 44, fillPx);
+          c.add(over);
+        }
+      }
+    }
+    const tx = 44 + (d.staminaMax - 1) * 52 + 36;
+    c.add(
+      this.add
+        .text(tx, cy, `${d.stamina}/${d.staminaMax}`, { fontFamily: FONT.ui, fontSize: '32px', color: HEX.sage })
+        .setOrigin(0, 0.5)
+    );
+    if (filling) {
+      const s = Math.ceil(Math.max(0, HOUR - (Date.now() - d.staminaUpdatedAt)) / 1000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      c.add(
+        this.add
+          .text(tx + 92, cy, `+1 IN ${pad(Math.floor(s / 60))}:${pad(s % 60)}`, {
+            fontFamily: FONT.ui,
+            fontSize: '18px',
+            color: HEX.sage
+          })
+          .setOrigin(0, 0.5)
+      );
+    }
   }
 
   /** Name + LV + XP bar on one line under the status bar; tap for profile. */

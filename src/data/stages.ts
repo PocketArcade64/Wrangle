@@ -202,6 +202,22 @@ function themePool(theme: StageTheme, rng: () => number): SpeciesDef[] {
 }
 
 /**
+ * Everything findable under a theme, for the map's area guide: the basic
+ * pool plus those basics' evolved rare forms.
+ */
+export function themeSpeciesPool(themeId: string): SpeciesDef[] {
+  const theme = STAGE_THEMES[themeId] ?? STAGE_THEMES.prairie;
+  const basics = SPECIES.filter(
+    (sp) => !EVOLVED_IDS.has(sp.id) && (theme.types.includes(sp.type1 ?? '') || theme.types.includes(sp.type2 ?? ''))
+  );
+  const evoIds = [...new Set(basics.map((b) => EVOLUTIONS[b.id]).filter((e): e is string => !!e))];
+  const evos = evoIds
+    .map((id) => SPECIES.find((s) => s.id === id))
+    .filter((s): s is SpeciesDef => !!s);
+  return [...basics, ...evos];
+}
+
+/**
  * Deterministic stage from a seed: same layout skeleton every time (spawn
  * groups along the trail, boss at the end), the seed picking species per
  * group, counts and levels. Groups are Rumble-style: a pack of one BASIC

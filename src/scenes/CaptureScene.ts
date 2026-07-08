@@ -234,9 +234,11 @@ export class CaptureScene extends Phaser.Scene {
     this.streak++;
     this.gaugeProgress = Math.min(this.species.requiredLoops, this.gaugeProgress + mult);
     this.decayCountdown = this.decayDelayS;
+    sfx('loop');
     this.popGaugeGain(Math.round(GAUGE_PER_LOOP * mult), mult > 1);
-    this.creatureImg.setScale(1.15);
-    this.tweens.add({ targets: this.creatureImg, scale: 1, duration: 150 });
+    // squash-pop relative to the 1.3x base draw scale
+    this.creatureImg.setScale(1.45);
+    this.tweens.add({ targets: this.creatureImg, scale: 1.3, duration: 150 });
     if (this.gaugeProgress >= this.species.requiredLoops - 1e-9) {
       this.finish(true);
     }

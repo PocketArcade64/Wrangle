@@ -5,6 +5,43 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4d] 2026-07-08 - Stamina UX, faster moves, area guide, QoL round
+----------------------------------------------------------------------
+- STAMINA REFILL UX (home): shoes redraw every second; the shoe
+  currently refilling fills BOTTOM-UP over the hour (sage overlay
+  with setCrop), and a "+1 IN MM:SS" countdown sits right of the
+  x/5 tally. Full = no timer.
+- MOVE COOLDOWNS: global COOLDOWN_SCALE = 0.5 in moves.ts (single
+  pacing knob, used by pressMove/releaseChannel/overlays via
+  cooldownMs()). Playtest said full values were way too slow.
+- LOOP SFX: every banked lasso loop plays a soft rope pluck + bright
+  answer (designed to be heard hundreds of times). Also FIXED the
+  loop squash-pop tween resetting the creature to scale 1 - it now
+  pops 1.45 -> 1.3 around the new bigger draw scale.
+- MAP AREA GUIDE: map shrunk to 660px (centered) to make room; new
+  AREA GUIDE button below it lists all 6 regions (ground swatch,
+  name, types) -> tapping one shows its critter pool in a grid -
+  SILHOUETTES + '???' until first seen (stages.themeSpeciesPool =
+  basic pool + their evolved rares). Pin slots: tapping the name
+  area of a saved pin opens the same critter preview for its theme.
+- LEDGER/HERD GRID BADGES: scaled to 1.8 (82.8px) so left/middle/
+  right padding inside the 210px cell are equal (~15px each).
+- NEW 19x19 CIRCULAR TYPE DOTS (src/ui/typeDots.ts): BootScene tries
+  sprites/types/<Type>_circle_19x19.png first (user art drops in
+  under that exact name), else generates a placeholder (type-colored
+  circle, ink ring, glint) - colors in TYPE_DOT_COLORS. POSSE TAB
+  REVAMP: panels 214px tall; each filled slot shows its critter's
+  MOVE LOADOUT as type dots (x2) beneath the sprite.
+- SCROLL MOMENTUM: the herd/ledger grid now glides after a flick
+  (velocity tracked per pointermove, eased 0.94/frame, stops at
+  bounds) instead of dead-stopping on release.
+- FIXED title double-press: scene switched on pointerDOWN, so the
+  same tap's release landed on freshly built Home buttons. Title now
+  starts on pointerUP.
+- STATUS: playtest cooldown feel (one knob), stamina fill readability
+  at 44px, area guide, posse dots. Drop the real 19x19 circle art
+  into sprites/types/ whenever ready.
+----------------------------------------------------------------------
 [M4c] 2026-07-08 - Menu theme v2, dev menu, evolutions, pacing fixes
 ----------------------------------------------------------------------
 - MUSIC START EXPLAINED + FIXED: the theme only began when HomeScene

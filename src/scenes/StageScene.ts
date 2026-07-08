@@ -4,7 +4,7 @@ import { generateStage, StageDef, StageTheme, STAGE_THEMES, STAGE_LENGTH } from 
 import { CritterInstance, gameState } from '../state/GameState';
 import { badgeName, effectiveness } from '../data/typeChart';
 import { BattleStats, battleStats, wildStats, damageRoll, xpFromKill, applyXp } from '../battle/stats';
-import { MoveDef, movesForSpecies } from '../battle/moves';
+import { cooldownMs, MoveDef, movesForSpecies } from '../battle/moves';
 import { playMusic, stopMusic, sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
@@ -1262,7 +1262,7 @@ export class StageScene extends Phaser.Scene {
       sfx('beam');
       return;
     }
-    this.cooldownAt[i] = time + move.cooldownS * 1000;
+    this.cooldownAt[i] = time + cooldownMs(move);
     this.executeMove(move);
   }
 
@@ -1280,7 +1280,7 @@ export class StageScene extends Phaser.Scene {
     const maxS = c.move.channelMaxS ?? 1.2;
     const held = Phaser.Math.Clamp((time - c.start) / 1000, 0.15, maxS);
     const frac = held / maxS;
-    this.cooldownAt[c.idx] = time + c.move.cooldownS * 1000;
+    this.cooldownAt[c.idx] = time + cooldownMs(c.move);
     sfx('zap');
     this.fireBeam(this.aimDir(), c.move, 0.5 + frac, 350 + frac * 550, 20 + frac * 34);
   }
@@ -1918,7 +1918,7 @@ export class StageScene extends Phaser.Scene {
       }
       const remaining = this.cooldownAt[i] - time;
       if (remaining > 0) {
-        const frac = Phaser.Math.Clamp(remaining / (b.move.cooldownS * 1000), 0, 1);
+        const frac = Phaser.Math.Clamp(remaining / cooldownMs(b.move), 0, 1);
         const h = Math.round(120 * frac);
         b.cdG.fillStyle(COLORS.ink, 0.55);
         b.cdG.fillRect(b.face.x - 115, b.face.y + 60 - h, 230, h);

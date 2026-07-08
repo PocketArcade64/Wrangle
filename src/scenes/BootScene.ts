@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { TYPE_BADGES } from '../data/typeChart';
+import { ensureTypeDots } from '../ui/typeDots';
 
 /**
  * Loads creature sprites (public/sprites/creatures/), type badges
@@ -38,11 +39,14 @@ export class BootScene extends Phaser.Scene {
     }
     for (const t of TYPE_BADGES) {
       this.load.image(`type-${t}`, `sprites/types/${t}_46x15.png`);
+      // circular 19x19 move-type dots - user art when present, otherwise
+      // ensureTypeDots() generates placeholders in create()
+      this.load.image(`typedot-${t}`, `sprites/types/${t}_circle_19x19.png`);
     }
   }
 
   create(): void {
-
+    ensureTypeDots(this);
     this.makeCowTexture();
     this.makeChickenTexture();
     this.makeDustdevilTexture();
