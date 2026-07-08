@@ -1,26 +1,27 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
-import { gameState } from '../state/GameState';
+import { CritterInstance, gameState } from '../state/GameState';
 import { COLORS, FONT, HEX, drawPixelPanel } from './theme';
 
 /**
  * Modal picker for a posse slot. Stays open until the X (top right) is
  * pressed or a pick is made - stray taps on the dim do NOT dismiss it.
- * A species already posted to ANY posse slot is excluded, so a critter
- * can't ride with two posses or fill two slots of one. CLEAR empties
- * the slot. Returns false (shows nothing) when the herd is empty.
+ * Slots hold individual critters (uids): two of the same SPECIES may ride
+ * together, but a critter already in ANY posse slot is excluded, so the
+ * same animal can't fill two slots. CLEAR empties the slot. Returns false
+ * (shows nothing) when the herd is empty.
  */
 export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onDone: () => void): boolean {
   const { width, height } = scene.scale;
-  const herdSpecies = [...new Set(gameState.data.herd.map((c) => c.speciesId))];
-  if (herdSpecies.length === 0) return false;
+  const herd = gameState.data.herd;
+  if (herd.length === 0) return false;
 
-  // species already riding in any posse (including this slot's occupant)
+  // critters already riding in any posse (including this slot's occupant)
   const used = new Set<string>();
   for (const team of gameState.data.teams) {
     for (const m of team.members) if (m) used.add(m);
   }
-  const available = herdSpecies.filter((id) => !used.has(id));
+  const available = herd.filter((c) => !used.has(c.uid));
 
   const modal: Phaser.GameObjects.GameObject[] = [];
   const close = () => modal.forEach((o) => o.destroy());
@@ -47,15 +48,15 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
     .on('pointerup', close);
   modal.push(closeBtn);
 
-  const pick = (id: string | null) => {
-    gameState.data.teams[ti].members[si] = id;
+  const pick = (uid: string | null) => {
+    gameState.data.teams[ti].members[si] = uid;
     gameState.save();
     close();
     onDone();
   };
 
-  const options: (string | null)[] = [null, ...available.slice(0, 15)];
-  options.forEach((id, i) => {
+  const options: (CritterInstance | null)[] = [null, ...available.slice(0, 15)];
+  options.forEach((inst, i) => {
     const col = i % 4;
     const row = Math.floor(i / 4);
     const x = 130 + col * 154;
@@ -65,15 +66,21 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
       .setStrokeStyle(3, COLORS.saddle)
       .setDepth(62)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', () => pick(id));
+      .on('pointerup', () => pick(inst ? inst.uid : null));
     modal.push(cell);
-    if (id) {
-      const sp = SPECIES.find((s) => s.id === id);
+    if (inst) {
+      const sp = SPECIES.find((s) => s.id === inst.speciesId);
       const texKey = sp && scene.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-      modal.push(scene.add.image(x, y - 14, texKey).setDisplaySize(84, 84).setDepth(63));
+      modal.push(scene.add.image(x, y - 20, texKey).setDisplaySize(76, 76).setDepth(63));
       modal.push(
         scene.add
-          .text(x, y + 46, sp ? sp.name : id, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+          .text(x, y + 34, sp ? sp.name : inst.speciesId, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+          .setOrigin(0.5)
+          .setDepth(63)
+      );
+      modal.push(
+        scene.add
+          .text(x, y + 54, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
           .setOrigin(0.5)
           .setDepth(63)
       );
@@ -90,7 +97,7 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
   if (available.length === 0) {
     modal.push(
       scene.add
-        .text(width / 2, 560, 'EVERY SPECIES YOU OWN IS ALREADY\nRIDING WITH A POSSE', {
+        .text(width / 2, 560, 'EVERY CRITTER YOU OWN IS ALREADY\nRIDING WITH A POSSE', {
           fontFamily: FONT.ui,
           fontSize: '18px',
           color: HEX.sage,

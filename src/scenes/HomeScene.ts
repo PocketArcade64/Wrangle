@@ -81,9 +81,9 @@ export class HomeScene extends Phaser.Scene {
       else shoe.setTint(COLORS.saddle).setAlpha(0.3);
     }
     this.add
-      .text(44 + gameState.data.staminaMax * 38 + 4, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
+      .text(44 + gameState.data.staminaMax * 38 + 8, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
         fontFamily: FONT.ui,
-        fontSize: '18px',
+        fontSize: '32px',
         color: HEX.sage
       })
       .setOrigin(0, 0.5);
@@ -338,15 +338,16 @@ export class HomeScene extends Phaser.Scene {
     });
     this.carousel.add(nameT);
 
-    // three slots centered as a row within the card. Tap a filled slot to
-    // open that critter's page; long-press any slot to change/clear it.
+    // three slots (critter uids) centered as a row within the card. Tap a
+    // filled slot to open that critter's page; long-press to change/clear.
     for (let s = 0; s < 3; s++) {
       const sx = x + (s - 1) * 140;
       const slot = this.add.rectangle(sx, cy + 14, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
       this.carousel.add(slot);
-      const memberId = team.members[s];
-      if (memberId) {
-        const sp = SPECIES.find((c) => c.id === memberId);
+      const memberUid = team.members[s];
+      const inst = memberUid ? gameState.data.herd.find((c) => c.uid === memberUid) : undefined;
+      if (inst) {
+        const sp = SPECIES.find((c) => c.id === inst.speciesId);
         const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
         const img = this.add.image(sx, cy + 14, texKey).setDisplaySize(84, 84);
         this.carousel.add(img);
@@ -375,12 +376,9 @@ export class HomeScene extends Phaser.Scene {
           pressTimer?.remove();
           if (longFired) return;
           if (this.carDrag && this.carDrag.moved >= 10) return;
-          if (memberId) {
-            const inst = gameState.data.herd.find((c) => c.speciesId === memberId);
-            if (inst) {
-              this.scene.start('Critter', { uid: inst.uid, from: 'home' });
-              return;
-            }
+          if (inst) {
+            this.scene.start('Critter', { uid: inst.uid, from: 'home' });
+            return;
           }
           openPicker();
         });

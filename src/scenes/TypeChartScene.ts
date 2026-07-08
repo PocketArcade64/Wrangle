@@ -8,7 +8,7 @@ const TOP_BAR_H = 110;
 const CELL = 32;
 const HEADER_W = 96;
 const GRID_X = 40;
-const GRID_Y = 254;
+const GRID_Y = 234;
 
 /** Where BACK should return to (set by whoever opened the chart). */
 interface ChartReturn {
@@ -19,12 +19,14 @@ interface ChartReturn {
 /**
  * The full 17-type chart as a square matrix (classic Pokemon layout):
  * rows attack, columns defend. Sage = 2x, adobe red = 1/2x, ink = no
- * effect, blank = normal. When opened from a specific creature its
- * type rows/columns are outlined in denim.
+ * effect, blank = normal. Opened from a specific creature its type
+ * rows/columns start outlined in denim; tapping any row or column
+ * header badge highlights that one type (tap it again to clear).
  */
 export class TypeChartScene extends Phaser.Scene {
   private back?: ChartReturn;
-  private highlight: string[] = [];
+  private selected: string[] = [];
+  private hg!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super('TypeChart');
@@ -32,7 +34,7 @@ export class TypeChartScene extends Phaser.Scene {
 
   init(data: { back?: ChartReturn; highlight?: string[] }): void {
     this.back = data.back;
-    this.highlight = data.highlight ?? [];
+    this.selected = data.highlight ?? [];
   }
 
   create(): void {
@@ -53,13 +55,6 @@ export class TypeChartScene extends Phaser.Scene {
     this.add
       .text(width / 2, 55, 'TYPE CHART', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
       .setOrigin(0.5);
-    this.add
-      .text(width / 2, 138, 'ROWS ATTACK - COLUMNS DEFEND', {
-        fontFamily: FONT.ui,
-        fontSize: '18px',
-        color: HEX.sage
-      })
-      .setOrigin(0.5);
 
     this.buildGrid();
     this.buildLegend(GRID_Y + ALL_TYPES.length * CELL + 28);
@@ -70,10 +65,18 @@ export class TypeChartScene extends Phaser.Scene {
     const gridW = HEADER_W + ALL_TYPES.length * CELL;
 
     // headers: attacker badges down the left, defender badges (rotated)
-    // across the top
+    // across the top. Tapping a header highlights that type's row + column.
     ALL_TYPES.forEach((type, i) => {
       this.badge(GRID_X + HEADER_W / 2, GRID_Y + i * CELL + CELL / 2, type, false);
       this.badge(GRID_X + HEADER_W + i * CELL + CELL / 2, GRID_Y - 54, type, true);
+      this.add
+        .rectangle(GRID_X + HEADER_W / 2, GRID_Y + i * CELL + CELL / 2, HEADER_W, CELL, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => this.toggleType(type));
+      this.add
+        .rectangle(GRID_X + HEADER_W + i * CELL + CELL / 2, GRID_Y - 52, CELL, 104, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => this.toggleType(type));
     });
 
     // cells
@@ -111,17 +114,30 @@ export class TypeChartScene extends Phaser.Scene {
     g.lineStyle(3, COLORS.ink, 0.7);
     g.strokeRect(GRID_X, GRID_Y, gridW, ALL_TYPES.length * CELL);
 
-    // denim outline on the viewed creature's type rows + columns
-    const hg = this.add.graphics();
-    for (const t of this.highlight) {
+    // denim outline on the highlighted type(s) - redrawn on header taps
+    this.hg = this.add.graphics();
+    this.drawHighlights();
+  }
+
+  /** Tap a header: highlight only that type; tap it again to clear. */
+  private toggleType(type: string): void {
+    if (this.selected.length === 1 && this.selected[0] === type) this.selected = [];
+    else this.selected = [type];
+    this.drawHighlights();
+  }
+
+  private drawHighlights(): void {
+    const gridW = HEADER_W + ALL_TYPES.length * CELL;
+    this.hg.clear();
+    for (const t of this.selected) {
       const idx = ALL_TYPES.indexOf(t);
       if (idx < 0) continue;
-      hg.fillStyle(COLORS.denim, 0.12);
-      hg.fillRect(GRID_X, GRID_Y + idx * CELL, gridW, CELL);
-      hg.fillRect(GRID_X + HEADER_W + idx * CELL, GRID_Y - 104, CELL, 104 + ALL_TYPES.length * CELL);
-      hg.lineStyle(4, COLORS.denim, 1);
-      hg.strokeRect(GRID_X, GRID_Y + idx * CELL, gridW, CELL);
-      hg.strokeRect(GRID_X + HEADER_W + idx * CELL, GRID_Y - 104, CELL, 104 + ALL_TYPES.length * CELL);
+      this.hg.fillStyle(COLORS.denim, 0.12);
+      this.hg.fillRect(GRID_X, GRID_Y + idx * CELL, gridW, CELL);
+      this.hg.fillRect(GRID_X + HEADER_W + idx * CELL, GRID_Y - 104, CELL, 104 + ALL_TYPES.length * CELL);
+      this.hg.lineStyle(4, COLORS.denim, 1);
+      this.hg.strokeRect(GRID_X, GRID_Y + idx * CELL, gridW, CELL);
+      this.hg.strokeRect(GRID_X + HEADER_W + idx * CELL, GRID_Y - 104, CELL, 104 + ALL_TYPES.length * CELL);
     }
   }
 
@@ -142,6 +158,9 @@ export class TypeChartScene extends Phaser.Scene {
     item(340, COLORS.ink, 'X', HEX.parchment, 'NO EFFECT');
     this.add
       .text(52, y + 40, 'BLANK = NORMAL DAMAGE', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
+      .setOrigin(0, 0.5);
+    this.add
+      .text(52, y + 72, 'ROWS ATTACK - COLUMNS DEFEND', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
       .setOrigin(0, 0.5);
   }
 

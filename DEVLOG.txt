@@ -5,6 +5,34 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3i] 2026-07-08 - App icon, uid posses, tappable chart, 5 stamina
+----------------------------------------------------------------------
+- APP ICON: index.html now points rel=icon + apple-touch-icon at the
+  user's public/sprites/ui/"Wrangle Logo Final_173x180.png" (percent-
+  encoded). Real iOS icon set gets generated from it at the M10 wrap.
+- POSSE SLOTS NOW HOLD CRITTER UIDS (the flagged M3c follow-up):
+  same SPECIES can ride together, but one specific critter can only
+  fill one slot anywhere. migrate() converts old species-id slots to
+  the first unclaimed critter of that species and drops duplicates;
+  releaseCritters() now clears slots by uid (a released critter's
+  slot empties, same-species herd-mates stay posted). Picker lists
+  INDIVIDUAL critters (sprite + name + LV to tell twins apart),
+  excluding any already posted. Slot renderers in CaptureSelect +
+  Home resolve uid -> instance (missing uid renders as empty).
+- TYPE CHART: tap any row or column HEADER badge to highlight that
+  type's full row + column (denim, one at a time; tap again to
+  clear). Creature-opened highlights still preload and are replaced
+  by taps. "ROWS ATTACK - COLUMNS DEFEND" moved from the top to
+  below "BLANK = NORMAL DAMAGE" in the legend; grid shifted up 20px
+  into the freed space.
+- STAMINA: pool is now 5 (DEFAULTS + migration tops old saves up to
+  5/5); home counter text raised to 32px to match the GOLD number.
+- FORTUNE WHEEL: spin button dropped 24px off the wheel rim
+  (cy+R+80); countdown + ad note followed (cy+R+126 / +160).
+- STATUS: playtest the individual-critter picker (catch 2 of one
+  species to verify), header tap-highlight feel, and confirm the
+  home-screen icon after ADD TO HOME SCREEN.
+----------------------------------------------------------------------
 [M3h] 2026-07-08 - Grid type chart, home bar rework, GOLD, wheel v2
 ----------------------------------------------------------------------
 - TYPE CHART is now a SQUARE MATRIX (classic Pokemon layout), no

@@ -387,15 +387,17 @@ export class CaptureSelectScene extends Phaser.Scene {
   }
 
   /**
-   * Posse slot: tap a filled slot to open that critter's page; long-press
-   * (or tap an empty slot) to open the picker, which includes CLEAR.
+   * Posse slot (holds a critter uid): tap a filled slot to open that
+   * critter's page; long-press (or tap an empty slot) to open the picker,
+   * which includes CLEAR.
    */
-  private makeSlot(memberId: string | null, ti: number, si: number, x: number, y: number): void {
+  private makeSlot(memberUid: string | null, ti: number, si: number, x: number, y: number): void {
     const slot = this.add
       .rectangle(x, y, 108, 108, COLORS.parchmentDark)
       .setStrokeStyle(3, COLORS.saddle);
-    if (memberId) {
-      const sp = SPECIES.find((s) => s.id === memberId);
+    const inst = memberUid ? gameState.data.herd.find((c) => c.uid === memberUid) : undefined;
+    if (inst) {
+      const sp = SPECIES.find((s) => s.id === inst.speciesId);
       const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
       this.add.image(x, y, texKey).setDisplaySize(92, 92);
     } else {
@@ -424,12 +426,9 @@ export class CaptureSelectScene extends Phaser.Scene {
       .on('pointerup', () => {
         pressTimer?.remove();
         if (longFired) return;
-        if (memberId) {
-          const inst = gameState.data.herd.find((c) => c.speciesId === memberId);
-          if (inst) {
-            this.scene.start('Critter', { uid: inst.uid });
-            return;
-          }
+        if (inst) {
+          this.scene.start('Critter', { uid: inst.uid });
+          return;
         }
         openPicker();
       });

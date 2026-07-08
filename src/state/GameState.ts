@@ -42,7 +42,11 @@ export interface WrangleSave {
   seen: Record<string, number>;
   /** Lasso upgrade levels (definitions in src/data/lassoUpgrades.ts). */
   lasso: { rope: number; grit: number; charge: number };
-  /** Posses: teams of up to 3 critters (species ids, null = empty slot). */
+  /**
+   * Posses: teams of up to 3 critters (critter UIDs, null = empty slot).
+   * Two critters of the same species may ride together, but one critter
+   * can only fill one slot across all posses.
+   */
   teams: { name: string; members: (string | null)[] }[];
   /** Index of the posse selected on the home carousel. */
   activeTeam: number;
@@ -58,8 +62,8 @@ const KEY = 'wrangle-save-v1';
 
 const DEFAULTS: WrangleSave = {
   currency: 250,
-  stamina: 4,
-  staminaMax: 4,
+  stamina: 5,
+  staminaMax: 5,
   dailyAvailable: true,
   leadCreatureId: 'herbifuzz',
   biome: 'DUSTY FLATS',
@@ -119,6 +123,31 @@ class GameStateStore {
     this.data.herd = herd.map((entry) =>
       typeof entry === 'string' ? newCritter(entry) : { ...newCritter(entry.speciesId), ...entry }
     );
+
+    // stamina pool grew 4 -> 5
+    if (this.data.staminaMax < 5) {
+      this.data.staminaMax = 5;
+      this.data.stamina = 5;
+    }
+
+    // posse slots stored SPECIES ids before critter uids; convert each to
+    // the first unclaimed critter of that species, and drop duplicates
+    const validUids = new Set(this.data.herd.map((c) => c.uid));
+    const taken = new Set<string>();
+    for (const team of this.data.teams) {
+      team.members = team.members.map((m) => {
+        if (!m) return null;
+        if (validUids.has(m)) {
+          if (taken.has(m)) return null;
+          taken.add(m);
+          return m;
+        }
+        const inst = this.data.herd.find((c) => c.speciesId === m && !taken.has(c.uid));
+        if (!inst) return null;
+        taken.add(inst.uid);
+        return inst.uid;
+      });
+    }
   }
 
   save(): void {

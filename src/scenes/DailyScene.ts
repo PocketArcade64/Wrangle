@@ -66,12 +66,12 @@ export class DailyScene extends Phaser.Scene {
 
     // free-spin countdown line, refreshed twice a second
     this.countdown = this.add
-      .text(width / 2, 806 + WHEEL_R + 100, '', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+      .text(width / 2, 806 + WHEEL_R + 126, '', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
       .setOrigin(0.5);
     this.updateCountdown();
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.updateCountdown() });
     this.add
-      .text(width / 2, 806 + WHEEL_R + 134, 'AD SPINS PAY SMALLER REWARDS', {
+      .text(width / 2, 806 + WHEEL_R + 160, 'AD SPINS PAY SMALLER REWARDS', {
         fontFamily: FONT.ui,
         fontSize: '18px',
         color: HEX.sage
@@ -234,7 +234,7 @@ export class DailyScene extends Phaser.Scene {
     pg.fillStyle(COLORS.saddle);
     pg.fillTriangle(cx - 9, cy - WHEEL_R - 37, cx + 9, cy - WHEEL_R - 37, cx, cy - WHEEL_R - 14);
 
-    const btn = makeButton(this, width / 2, cy + WHEEL_R + 56, 380, 64, '', () => this.trySpin(), '20px');
+    const btn = makeButton(this, width / 2, cy + WHEEL_R + 80, 380, 64, '', () => this.trySpin(), '20px');
     this.spinLabel = btn.list[2] as Phaser.GameObjects.Text;
     this.spinLabel.setText(this.freeUsed ? 'WATCH AD + SPIN' : 'SPIN (FREE TODAY)');
   }
