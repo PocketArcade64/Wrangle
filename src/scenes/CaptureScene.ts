@@ -23,7 +23,7 @@ const ROPE_TICK_SPACING = 13; // px of arclength between twist ticks
 
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
 const GAUGE_W = 120; // inner fill width of the capture gauge
-const CAPTURE_REWARD = 25; // Dust paid out per successful wrangle
+const CAPTURE_REWARD = 25; // Gold paid out per successful wrangle
 
 // Consecutive-loop combo (a la Shadows of Almia): 5 straight loops heat the
 // rope to x1.5 gauge per loop, 10 straight = x2. Any break or release cools

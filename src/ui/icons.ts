@@ -112,6 +112,19 @@ const ICONS: Record<string, string[]> = {
     'XXX.....XXX',
     'XX.......XX'
   ],
+  'icon-horseshoe': [
+    '...XXXXX...',
+    '..XXXXXXX..',
+    '.XXX...XXX.',
+    'XXX.....XXX',
+    'XX.......XX',
+    'XX.......XX',
+    'XX.......XX',
+    'XX.......XX',
+    'XX.......XX',
+    'XXX.....XXX',
+    'XXX.....XXX'
+  ],
   'icon-gate': [
     'XXXXXXX....',
     'X..........',

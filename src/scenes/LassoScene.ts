@@ -136,7 +136,7 @@ export class LassoScene extends Phaser.Scene {
     if (level >= def.maxLevel) return;
     const cost = upgradeCost(def, level);
     if (gameState.data.currency < cost) {
-      this.feedback.setText('NOT ENOUGH DUST').setAlpha(1);
+      this.feedback.setText('NOT ENOUGH GOLD').setAlpha(1);
       this.tweens.add({ targets: this.feedback, alpha: 0, delay: 900, duration: 300 });
       return;
     }

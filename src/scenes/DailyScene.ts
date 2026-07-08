@@ -1,31 +1,35 @@
 import Phaser from 'phaser';
 import { gameState } from '../state/GameState';
-import { dateKey } from '../util/daily';
+import { dateKey, msUntilMidnight } from '../util/daily';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
+import { addGoldCounter } from '../ui/goldCounter';
 import { makeButton } from '../ui/button';
 
 const TOP_BAR_H = 110;
 /** Day 1..7 punch rewards; day 8 starts the card over. */
 const PUNCH_REWARDS = [25, 50, 75, 100, 125, 150, 250];
-/** Free daily spin wedges (Dust). */
+/** Free daily spin wedges (Gold). */
 const FREE_WHEEL = [50, 20, 100, 30, 250, 20, 75, 40];
 /** Ad-spin wedges - endless but stingier. */
 const AD_WHEEL = [10, 5, 25, 5, 50, 10, 15, 5];
 const WHEEL_R = 180;
+/** Alternate wood tone for the wheel wedges (between saddle and saddleDark). */
+const WOOD_ALT = 0x684021;
 
 /**
  * Daily bonus: a rail-ticket STAMP CARD (7-day streak, hole-punched each
- * visit) and a FORTUNE WHEEL - an octagonal wagon wheel, spun free once a
+ * visit) and a FORTUNE WHEEL - a dark wooden wagon wheel, spun free once a
  * day; watching an ad (stubbed until the real SDK lands at the M10 wrap)
  * buys extra spins on a lesser reward table.
  */
 export class DailyScene extends Phaser.Scene {
   private toastMsg?: string;
-  private dustText!: Phaser.GameObjects.Text;
+  private goldText!: Phaser.GameObjects.Text;
   private wheel!: Phaser.GameObjects.Container;
   private wedgeLabels: Phaser.GameObjects.Text[] = [];
   private spinLabel!: Phaser.GameObjects.Text;
+  private countdown!: Phaser.GameObjects.Text;
   private spinning = false;
   private freeUsed = false;
 
@@ -45,7 +49,7 @@ export class DailyScene extends Phaser.Scene {
     this.wedgeLabels = [];
     this.freeUsed = gameState.data.daily.lastSpin === dateKey();
 
-    // top bar
+    // top bar - title dead center, GOLD matching the home screen corner
     const bar = this.add.graphics();
     bar.fillStyle(COLORS.parchmentDark);
     bar.fillRect(0, 0, width, TOP_BAR_H);
@@ -53,17 +57,40 @@ export class DailyScene extends Phaser.Scene {
     bar.fillRect(0, TOP_BAR_H - 4, width, 4);
     makeButton(this, 84, 55, 130, 54, 'BACK', () => this.scene.start('Home'), '18px');
     this.add
-      .text(width / 2 + 30, 55, 'DAILY BONUS', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
+      .text(width / 2, 55, 'DAILY BONUS', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
       .setOrigin(0.5);
-    this.add.image(width - 150, 55, 'icon-coin').setTint(COLORS.brass).setScale(0.8);
-    this.dustText = this.add
-      .text(width - 122, 55, `${gameState.data.currency}`, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.brass })
-      .setOrigin(0, 0.5);
+    this.goldText = addGoldCounter(this, 55);
 
     this.buildPunchCard(134);
-    this.buildWheel(width / 2, 800);
+    this.buildWheel(width / 2, 806);
+
+    // free-spin countdown line, refreshed twice a second
+    this.countdown = this.add
+      .text(width / 2, 806 + WHEEL_R + 100, '', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+      .setOrigin(0.5);
+    this.updateCountdown();
+    this.time.addEvent({ delay: 500, loop: true, callback: () => this.updateCountdown() });
+    this.add
+      .text(width / 2, 806 + WHEEL_R + 134, 'AD SPINS PAY SMALLER REWARDS', {
+        fontFamily: FONT.ui,
+        fontSize: '18px',
+        color: HEX.sage
+      })
+      .setOrigin(0.5);
 
     if (this.toastMsg) this.showToast(this.toastMsg);
+  }
+
+  private updateCountdown(): void {
+    if (gameState.data.daily.lastSpin === dateKey()) {
+      const s = Math.floor(msUntilMidnight() / 1000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      this.countdown.setText(
+        `NEXT FREE SPIN IN ${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`
+      );
+    } else {
+      this.countdown.setText('FREE SPIN READY');
+    }
   }
 
   // ---------- stamp card ----------
@@ -72,44 +99,63 @@ export class DailyScene extends Phaser.Scene {
     const { width } = this.scale;
     const g = this.add.graphics();
     drawPixelPanel(g, 40, y, width - 80, 300, COLORS.parchmentLight, COLORS.saddle);
-    // ticket stub perforation - a dashed ink line inside the top edge
+    // ticket styling: dashed perforation border all the way around, plus
+    // clipped-corner accents like a rail pass
     g.fillStyle(COLORS.ink, 0.35);
-    for (let px = 56; px < width - 64; px += 18) g.fillRect(px, y + 58, 9, 2);
+    for (let px = 60; px < width - 72; px += 18) {
+      g.fillRect(px, y + 14, 9, 2);
+      g.fillRect(px, y + 284, 9, 2);
+    }
+    for (let py = y + 24; py < y + 280; py += 18) {
+      g.fillRect(54, py, 2, 9);
+      g.fillRect(width - 56, py, 2, 9);
+    }
+    g.fillStyle(COLORS.saddleDark);
+    g.fillRect(46, y + 6, 12, 12);
+    g.fillRect(width - 58, y + 6, 12, 12);
+    g.fillRect(46, y + 282, 12, 12);
+    g.fillRect(width - 58, y + 282, 12, 12);
 
-    this.add.text(64, y + 18, 'STAMP CARD', { fontFamily: FONT.display, fontSize: '26px', color: HEX.ink });
+    this.add
+      .text(width / 2, y + 40, 'STAMP CARD', { fontFamily: FONT.display, fontSize: '26px', color: HEX.ink })
+      .setOrigin(0.5);
     const d = gameState.data.daily;
     this.add
-      .text(width - 64, y + 26, `STREAK ${d.punchStreak}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
-      .setOrigin(1, 0.5);
+      .text(width / 2, y + 70, `ONE PUNCH PER SUNRISE - STREAK ${d.punchStreak}`, {
+        fontFamily: FONT.ui,
+        fontSize: '18px',
+        color: HEX.sage
+      })
+      .setOrigin(0.5);
 
     const punched = d.punchStreak === 0 ? 0 : ((d.punchStreak - 1) % 7) + 1;
     for (let i = 0; i < 7; i++) {
-      const cx = 108 + i * 88;
-      const cy = y + 150;
+      const cx = width / 2 + (i - 3) * 88;
+      const cy = y + 168;
       this.add
-        .text(cx, cy - 58, `${PUNCH_REWARDS[i]}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.brass })
+        .text(cx, cy - 54, `${PUNCH_REWARDS[i]}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.brass })
         .setOrigin(0.5);
       g.fillStyle(COLORS.ink);
-      g.fillRect(cx - 34, cy - 34, 68, 68);
+      g.fillRect(cx - 32, cy - 32, 64, 64);
       if (i < punched) {
         // punched through - dark hole with a stamped star
         g.fillStyle(COLORS.saddleDark);
-        g.fillRect(cx - 30, cy - 30, 60, 60);
-        this.add.image(cx, cy, 'icon-star').setTint(COLORS.parchment).setScale(0.85);
+        g.fillRect(cx - 28, cy - 28, 56, 56);
+        this.add.image(cx, cy, 'icon-star').setTint(COLORS.parchment).setScale(0.8);
       } else {
         g.fillStyle(COLORS.parchment);
-        g.fillRect(cx - 30, cy - 30, 60, 60);
+        g.fillRect(cx - 28, cy - 28, 56, 56);
       }
       this.add
-        .text(cx, cy + 52, `DAY ${i + 1}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+        .text(cx, cy + 50, `DAY ${i + 1}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
         .setOrigin(0.5);
     }
 
     if (d.lastPunch !== dateKey()) {
-      makeButton(this, width / 2, y + 340, 300, 62, 'PUNCH IT', () => this.punch(), '20px');
+      makeButton(this, width / 2, y + 344, 300, 62, 'PUNCH IT', () => this.punch(), '20px');
     } else {
       this.add
-        .text(width / 2, y + 340, 'PUNCHED - NEW STAMP AT SUNUP', {
+        .text(width / 2, y + 344, 'PUNCHED - NEW STAMP AT SUNUP', {
           fontFamily: FONT.ui,
           fontSize: '18px',
           color: HEX.sage
@@ -128,7 +174,7 @@ export class DailyScene extends Phaser.Scene {
     const reward = PUNCH_REWARDS[(d.punchStreak - 1) % 7];
     gameState.data.currency += reward;
     gameState.save();
-    this.scene.restart({ toast: `+${reward} DUST` });
+    this.scene.restart({ toast: `+${reward} GOLD` });
   }
 
   // ---------- fortune wheel ----------
@@ -136,61 +182,61 @@ export class DailyScene extends Phaser.Scene {
   private buildWheel(cx: number, cy: number): void {
     const { width } = this.scale;
     this.add
-      .text(width / 2, cy - WHEEL_R - 76, 'FORTUNE WHEEL', { fontFamily: FONT.display, fontSize: '26px', color: HEX.ink })
+      .text(width / 2, cy - WHEEL_R - 88, 'FORTUNE WHEEL', { fontFamily: FONT.display, fontSize: '26px', color: HEX.ink })
       .setOrigin(0.5);
 
     const g = this.add.graphics();
     const table = this.freeUsed ? AD_WHEEL : FREE_WHEEL;
     const parts: Phaser.GameObjects.GameObject[] = [g];
-    // octagonal wagon wheel: 8 straight-edged wedges, saddle rim, ink spokes
+    // dark wooden wagon wheel: saddle-dark rim, alternating wood-tone
+    // wedges, ink spokes, iron studs at each boundary, square iron hub
+    g.fillStyle(COLORS.saddleDark);
+    g.fillCircle(0, 0, WHEEL_R + 20);
+    g.lineStyle(4, COLORS.ink);
+    g.strokeCircle(0, 0, WHEEL_R + 20);
     for (let i = 0; i < 8; i++) {
       const a = -Math.PI / 2 + (i * Math.PI) / 4;
       const a0 = a - Math.PI / 8;
       const a1 = a + Math.PI / 8;
-      const pts = [
-        new Phaser.Geom.Point(0, 0),
-        new Phaser.Geom.Point(Math.cos(a0) * WHEEL_R, Math.sin(a0) * WHEEL_R),
-        new Phaser.Geom.Point(Math.cos(a1) * WHEEL_R, Math.sin(a1) * WHEEL_R)
-      ];
-      g.fillStyle(i % 2 === 0 ? COLORS.parchmentLight : COLORS.sand);
-      g.fillPoints(pts, true);
-      g.lineStyle(4, COLORS.ink, 0.85);
-      g.strokePoints(pts, true);
+      g.fillStyle(i % 2 === 0 ? COLORS.saddle : WOOD_ALT);
+      g.slice(0, 0, WHEEL_R, a0, a1, false);
+      g.fillPath();
       const label = this.add
-        .text(Math.cos(a) * WHEEL_R * 0.62, Math.sin(a) * WHEEL_R * 0.62, `${table[i]}`, {
+        .text(Math.cos(a) * WHEEL_R * 0.66, Math.sin(a) * WHEEL_R * 0.66, `${table[i]}`, {
           fontFamily: FONT.ui,
           fontSize: '22px',
-          color: HEX.brass
+          color: HEX.parchment
         })
         .setOrigin(0.5)
         .setRotation(a + Math.PI / 2);
       this.wedgeLabels.push(label);
       parts.push(label);
     }
-    // hub
+    g.lineStyle(3, COLORS.ink, 0.7);
+    for (let i = 0; i < 8; i++) {
+      const b = -Math.PI / 2 - Math.PI / 8 + (i * Math.PI) / 4;
+      g.lineBetween(0, 0, Math.cos(b) * WHEEL_R, Math.sin(b) * WHEEL_R);
+      g.fillStyle(COLORS.ink);
+      g.fillRect(Math.cos(b) * (WHEEL_R + 10) - 4, Math.sin(b) * (WHEEL_R + 10) - 4, 8, 8);
+    }
     g.fillStyle(COLORS.saddle);
-    g.fillRect(-16, -16, 32, 32);
+    g.fillCircle(0, 0, 30);
     g.lineStyle(3, COLORS.ink);
-    g.strokeRect(-16, -16, 32, 32);
+    g.strokeCircle(0, 0, 30);
+    g.fillStyle(COLORS.ink);
+    g.fillRect(-8, -8, 16, 16);
     this.wheel = this.add.container(cx, cy, parts);
 
     // fixed pointer above the wheel
     const pg = this.add.graphics();
     pg.fillStyle(COLORS.ink);
-    pg.fillTriangle(cx - 14, cy - WHEEL_R - 24, cx + 14, cy - WHEEL_R - 24, cx, cy - WHEEL_R + 2);
+    pg.fillTriangle(cx - 14, cy - WHEEL_R - 40, cx + 14, cy - WHEEL_R - 40, cx, cy - WHEEL_R - 8);
     pg.fillStyle(COLORS.saddle);
-    pg.fillTriangle(cx - 9, cy - WHEEL_R - 21, cx + 9, cy - WHEEL_R - 21, cx, cy - WHEEL_R - 4);
+    pg.fillTriangle(cx - 9, cy - WHEEL_R - 37, cx + 9, cy - WHEEL_R - 37, cx, cy - WHEEL_R - 14);
 
-    const btn = makeButton(this, width / 2, cy + WHEEL_R + 54, 380, 64, '', () => this.trySpin(), '20px');
+    const btn = makeButton(this, width / 2, cy + WHEEL_R + 56, 380, 64, '', () => this.trySpin(), '20px');
     this.spinLabel = btn.list[2] as Phaser.GameObjects.Text;
     this.spinLabel.setText(this.freeUsed ? 'WATCH AD + SPIN' : 'SPIN (FREE TODAY)');
-    this.add
-      .text(width / 2, cy + WHEEL_R + 106, 'AD SPINS PAY SMALLER REWARDS', {
-        fontFamily: FONT.ui,
-        fontSize: '18px',
-        color: HEX.sage
-      })
-      .setOrigin(0.5);
   }
 
   private trySpin(): void {
@@ -230,8 +276,8 @@ export class DailyScene extends Phaser.Scene {
         const reward = table[idx];
         gameState.data.currency += reward;
         gameState.save();
-        this.dustText.setText(`${gameState.data.currency}`);
-        this.showToast(`+${reward} DUST`);
+        this.goldText.setText(`${gameState.data.currency}`);
+        this.showToast(`+${reward} GOLD`);
         this.spinning = false;
         this.spinLabel.setText('WATCH AD + SPIN');
       }

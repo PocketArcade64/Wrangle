@@ -69,6 +69,11 @@ const CHART: Record<string, Record<string, number>> = {
 /** Display order for the quick-view chart (same order as CHART above). */
 export const ALL_TYPES = Object.keys(CHART);
 
+/** Raw attacker -> defender multiplier (canon names). */
+export function effectiveness(attacker: string, defender: string): number {
+  return CHART[attacker]?.[defender] ?? 1;
+}
+
 /**
  * Wrangle's western type names (the badge art in public/sprites/types/ is
  * canon). The CSV still uses classic names for the original 13 types;

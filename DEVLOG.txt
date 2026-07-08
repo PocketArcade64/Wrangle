@@ -5,6 +5,51 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3h] 2026-07-08 - Grid type chart, home bar rework, GOLD, wheel v2
+----------------------------------------------------------------------
+- TYPE CHART is now a SQUARE MATRIX (classic Pokemon layout), no
+  scrolling: rows attack, columns defend. Left headers = badge art
+  x2; top headers = badge art rotated 90deg. Cells: sage '2' = 2x,
+  adobeRed '.5' = half, ink 'X' = no effect, blank = 1x; legend
+  below. Opened from a creature's ledger page OR critter page, its
+  type rows+columns get a denim outline + tint (init data gains
+  highlight: string[] of canon names). typeChart.ts exports
+  effectiveness(att, def) for the grid.
+- POSSE PICKER: only the new X button (top right) closes it - taps
+  on the dim no longer dismiss (a successful pick still applies and
+  closes). EXCLUSIVITY: a species already in ANY posse slot is
+  excluded from the picker, so one critter can't ride twice or with
+  two posses; empty-state line when everything you own is posted.
+- HOME->CRITTER ROUTING: carousel slot taps pass from:'home';
+  CritterScene BACK (and post-release exit) returns to Home in that
+  case. The origin survives tab/view restarts, the ledger round trip
+  (critterFrom passthrough) and the type chart round trip.
+- CURRENCY RENAMED DUST -> GOLD everywhere user-facing (Player row,
+  Lasso feedback, daily toasts; GAME_DESIGN.md updated).
+- HOME TOP BAR REWORK: stamina now TOP LEFT as horseshoe pips (new
+  icon-horseshoe glyph; sage = full, faded saddle = spent) + x/y.
+  GOLD moved TOP RIGHT with the number sized to the coin (32px) -
+  shared src/ui/goldCounter.ts (also used by Daily so the corner
+  matches across screens). Avatar REMOVED from the bar; new player
+  row under it (left): name + LV + XP bar on one line (tap -> Player
+  scene). Save gains playerName ('THE DRIFTER' until the name-entry
+  UI), playerLevel, playerXp. Diorama shrunk to make room
+  (clamp(h-800, 300..560), was 340..820).
+- DAILY BONUS: title dead-centered; GOLD counter matches home's
+  corner exactly. STAMP CARD recentered (hole row was 12px right of
+  center) and restyled as a rail pass: dashed perforation border all
+  around + clipped-corner accents + "ONE PUNCH PER SUNRISE" line.
+  FORTUNE WHEEL v2: now a CIRCULAR dark-wood wagon wheel (Graphics
+  slice wedges: saddle / darker wood alternating, saddleDark rim,
+  ink spokes + iron rim studs + square iron hub, parchment numbers).
+  Below the spin button: live countdown to the next free spin
+  (HH:MM:SS to local midnight, 500ms tick) / FREE SPIN READY.
+- STATUS: playtest grid readability on phone (32px cells), horseshoe
+  pips, wheel v2 feel, and the home->critter->ledger->chart->back
+  chain. NOTE: circular wheel is intentionally the one curved
+  element (a diegetic prop, like the pixel sun); flag if it fights
+  the pixel look.
+----------------------------------------------------------------------
 [M3g] 2026-07-08 - Full 17-type chart, level/XP, daily bonus, posse QoL
 ----------------------------------------------------------------------
 BIG batch per user feedback:

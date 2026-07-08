@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
-import { gameState } from '../state/GameState';
+import { gameState, xpForNextLevel } from '../state/GameState';
 import { dateKey } from '../util/daily';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
+import { addGoldCounter } from '../ui/goldCounter';
 import { openPossePicker } from '../ui/possePicker';
 import { buildNav } from '../ui/nav';
 
@@ -40,10 +41,11 @@ export class HomeScene extends Phaser.Scene {
     this.carDrag = undefined;
 
     this.buildStatusBar();
+    this.buildPlayerRow(STATUS_H + 28);
 
     // living diorama, sized to leave room for the posse carousel + CTA
-    const dioY = STATUS_H + 30;
-    const dioH = Phaser.Math.Clamp(height - 706, 340, 820);
+    const dioY = STATUS_H + 62;
+    const dioH = Phaser.Math.Clamp(height - 800, 300, 560);
     this.buildDiorama(32, dioY, width - 64, dioH);
 
     // quick-select posse carousel between the diorama and the CTA
@@ -71,42 +73,54 @@ export class HomeScene extends Phaser.Scene {
     g.fillStyle(COLORS.saddle);
     g.fillRect(0, STATUS_H - 4, width, 4);
 
-    // currency - brass, and only brass
-    this.add.image(46, STATUS_H / 2, 'icon-coin').setTint(COLORS.brass);
-    this.add
-      .text(78, STATUS_H / 2, `${gameState.data.currency}`, {
-        fontFamily: FONT.ui,
-        fontSize: '24px',
-        color: HEX.brass
-      })
-      .setOrigin(0, 0.5);
-
-    // stamina pips - sage, calm; running low is not a failure state
-    const pipX = width / 2 - 40;
+    // stamina, top left: horseshoe pips - sage, calm; running low is not
+    // a failure state
     for (let i = 0; i < gameState.data.staminaMax; i++) {
-      const filled = i < gameState.data.stamina;
-      const pip = this.add.rectangle(pipX + i * 30, STATUS_H / 2, 20, 20, COLORS.sage);
-      if (!filled) pip.setFillStyle(COLORS.parchmentDark).setStrokeStyle(2, COLORS.sage);
+      const shoe = this.add.image(44 + i * 38, STATUS_H / 2, 'icon-horseshoe').setScale(0.8);
+      if (i < gameState.data.stamina) shoe.setTint(COLORS.sage);
+      else shoe.setTint(COLORS.saddle).setAlpha(0.3);
     }
     this.add
-      .text(pipX + gameState.data.staminaMax * 30 + 12, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
+      .text(44 + gameState.data.staminaMax * 38 + 4, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
         fontFamily: FONT.ui,
         fontSize: '18px',
         color: HEX.sage
       })
       .setOrigin(0, 0.5);
 
-    // avatar - square frame, tap for player screen
-    const av = this.add.graphics();
-    av.fillStyle(COLORS.ink);
-    av.fillRect(width - 88, STATUS_H / 2 - 31, 62, 62);
-    av.fillStyle(COLORS.saddle);
-    av.fillRect(width - 86, STATUS_H / 2 - 29, 58, 58);
-    av.fillStyle(COLORS.parchment);
-    av.fillRect(width - 82, STATUS_H / 2 - 25, 50, 50);
-    this.add.image(width - 57, STATUS_H / 2, 'icon-hat').setTint(COLORS.saddle);
+    // GOLD, top right - brass, and only brass
+    addGoldCounter(this, STATUS_H / 2);
+  }
+
+  /** Name + LV + XP bar on one line under the status bar; tap for profile. */
+  private buildPlayerRow(cy: number): void {
+    const { width } = this.scale;
+    const name = this.add
+      .text(30, cy, gameState.data.playerName, { fontFamily: FONT.display, fontSize: '22px', color: HEX.ink })
+      .setOrigin(0, 0.5);
+    const lv = this.add
+      .text(30 + name.width + 18, cy, `LV ${gameState.data.playerLevel}`, {
+        fontFamily: FONT.ui,
+        fontSize: '18px',
+        color: HEX.saddle
+      })
+      .setOrigin(0, 0.5);
+
+    const bx = 30 + name.width + 18 + lv.width + 18;
+    const bw = width - 30 - bx;
+    const g = this.add.graphics();
+    g.fillStyle(COLORS.ink);
+    g.fillRect(bx - 2, cy - 10, bw + 4, 20);
+    g.fillStyle(COLORS.ashGray);
+    g.fillRect(bx, cy - 8, bw, 16);
+    const frac = Phaser.Math.Clamp(gameState.data.playerXp / xpForNextLevel(gameState.data.playerLevel), 0, 1);
+    if (frac > 0) {
+      g.fillStyle(COLORS.denim);
+      g.fillRect(bx, cy - 8, Math.round(bw * frac), 16);
+    }
+
     this.add
-      .rectangle(width - 57, STATUS_H / 2, 62, 62, 0xffffff, 0)
+      .rectangle(width / 2, cy, width, 40, 0xffffff, 0)
       .setInteractive({ useHandCursor: true })
       .on('pointerup', () => this.scene.start('Player'));
   }
@@ -364,7 +378,7 @@ export class HomeScene extends Phaser.Scene {
           if (memberId) {
             const inst = gameState.data.herd.find((c) => c.speciesId === memberId);
             if (inst) {
-              this.scene.start('Critter', { uid: inst.uid });
+              this.scene.start('Critter', { uid: inst.uid, from: 'home' });
               return;
             }
           }

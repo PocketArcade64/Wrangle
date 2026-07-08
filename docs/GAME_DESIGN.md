@@ -58,7 +58,7 @@ Direct adaptation of the Pokémon Ranger loop mechanic:
 
 ### Lasso upgrades (implemented v1 — src/data/lassoUpgrades.ts)
 
-Dust spent in THE LASSO menu (Player tab → UPGRADE LASSO). Each stat is
+Gold spent in THE LASSO menu (Player tab → UPGRADE LASSO). Each stat is
 repeatable to a max with escalating costs (level n→n+1 costs base×(n+1)):
 
 - **ROPE LENGTH** (max 5, base 50): +150px hidden rope budget per level.
@@ -67,7 +67,7 @@ repeatable to a max with escalating costs (level n→n+1 costs base×(n+1)):
   grace and −8% drain rate per level.
 
 Future candidates from the original design: capture power (gauge per loop),
-damage reduction, Dust earned per capture, power when low.
+damage reduction, Gold earned per capture, power when low.
 
 ## Battle levels (Pokémon Rumble style)
 
@@ -142,7 +142,7 @@ tapping any entry opens its ledger page, which fills in progressively:
 (type chart in src/data/typeChart.ts), 3 = traits/base stats. Capture
 count shown as tally marks. (A temporary TEST WRANGLE button on each page
 starts the capture mini-game until the map exists.) Wrangling a critter
-adds it to the herd and pays out Dust.
+adds it to the herd and pays out Gold (the currency, shown in brass).
 
 Home posse quick-select: a swipeable carousel between the diorama and the
 Explore CTA - one posse card at a time, next card peeking, rubber-band

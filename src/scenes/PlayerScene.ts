@@ -40,7 +40,7 @@ export class PlayerScene extends Phaser.Scene {
     const rows: [string, string, string][] = [
       ['CRITTERS WRANGLED', `${gameState.data.herd.length}`, HEX.ink],
       ['BOUNTIES CLEARED', '0', HEX.ink],
-      ['DUST', `${gameState.data.currency}`, HEX.brass]
+      ['GOLD', `${gameState.data.currency}`, HEX.brass]
     ];
     rows.forEach(([label, value, color], i) => {
       const ry = 380 + i * 74;

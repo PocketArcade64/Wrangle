@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES, speciesById, SpeciesDef } from '../data/species';
 import { gameState } from '../state/GameState';
-import { DefenseProfile, defenseProfile } from '../data/typeChart';
+import { badgeName, DefenseProfile, defenseProfile } from '../data/typeChart';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
@@ -20,14 +20,17 @@ export class LedgerScene extends Phaser.Scene {
   private species!: SpeciesDef;
   /** Set when opened from a critter's herd page - BACK returns there. */
   private fromUid?: string;
+  /** That critter page's own origin, passed back so its BACK stays right. */
+  private critterFrom?: 'home';
 
   constructor() {
     super('Ledger');
   }
 
-  init(data: { speciesId: string; fromUid?: string }): void {
+  init(data: { speciesId: string; fromUid?: string; critterFrom?: 'home' }): void {
     this.species = speciesById(data.speciesId);
     this.fromUid = data.fromUid;
+    this.critterFrom = data.critterFrom;
   }
 
   create(): void {
@@ -52,7 +55,7 @@ export class LedgerScene extends Phaser.Scene {
       54,
       'BACK',
       () => {
-        if (this.fromUid) this.scene.start('Critter', { uid: this.fromUid });
+        if (this.fromUid) this.scene.start('Critter', { uid: this.fromUid, from: this.critterFrom });
         else this.scene.start('CaptureSelect', { tab: 'tally' });
       },
       '18px'
@@ -160,7 +163,7 @@ export class LedgerScene extends Phaser.Scene {
       fontSize: '17px',
       color: HEX.saddle
     });
-    // quick view of the full 17-type chart
+    // quick view of the full 17-type chart, this species' rows highlighted
     makeButton(
       this,
       pgX + pgW - 109,
@@ -170,7 +173,13 @@ export class LedgerScene extends Phaser.Scene {
       'FULL CHART',
       () =>
         this.scene.start('TypeChart', {
-          back: { scene: 'Ledger', data: { speciesId: this.species.id, fromUid: this.fromUid } }
+          back: {
+            scene: 'Ledger',
+            data: { speciesId: this.species.id, fromUid: this.fromUid, critterFrom: this.critterFrom }
+          },
+          highlight: [this.species.type1, this.species.type2]
+            .filter((t): t is string => !!t)
+            .map(badgeName)
         }),
       '18px'
     );

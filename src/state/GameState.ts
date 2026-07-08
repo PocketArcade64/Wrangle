@@ -48,6 +48,10 @@ export interface WrangleSave {
   activeTeam: number;
   /** Daily bonus state - values are local dateKey() strings. */
   daily: { lastPunch: string; punchStreak: number; lastSpin: string };
+  /** Drifter identity - name entry UI comes with the M6 save system. */
+  playerName: string;
+  playerLevel: number;
+  playerXp: number;
 }
 
 const KEY = 'wrangle-save-v1';
@@ -64,7 +68,10 @@ const DEFAULTS: WrangleSave = {
   lasso: { rope: 0, grit: 0, charge: 0 },
   teams: [{ name: 'POSSE 1', members: [null, null, null] }],
   activeTeam: 0,
-  daily: { lastPunch: '', punchStreak: 0, lastSpin: '' }
+  daily: { lastPunch: '', punchStreak: 0, lastSpin: '' },
+  playerName: 'THE DRIFTER',
+  playerLevel: 1,
+  playerXp: 0
 };
 
 export function rollPedigree(): Pedigree {

@@ -61,6 +61,8 @@ export class CritterScene extends Phaser.Scene {
   private species!: SpeciesDef;
   private chartTab: ChartTab = 'stats';
   private chartView: ChartView = 'bars';
+  /** 'home' when opened from the home carousel - BACK returns there. */
+  private from?: 'home';
   private favStar!: Phaser.GameObjects.Image;
   private tempMsg?: Phaser.GameObjects.Text;
 
@@ -68,7 +70,7 @@ export class CritterScene extends Phaser.Scene {
     super('Critter');
   }
 
-  init(data: { uid: string; chart?: ChartTab; view?: ChartView }): void {
+  init(data: { uid: string; chart?: ChartTab; view?: ChartView; from?: 'home' }): void {
     const found = gameState.data.herd.find((c) => c.uid === data.uid);
     if (!found) {
       this.scene.start('CaptureSelect', { tab: 'herd' });
@@ -78,6 +80,13 @@ export class CritterScene extends Phaser.Scene {
     this.species = SPECIES.find((s) => s.id === found.speciesId) ?? SPECIES[0];
     this.chartTab = data.chart ?? 'stats';
     this.chartView = data.view ?? DEFAULT_VIEW[this.chartTab];
+    this.from = data.from;
+  }
+
+  /** Where BACK (and post-release) goes: wherever this page was opened from. */
+  private exitScene(): void {
+    if (this.from === 'home') this.scene.start('Home');
+    else this.scene.start('CaptureSelect', { tab: 'herd' });
   }
 
   create(): void {
@@ -113,7 +122,7 @@ export class CritterScene extends Phaser.Scene {
     });
 
     // same spot as the ledger page's BACK so it doesn't jump between scenes
-    makeButton(this, 84, 55, 130, 54, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'herd' }), '18px');
+    makeButton(this, 84, 55, 130, 54, 'BACK', () => this.exitScene(), '18px');
 
     // favorite: clay = active state. Favorites can't be released, turned in
     // for bounties, or auctioned.
@@ -132,7 +141,11 @@ export class CritterScene extends Phaser.Scene {
       .setScale(1.1)
       .setInteractive({ useHandCursor: true })
       .on('pointerup', () =>
-        this.scene.start('Ledger', { speciesId: this.species.id, fromUid: this.critter.uid })
+        this.scene.start('Ledger', {
+          speciesId: this.species.id,
+          fromUid: this.critter.uid,
+          critterFrom: this.from
+        })
       );
     this.add
       .image(width - 56, 192, 'icon-gate')
@@ -146,7 +159,12 @@ export class CritterScene extends Phaser.Scene {
       .setScale(1.1)
       .setInteractive({ useHandCursor: true })
       .on('pointerup', () =>
-        this.scene.start('TypeChart', { back: { scene: 'Critter', data: { uid: this.critter.uid } } })
+        this.scene.start('TypeChart', {
+          back: { scene: 'Critter', data: { uid: this.critter.uid, from: this.from } },
+          highlight: [this.species.type1, this.species.type2]
+            .filter((t): t is string => !!t)
+            .map(badgeName)
+        })
       );
 
     this.add
@@ -303,7 +321,7 @@ export class CritterScene extends Phaser.Scene {
         .setOrigin(0.5);
       if (!active) {
         bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-          this.scene.restart({ uid: this.critter.uid, chart: tab })
+          this.scene.restart({ uid: this.critter.uid, chart: tab, from: this.from })
         );
       }
     });
@@ -331,7 +349,7 @@ export class CritterScene extends Phaser.Scene {
         .setOrigin(0.5);
       if (!active) {
         bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-          this.scene.restart({ uid: this.critter.uid, chart: this.chartTab, view })
+          this.scene.restart({ uid: this.critter.uid, chart: this.chartTab, view, from: this.from })
         );
       }
     });
@@ -490,7 +508,7 @@ export class CritterScene extends Phaser.Scene {
       'RELEASE',
       () => {
         releaseCritters([this.critter.uid]);
-        this.scene.start('CaptureSelect', { tab: 'herd' });
+        this.exitScene();
       },
       true
     );
