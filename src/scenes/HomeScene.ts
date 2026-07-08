@@ -8,7 +8,8 @@ import { addGoldCounter } from '../ui/goldCounter';
 import { openPossePicker } from '../ui/possePicker';
 import { buildNav } from '../ui/nav';
 
-const STATUS_H = 96;
+// same height as the Critters + Daily top bars so screens line up
+const STATUS_H = 110;
 const CARD_W = 560;
 const CARD_H = 150;
 const CARD_SPACING = 600;
@@ -74,14 +75,14 @@ export class HomeScene extends Phaser.Scene {
     g.fillRect(0, STATUS_H - 4, width, 4);
 
     // stamina, top left: horseshoe pips - sage, calm; running low is not
-    // a failure state
+    // a failure state. Shoes render at the coin glyph's native 44px.
     for (let i = 0; i < gameState.data.staminaMax; i++) {
-      const shoe = this.add.image(44 + i * 38, STATUS_H / 2, 'icon-horseshoe').setScale(0.8);
+      const shoe = this.add.image(44 + i * 46, STATUS_H / 2, 'icon-horseshoe');
       if (i < gameState.data.stamina) shoe.setTint(COLORS.sage);
       else shoe.setTint(COLORS.saddle).setAlpha(0.3);
     }
     this.add
-      .text(44 + gameState.data.staminaMax * 38 + 8, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
+      .text(44 + (gameState.data.staminaMax - 1) * 46 + 34, STATUS_H / 2, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
         fontFamily: FONT.ui,
         fontSize: '32px',
         color: HEX.sage

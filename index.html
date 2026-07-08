@@ -42,6 +42,12 @@
         /* iOS Safari: 100vh extends behind the browser chrome; dvh tracks
            the real visible viewport so the bottom isn't cut off. */
         height: 100dvh;
+        /* Standalone (ADD TO HOME SCREEN) renders edge-to-edge behind the
+           Dynamic Island and home indicator - inset the game to the safe
+           area so nothing hides under them. In browser Safari the insets
+           are 0 and these resolve to the plain 100dvh above. */
+        margin-top: env(safe-area-inset-top, 0px);
+        height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
       }
     </style>
   </head>

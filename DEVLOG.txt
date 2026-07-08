@@ -5,6 +5,27 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3j] 2026-07-08 - Standalone safe-area fix, 110px bars, big shoes
+----------------------------------------------------------------------
+- FIXED the "everything shifted up" report after re-adding the app to
+  the iPhone home screen: NOT user error - standalone mode (the M2f
+  fullscreen metas) draws edge-to-edge behind the Dynamic Island and
+  home indicator. #game is now inset with env(safe-area-inset-top/
+  bottom) (margin-top + calc'd height; browser Safari resolves both
+  to 0 = unchanged), and main.ts measures the #game container instead
+  of the raw window so the logical canvas sizes to the visible region
+  between the island and the home bar. Parchment body bg fills the
+  safe areas. The M10 Capacitor wrap supersedes this with native
+  insets.
+- TOP BAR HEIGHTS UNIFIED: Home STATUS_H 96 -> 110, matching the
+  Critters and Daily bars. Everything below (player row, diorama,
+  carousel, CTA, satchel) derives from it and shifted down 14px -
+  verified against the nav on the 1280 minimum height.
+- Horseshoe stamina pips now render at the coin glyph's native 44px
+  (were scaled 0.8/35px), spacing widened 38 -> 46 to match.
+- STATUS: re-add to home screen and confirm the game sits between
+  the island and the home indicator with parchment above/below.
+----------------------------------------------------------------------
 [M3i] 2026-07-08 - App icon, uid posses, tappable chart, 5 stamina
 ----------------------------------------------------------------------
 - APP ICON: index.html now points rel=icon + apple-touch-icon at the

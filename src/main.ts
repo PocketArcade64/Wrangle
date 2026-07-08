@@ -15,8 +15,14 @@ import { DailyScene } from './scenes/DailyScene';
 
 // Logical width is fixed; logical height adapts to the device's aspect ratio
 // so tall phones (iPhone ~19.5:9) fill the screen instead of letterboxing.
+// Measure the #game container (already inset to the iOS safe area by the
+// CSS) rather than the raw window, so standalone/home-screen launches size
+// to the visible region between the Dynamic Island and the home indicator.
 const BASE_WIDTH = 720;
-const aspect = window.innerWidth > 0 ? window.innerHeight / window.innerWidth : 16 / 9;
+const gameEl = document.getElementById('game');
+const vw = gameEl && gameEl.clientWidth > 0 ? gameEl.clientWidth : window.innerWidth;
+const vh = gameEl && gameEl.clientHeight > 0 ? gameEl.clientHeight : window.innerHeight;
+const aspect = vw > 0 ? vh / vw : 16 / 9;
 const BASE_HEIGHT = Math.round(Phaser.Math.Clamp(BASE_WIDTH * aspect, 1280, 1600));
 
 new Phaser.Game({
