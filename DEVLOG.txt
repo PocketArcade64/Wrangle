@@ -5,6 +5,27 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3f] 2026-07-08 - Hex vertex order, ledger shortcut, 18px text floor
+----------------------------------------------------------------------
+- HEX VERTEX ORDER now matches the classic Pokemon layout (user
+  spec): HP top, then clockwise ATK (top right), DEF (bottom right),
+  SPE (bottom), SPD (bottom left), SPA (top left). New
+  HEX_STAT_LABELS order array in CritterScene - bar rows keep the
+  HP/ATK/DEF/SPA/SPD/SPE listing order.
+- NEW icon-ledger pixel glyph (src/ui/icons.ts): ruled record-book
+  page with a spine, same 11x11 flat bitmap style as the rest. On
+  the critter page it sits below the favorite star (saddle tint) and
+  jumps straight to that species' Frontier Ledger page.
+- LedgerScene now accepts fromUid: when opened from a critter page,
+  BACK returns to that critter instead of the ledger grid.
+- TEXT FLOOR PASS (design canon ~18-20px min, 16 = tertiary only):
+  chart tab labels, BARS/HEX toggle, panel titles, bar stat labels/
+  values, legends, hex vertex labels/values, and the ledger's WEAK/
+  RESIST/IMMUNE + X4 tags all raised 16-17px -> 18px. Hex label
+  offsets/radius retuned for the bigger text - still verified inside
+  the 330px panel (top y+15, bottom y+323 vs inner edge y+324).
+- STATUS: playtest hex orientation + ledger shortcut round trip.
+----------------------------------------------------------------------
 [M3e] 2026-07-08 - Stat tabs restructured: 3 tabs x BARS/HEX toggle
 ----------------------------------------------------------------------
 Feedback round on M3d, all in CritterScene:

@@ -18,13 +18,16 @@ import { buildNav, NAV_HEIGHT } from '../ui/nav';
  */
 export class LedgerScene extends Phaser.Scene {
   private species!: SpeciesDef;
+  /** Set when opened from a critter's herd page - BACK returns there. */
+  private fromUid?: string;
 
   constructor() {
     super('Ledger');
   }
 
-  init(data: { speciesId: string }): void {
+  init(data: { speciesId: string; fromUid?: string }): void {
     this.species = speciesById(data.speciesId);
+    this.fromUid = data.fromUid;
   }
 
   create(): void {
@@ -41,7 +44,19 @@ export class LedgerScene extends Phaser.Scene {
     bar.fillRect(0, 0, width, 110);
     bar.fillStyle(COLORS.saddle);
     bar.fillRect(0, 106, width, 4);
-    makeButton(this, 84, 55, 130, 54, 'BACK', () => this.scene.start('CaptureSelect', { tab: 'tally' }), '18px');
+    makeButton(
+      this,
+      84,
+      55,
+      130,
+      54,
+      'BACK',
+      () => {
+        if (this.fromUid) this.scene.start('Critter', { uid: this.fromUid });
+        else this.scene.start('CaptureSelect', { tab: 'tally' });
+      },
+      '18px'
+    );
     this.add
       .text(width / 2 + 30, 55, 'FRONTIER LEDGER', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
       .setOrigin(0.5);
@@ -176,7 +191,7 @@ export class LedgerScene extends Phaser.Scene {
     entries: string[]
   ): number {
     this.add
-      .text(pgX + 24, rowY, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.sage })
+      .text(pgX + 24, rowY, label, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage })
       .setOrigin(0, 0.5);
     if (entries.length === 0) {
       this.add
@@ -195,7 +210,7 @@ export class LedgerScene extends Phaser.Scene {
       addTypeBadge(this, x + 46, rowY, type, 2);
       if (mark) {
         this.add
-          .text(x + 96, rowY, mark.toUpperCase(), { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+          .text(x + 96, rowY, mark.toUpperCase(), { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
           .setOrigin(0, 0.5);
       }
       x += w;

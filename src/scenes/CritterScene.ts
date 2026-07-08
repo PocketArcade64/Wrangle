@@ -18,6 +18,15 @@ const STAT_LABELS: [keyof CritterInstance['pedigree'], string][] = [
   ['spd', 'SPD'],
   ['spe', 'SPE']
 ];
+// hex radar vertices clockwise from the top: HP / ATK / DEF / SPE / SPD / SPA
+const HEX_STAT_LABELS: [keyof CritterInstance['pedigree'], string][] = [
+  ['hp', 'HP'],
+  ['atk', 'ATK'],
+  ['def', 'DEF'],
+  ['spe', 'SPE'],
+  ['spd', 'SPD'],
+  ['spa', 'SPA']
+];
 // CSV base stats are blank until balancing - show a provisional 50
 const PROVISIONAL_BASE = 50;
 const STAT_SCALE_MAX = 165; // display ceiling: strong base 150 + pedigree 15
@@ -115,6 +124,16 @@ export class CritterScene extends Phaser.Scene {
       this.paintFavStar();
     });
 
+    // jump straight to this species' page in the Frontier Ledger
+    this.add
+      .image(width - 56, 122, 'icon-ledger')
+      .setTint(COLORS.saddle)
+      .setScale(1.1)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', () =>
+        this.scene.start('Ledger', { speciesId: this.species.id, fromUid: this.critter.uid })
+      );
+
     this.add
       .text(width / 2, 366, sp.name.toUpperCase(), { fontFamily: FONT.display, fontSize: '38px', color: HEX.ink })
       .setOrigin(0.5);
@@ -199,7 +218,7 @@ export class CritterScene extends Phaser.Scene {
       this.add
         .text(x, y, label, {
           fontFamily: FONT.ui,
-          fontSize: '16px',
+          fontSize: '18px',
           color: active ? HEX.ink : HEX.saddle
         })
         .setOrigin(0.5);
@@ -213,9 +232,9 @@ export class CritterScene extends Phaser.Scene {
 
   /** Panel header shared by both views: title top-left, BARS/HEX toggle top-right. */
   private buildPanelHeader(y: number): void {
-    this.add.text(64, y + 14, CHART_TITLE[this.chartTab], {
+    this.add.text(64, y + 20, CHART_TITLE[this.chartTab], {
       fontFamily: FONT.ui,
-      fontSize: '16px',
+      fontSize: '18px',
       color: HEX.saddle
     });
     (['bars', 'hex'] as ChartView[]).forEach((view, i) => {
@@ -227,7 +246,7 @@ export class CritterScene extends Phaser.Scene {
       this.add
         .text(x, y + 30, view.toUpperCase(), {
           fontFamily: FONT.ui,
-          fontSize: '16px',
+          fontSize: '18px',
           color: active ? HEX.ink : HEX.saddle
         })
         .setOrigin(0.5);
@@ -257,7 +276,7 @@ export class CritterScene extends Phaser.Scene {
       const ry = y + 72 + i * 38;
       const { base, ped } = this.statTotal(key);
       this.add
-        .text(64, ry, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+        .text(64, ry, label, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
         .setOrigin(0, 0.5);
       if (mode === 'pedigree') {
         g.fillStyle(COLORS.ink);
@@ -270,7 +289,7 @@ export class CritterScene extends Phaser.Scene {
           g.fillRect(barX, ry - 13, w, 26);
         }
         this.add
-          .text(barX + maxW + 12, ry, `${ped}/15`, { fontFamily: FONT.ui, fontSize: '17px', color: HEX.ink })
+          .text(barX + maxW + 12, ry, `${ped}/15`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
           .setOrigin(0, 0.5);
       } else {
         const shownPed = mode === 'stats' ? ped : 0;
@@ -287,7 +306,7 @@ export class CritterScene extends Phaser.Scene {
         this.add
           .text(barX + baseW + pedW + 12, ry, `${base + shownPed}`, {
             fontFamily: FONT.ui,
-            fontSize: '17px',
+            fontSize: '18px',
             color: HEX.ink
           })
           .setOrigin(0, 0.5);
@@ -295,18 +314,18 @@ export class CritterScene extends Phaser.Scene {
     });
 
     // legend, bottom right of the panel
-    const ly = y + 296;
+    const ly = y + 294;
     if (mode === 'stats') {
       g.fillStyle(COLORS.sage);
-      g.fillRect(400, ly, 14, 14);
-      this.add.text(422, ly - 1, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+      g.fillRect(388, ly + 2, 14, 14);
+      this.add.text(410, ly, 'BASE', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle });
       g.fillStyle(COLORS.denim);
-      g.fillRect(506, ly, 14, 14);
-      this.add.text(528, ly - 1, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+      g.fillRect(496, ly + 2, 14, 14);
+      this.add.text(518, ly, 'PEDIGREE', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle });
     } else if (mode === 'base') {
       g.fillStyle(COLORS.sage);
-      g.fillRect(556, ly, 14, 14);
-      this.add.text(578, ly - 1, 'BASE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
+      g.fillRect(552, ly + 2, 14, 14);
+      this.add.text(574, ly, 'BASE', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle });
     }
   }
 
@@ -353,7 +372,7 @@ export class CritterScene extends Phaser.Scene {
     g.fillStyle(mode === 'pedigree' ? COLORS.denim : COLORS.sage, 0.55);
     g.lineStyle(3, COLORS.ink, 0.9);
     g.beginPath();
-    STAT_LABELS.forEach(([key], i) => {
+    HEX_STAT_LABELS.forEach(([key], i) => {
       const v = vertex(i, (Math.min(statValue(key), scaleMax) / scaleMax) * R);
       if (i === 0) g.moveTo(v.x, v.y);
       else g.lineTo(v.x, v.y);
@@ -363,13 +382,13 @@ export class CritterScene extends Phaser.Scene {
     g.strokePath();
 
     // labels + values at the vertices
-    STAT_LABELS.forEach(([key, label], i) => {
-      const v = vertex(i, R + 34);
+    HEX_STAT_LABELS.forEach(([key, label], i) => {
+      const v = vertex(i, R + 32);
       this.add
-        .text(v.x, v.y - 9, label, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+        .text(v.x, v.y - 10, label, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
         .setOrigin(0.5);
       this.add
-        .text(v.x, v.y + 11, `${statValue(key)}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
+        .text(v.x, v.y + 12, `${statValue(key)}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
         .setOrigin(0.5);
     });
   }
