@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
+import { TYPE_BADGES } from '../data/typeChart';
 
 /**
- * Loads creature sprite PNGs from public/sprites/<textureKey>.png (creatures
- * without art yet fall back to a generated mystery-blob texture), generates
- * the remaining placeholder textures, and waits for the Silkscreen webfont.
+ * Loads creature sprites (public/sprites/creatures/), type badges
+ * (public/sprites/types/), and UI art; generates placeholder textures and
+ * waits for the webfonts. Missing files fall back to the mystery blob.
  */
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -25,13 +26,16 @@ export class BootScene extends Phaser.Scene {
       // Missing sprite file — scenes will show the mystery blob instead.
       console.warn(`Wrangle: no sprite found for "${file.key}" (${file.url})`);
     });
-    this.load.image('title-logo', `sprites/${encodeURIComponent('Wrangle logo_216x107')}.png`);
+    this.load.image('title-logo', `sprites/ui/${encodeURIComponent('Wrangle logo_216x107')}.png`);
     for (const sp of SPECIES) {
       if (!sp.textureKey.startsWith('pl-')) {
         // Filenames can contain spaces/parens (as the user named them) -
         // encode the URL, but keep the Phaser texture key as the raw name.
-        this.load.image(sp.textureKey, `sprites/${encodeURIComponent(sp.textureKey)}.png`);
+        this.load.image(sp.textureKey, `sprites/creatures/${encodeURIComponent(sp.textureKey)}.png`);
       }
+    }
+    for (const t of TYPE_BADGES) {
+      this.load.image(`type-${t}`, `sprites/types/${t}_46x15.png`);
     }
   }
 

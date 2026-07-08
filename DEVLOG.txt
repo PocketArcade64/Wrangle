@@ -5,6 +5,46 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3c] 2026-07-07 - Individual critters, type badges, asset re-org
+----------------------------------------------------------------------
+- ASSET RE-ORG (user uploaded type badges + first map): public/ is now
+  public/sprites/{creatures,types,maps,ui}/. BootScene loads from the
+  new paths + all 17 type badges (type-<Name> keys). CREATURES.md
+  paths updated. Maps not loaded yet (M4).
+- TYPE NAME CANON: the user's badge art renames types western-style -
+  Air (Flying), Frost (Ice), Lightning (Electric), Mystical (Fairy),
+  plus future Earth/Metal/Ghost/Dragon. badgeName() in typeChart.ts
+  maps CSV names -> display/badge names. Ledger weaknesses display in
+  canon names. src/ui/typeBadge.ts renders the badge art (x3 scale).
+- HERD IS NOW INDIVIDUALS: CritterInstance {uid, speciesId, PEDIGREE
+  (IVs renamed - 0-15 per stat rolled at capture), favorite, caughtAt}.
+  Save auto-migrates old string[] herds. newCritter()/rollPedigree()
+  in GameState; releaseCritters() in src/state/herdOps.ts also nulls
+  posse slots whose species left the herd.
+- NEW CritterScene (herd cell tap; Pokemon GO-style western page):
+  scenic hero band + big sprite, favorite star (clay = active state;
+  favorites can't be released - bounty/auction protection enforced
+  when those systems land), type badges, PHYSICAL/SPECIAL attacker
+  line, CURRENT MOVES panel (2 placeholder moves derived from types
+  until M3 battles), BARS/HEX tab system: vertical bar chart (base =
+  sage, pedigree bonus = denim, legend) and hexagon radar chart.
+  TURN LOOSE w/ confirm; guards: last critter + favorites.
+- Blank CSV base stats display as provisional 50 (documented; user
+  will balance in the CSV).
+- MASS RELEASE (PoGo style): SELECT button on herd tab -> tap to
+  multi-select (clay outline), TURN LOOSE (n) with confirm dialog;
+  favorites unselectable; must keep >= 1 critter.
+- NEW shared confirmDialog (src/ui/confirm.ts) - also used for posse
+  deletion now.
+- Ledger record redesign: tally marks REMOVED (500 catches wouldn't
+  fit); SEEN and WRANGLED as side-by-side framed stat blocks (small
+  label over big number). Type chips replaced by the badge art.
+- PlayerScene CRITTERS WRANGLED now real (herd.length).
+- NOTE: posse slots still reference SPECIES ids, not individual uids
+  (candidate follow-up when battles need specific critters' stats).
+- STATUS: playtest critter pages + mass release + reveal flow.
+
+----------------------------------------------------------------------
 [M3b] 2026-07-07 - Snap keeps progress, seen tracking, posse mgmt
 ----------------------------------------------------------------------
 - Body-snap ("SNAPPED!") no longer resets the capture gauge - only

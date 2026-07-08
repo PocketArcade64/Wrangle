@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import { SPECIES, speciesById, SpeciesDef } from '../data/species';
 import { gameState } from '../state/GameState';
-import { defenseProfile } from '../data/typeChart';
+import { badgeName, defenseProfile } from '../data/typeChart';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
+import { addTypeBadge } from '../ui/typeBadge';
 import { buildNav, NAV_HEIGHT } from '../ui/nav';
 
 /**
@@ -31,7 +32,7 @@ export class LedgerScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.cameras.main.setBackgroundColor(HEX.parchment);
     const sp = this.species;
-    const count = gameState.data.herd.filter((id) => id === sp.id).length;
+    const count = gameState.data.herd.filter((c) => c.speciesId === sp.id).length;
     const dexNo = SPECIES.indexOf(sp) + 1;
 
     // top bar
@@ -76,19 +77,14 @@ export class LedgerScene extends Phaser.Scene {
       color: HEX.ink
     });
     if (count > 0) {
-      let chipX = nx;
-      for (const t of [sp.type1, sp.type2]) {
-        if (!t) continue;
-        chipX += this.makeTypeChip(chipX, pgY + 88, t) + 12;
-      }
+      const types = [sp.type1, sp.type2].filter((t): t is string => !!t);
+      types.forEach((t, i) => addTypeBadge(this, nx + 69 + i * 152, pgY + 100, t, 3));
     } else {
       this.add.text(nx, pgY + 92, 'TYPE UNKNOWN', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.sage });
     }
-    this.add.text(nx, pgY + 144, 'SEEN', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    this.add
-      .text(nx + 100, pgY + 141, `${seenN}`, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.ink });
-    this.add.text(nx, pgY + 180, 'WRANGLED', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
-    this.drawTally(g, nx + 130, pgY + 176, count);
+    // field record: SEEN and WRANGLED side by side
+    this.recordBlock(g, nx, pgY + 136, 'SEEN', seenN);
+    this.recordBlock(g, nx + 200, pgY + 136, 'WRANGLED', count);
 
     // ruled sections, revealed by capture count
     const entry =
@@ -96,9 +92,14 @@ export class LedgerScene extends Phaser.Scene {
         ? sp.blurb
         : `The rancher's notes on ${sp.name} are sparse. More study needed out on the range.`;
     const prof = defenseProfile(sp.type1, sp.type2);
-    const weakLine = prof.weak.length > 0 ? prof.weak.join(' / ') : 'None recorded';
-    let resistLine = prof.resist.length > 0 ? prof.resist.join(' / ') : 'None recorded';
-    if (prof.immune.length > 0) resistLine += `   IMMUNE: ${prof.immune.join(' / ')}`;
+    // display with Wrangle's western type names (Air, Frost, Lightning...)
+    const disp = (s: string) => {
+      const [t, ...rest] = s.split(' ');
+      return [badgeName(t).toUpperCase(), ...rest].join(' ');
+    };
+    const weakLine = prof.weak.length > 0 ? prof.weak.map(disp).join(' / ') : 'None recorded';
+    let resistLine = prof.resist.length > 0 ? prof.resist.map(disp).join(' / ') : 'None recorded';
+    if (prof.immune.length > 0) resistLine += `   IMMUNE: ${prof.immune.map(disp).join(' / ')}`;
     const stat = (v?: number) => (v === undefined ? '--' : `${v}`);
     const statsLine = `HP ${stat(sp.hp)}   ATK ${stat(sp.attack)}   DEF ${stat(sp.defense)}   SPA ${stat(sp.spAttack)}   SPD ${stat(sp.spDefense)}   SPE ${stat(sp.speed)}`;
 
@@ -117,38 +118,15 @@ export class LedgerScene extends Phaser.Scene {
     buildNav(this, 'collection');
   }
 
-  /** Type chip: flat parchment tag with saddle frame. Returns chip width. */
-  private makeTypeChip(x: number, y: number, label: string): number {
-    const txt = this.add
-      .text(0, 0, label.toUpperCase(), { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
-      .setOrigin(0, 0.5);
-    const w = txt.width + 28;
-    const g = this.add.graphics();
-    g.fillStyle(COLORS.ink);
-    g.fillRect(x - 2, y - 2, w + 4, 40);
-    g.fillStyle(COLORS.parchmentDark);
-    g.fillRect(x, y, w, 36);
-    txt.setPosition(x + 14, y + 18);
-    return w;
-  }
-
-  /** Capture count as ledger tally marks (groups of five). */
-  private drawTally(g: Phaser.GameObjects.Graphics, x: number, y: number, count: number): void {
-    const shown = Math.min(count, 15);
-    g.lineStyle(3, COLORS.ink);
-    let cx = x;
-    for (let i = 0; i < shown; i++) {
-      const inGroup = i % 5;
-      if (inGroup < 4) {
-        g.lineBetween(cx + inGroup * 9, y, cx + inGroup * 9, y + 26);
-      } else {
-        g.lineBetween(cx - 5, y + 22, cx + 32, y + 2); // the diagonal fifth
-        cx += 52;
-      }
-    }
+  /** Field-record stat: small label over a big number in a framed socket. */
+  private recordBlock(g: Phaser.GameObjects.Graphics, x: number, y: number, label: string, value: number): void {
+    drawPixelPanel(g, x, y, 180, 74, COLORS.parchment, COLORS.saddleDark, 3);
     this.add
-      .text(x + 178, y + 13, `${count}`, { fontFamily: FONT.ui, fontSize: '22px', color: HEX.ink })
-      .setOrigin(0, 0.5);
+      .text(x + 90, y + 18, label, { fontFamily: FONT.ui, fontSize: '15px', color: HEX.saddle })
+      .setOrigin(0.5);
+    this.add
+      .text(x + 90, y + 48, `${value}`, { fontFamily: FONT.ui, fontSize: '26px', color: HEX.ink })
+      .setOrigin(0.5);
   }
 
   private section(

@@ -4,7 +4,7 @@ import { LassoLine } from '../capture/LassoLine';
 import { ArenaRect, CreatureActor } from '../capture/CreatureActor';
 import { dist, distPointToSegment, pointInPolygon, Vec2 } from '../capture/geometry';
 import { makeButton } from '../ui/button';
-import { gameState } from '../state/GameState';
+import { gameState, newCritter } from '../state/GameState';
 import { ensureIcons } from '../ui/icons';
 import { gaugeDecayDelay, gaugeDecayRate, healthBars, ropeBudget } from '../data/lassoUpgrades';
 
@@ -321,8 +321,8 @@ export class CaptureScene extends Phaser.Scene {
     this.updateHud();
 
     if (won) {
-      // into the herd, and the critter pays out
-      gameState.data.herd.push(this.species.id);
+      // into the herd as a unique individual (fresh pedigree roll), plus pay
+      gameState.data.herd.push(newCritter(this.species.id));
       gameState.data.currency += CAPTURE_REWARD;
       gameState.save();
       this.tweens.add({

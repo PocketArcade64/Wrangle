@@ -19,6 +19,43 @@ const CHART: Record<string, Record<string, number>> = {
   Fairy: { Fighting: 2, Dark: 2, Fire: 0.5, Poison: 0.5 }
 };
 
+/**
+ * Wrangle's western type names (the badge art in public/sprites/types/ is
+ * canon). The CSV + chart use classic names; map at display time.
+ */
+const BADGE_NAME: Record<string, string> = {
+  Flying: 'Air',
+  Ice: 'Frost',
+  Electric: 'Lightning',
+  Fairy: 'Mystical'
+};
+
+/** Display/badge name for a CSV type name. */
+export function badgeName(csvType: string): string {
+  return BADGE_NAME[csvType] ?? csvType;
+}
+
+/** All badge file base names (public/sprites/types/<name>_46x15.png). */
+export const TYPE_BADGES = [
+  'Air',
+  'Bug',
+  'Dark',
+  'Dragon',
+  'Earth',
+  'Fighting',
+  'Fire',
+  'Frost',
+  'Ghost',
+  'Grass',
+  'Lightning',
+  'Metal',
+  'Mystical',
+  'Normal',
+  'Poison',
+  'Psychic',
+  'Water'
+];
+
 export interface DefenseProfile {
   weak: string[];
   resist: string[];

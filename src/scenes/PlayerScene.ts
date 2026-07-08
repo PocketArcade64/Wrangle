@@ -38,7 +38,7 @@ export class PlayerScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const rows: [string, string, string][] = [
-      ['CRITTERS WRANGLED', '0', HEX.ink],
+      ['CRITTERS WRANGLED', `${gameState.data.herd.length}`, HEX.ink],
       ['BOUNTIES CLEARED', '0', HEX.ink],
       ['DUST', `${gameState.data.currency}`, HEX.brass]
     ];

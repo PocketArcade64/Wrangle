@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
-import { gameState } from '../state/GameState';
+import { CritterInstance, gameState } from '../state/GameState';
+import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
+import { confirmDialog } from '../ui/confirm';
 import { buildNav, NAV_HEIGHT } from '../ui/nav';
 
 const TOP_BAR_H = 110;
@@ -18,10 +20,10 @@ type CritterTab = 'posses' | 'herd' | 'tally';
 /**
  * The Critters screen, three tabs:
  * - POSSES: build teams of 3 from your herd.
- * - MY HERD: critters you've wrangled (from the save).
- * - FRONTIER LEDGER ('tally' internally): the full species register, dex
- *   style - uncaught critters are ink silhouettes. Tap any entry to open
- *   its ledger page.
+ * - MY HERD: your specific critters. Tap one for its page; SELECT mode for
+ *   Pokemon GO-style mass release (favorites are protected).
+ * - FRONTIER LEDGER ('tally' internally): the species register - seen
+ *   reveals sprite + name, caught reveals the record. Tap for the page.
  */
 export class CaptureSelectScene extends Phaser.Scene {
   private activeTab: CritterTab = 'herd';
@@ -33,13 +35,19 @@ export class CaptureSelectScene extends Phaser.Scene {
   private scrollStart = 0;
   private dragDist = 0;
   private tempMsg?: Phaser.GameObjects.Text;
+  // herd select mode
+  private selectMode = false;
+  private selected = new Set<string>();
+  private selectRects = new Map<string, Phaser.GameObjects.Rectangle>();
+  private releaseLabel?: Phaser.GameObjects.Text;
 
   constructor() {
     super('CaptureSelect');
   }
 
-  init(data: { tab?: CritterTab }): void {
+  init(data: { tab?: CritterTab; select?: boolean }): void {
     this.activeTab = data.tab ?? 'herd';
+    this.selectMode = (data.select ?? false) && this.activeTab === 'herd';
   }
 
   create(): void {
@@ -51,32 +59,39 @@ export class CaptureSelectScene extends Phaser.Scene {
     this.dragDist = 0;
     this.minScroll = 0;
     this.tempMsg = undefined;
+    this.selected = new Set();
+    this.selectRects = new Map();
+    this.releaseLabel = undefined;
 
-    const herd = gameState.data.herd
-      .map((id) => SPECIES.find((s) => s.id === id))
-      .filter((s): s is SpeciesDef => s !== undefined);
+    const herd = gameState.data.herd;
 
     this.listContainer = this.add.container(0, 0);
 
     if (this.activeTab === 'posses') {
       this.buildPosses();
-    } else {
-      const list = this.activeTab === 'tally' ? SPECIES : herd;
-      if (list.length === 0) {
-        this.buildEmptyHerd();
-      } else {
-        const startX = (width - COLS * CELL_W) / 2 + CELL_W / 2;
-        const startY = TOP_BAR_H + 30 + CELL_H / 2;
-        list.forEach((sp, i) => {
-          const col = i % COLS;
-          const row = Math.floor(i / COLS);
-          this.makeCell(sp, i, startX + col * CELL_W, startY + row * CELL_H);
-        });
-        const rowCount = Math.ceil(list.length / COLS);
-        const contentBottom = TOP_BAR_H + 30 + rowCount * CELL_H + 30;
-        this.minScroll = Math.min(0, height - NAV_HEIGHT - contentBottom);
-      }
+    } else if (this.activeTab === 'herd' && herd.length === 0) {
+      this.buildEmptyHerd();
       this.bindScroll();
+    } else {
+      const startX = (width - COLS * CELL_W) / 2 + CELL_W / 2;
+      const startY = TOP_BAR_H + 30 + CELL_H / 2;
+      if (this.activeTab === 'tally') {
+        SPECIES.forEach((sp, i) => {
+          this.makeCell(sp, i, startX + (i % COLS) * CELL_W, startY + Math.floor(i / COLS) * CELL_H);
+        });
+      } else {
+        herd.forEach((inst, i) => {
+          const sp = SPECIES.find((s) => s.id === inst.speciesId);
+          if (!sp) return;
+          this.makeCell(sp, i, startX + (i % COLS) * CELL_W, startY + Math.floor(i / COLS) * CELL_H, inst);
+        });
+      }
+      const count = this.activeTab === 'tally' ? SPECIES.length : herd.length;
+      const rowCount = Math.ceil(count / COLS);
+      const contentBottom = TOP_BAR_H + 30 + rowCount * CELL_H + 110;
+      this.minScroll = Math.min(0, height - NAV_HEIGHT - contentBottom);
+      this.bindScroll();
+      if (this.activeTab === 'herd') this.buildHerdActions();
     }
 
     this.buildTopBar(herd.length);
@@ -84,7 +99,7 @@ export class CaptureSelectScene extends Phaser.Scene {
   }
 
   private captureCount(id: string): number {
-    return gameState.data.herd.filter((h) => h === id).length;
+    return gameState.data.herd.filter((c) => c.speciesId === id).length;
   }
 
   // ---------- top bar with the three tabs ----------
@@ -166,7 +181,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     });
   }
 
-  private makeCell(sp: SpeciesDef, index: number, x: number, y: number): void {
+  private makeCell(sp: SpeciesDef, index: number, x: number, y: number, inst?: CritterInstance): void {
     const caught = this.captureCount(sp.id) > 0;
     const seen = (gameState.data.seen[sp.id] ?? 0) > 0;
     // dex convention: seen reveals sprite + name; caught reveals details
@@ -213,11 +228,92 @@ export class CaptureSelectScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0);
 
+    const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name, types];
+
+    if (inst) {
+      if (inst.favorite) {
+        parts.push(
+          this.add
+            .image(x + (CELL_W - 16) / 2 - 20, cellTop + 20, 'icon-star')
+            .setScale(0.55)
+            .setTint(COLORS.clay)
+        );
+      }
+      const sel = this.add
+        .rectangle(x, y, CELL_W - 8, CELL_H - 8)
+        .setStrokeStyle(5, COLORS.clay)
+        .setVisible(this.selected.has(inst.uid));
+      parts.push(sel);
+      this.selectRects.set(inst.uid, sel);
+    }
+
     bg.setInteractive({ useHandCursor: true }).on('pointerup', () => {
-      if (this.dragDist < TAP_SLOP) this.scene.start('Ledger', { speciesId: sp.id });
+      if (this.dragDist >= TAP_SLOP) return;
+      if (this.activeTab === 'tally') {
+        this.scene.start('Ledger', { speciesId: sp.id });
+      } else if (inst && this.selectMode) {
+        this.toggleSelect(inst);
+      } else if (inst) {
+        this.scene.start('Critter', { uid: inst.uid });
+      }
     });
 
-    this.listContainer.add([bg, img, num, name, types]);
+    this.listContainer.add(parts);
+  }
+
+  // ---------- herd select / mass release (Pokemon GO style) ----------
+
+  private buildHerdActions(): void {
+    const { width, height } = this.scale;
+    const y = height - NAV_HEIGHT - 48;
+    if (!this.selectMode) {
+      makeButton(this, width - 120, y, 170, 56, 'SELECT', () =>
+        this.scene.restart({ tab: 'herd', select: true })
+      , '18px').setDepth(30);
+      return;
+    }
+    makeButton(this, 120, y, 170, 56, 'CANCEL', () => this.scene.restart({ tab: 'herd' }), '18px').setDepth(30);
+    const btn = makeButton(this, width - 190, y, 310, 56, '', () => this.tryMassRelease(), '18px').setDepth(30);
+    // grab the label of the button to keep the count live
+    this.releaseLabel = btn.list[2] as Phaser.GameObjects.Text;
+    this.updateReleaseLabel();
+  }
+
+  private updateReleaseLabel(): void {
+    this.releaseLabel?.setText(`TURN LOOSE (${this.selected.size})`);
+  }
+
+  private toggleSelect(inst: CritterInstance): void {
+    if (inst.favorite) {
+      this.showTempMsg("FAVORITES CAN'T BE TURNED LOOSE");
+      return;
+    }
+    if (this.selected.has(inst.uid)) this.selected.delete(inst.uid);
+    else this.selected.add(inst.uid);
+    this.selectRects.get(inst.uid)?.setVisible(this.selected.has(inst.uid));
+    this.updateReleaseLabel();
+  }
+
+  private tryMassRelease(): void {
+    const n = this.selected.size;
+    if (n === 0) {
+      this.showTempMsg('TAP CRITTERS TO SELECT THEM');
+      return;
+    }
+    if (n >= gameState.data.herd.length) {
+      this.showTempMsg('KEEP AT LEAST ONE CRITTER');
+      return;
+    }
+    confirmDialog(
+      this,
+      'TURN LOOSE?',
+      `${n} critter${n > 1 ? 's' : ''} will wander back to the wild. This can't be undone.`,
+      'RELEASE',
+      () => {
+        releaseCritters([...this.selected]);
+        this.scene.restart({ tab: 'herd' });
+      }
+    );
   }
 
   // ---------- posses tab ----------
@@ -279,11 +375,13 @@ export class CaptureSelectScene extends Phaser.Scene {
       this.showTempMsg('A DRIFTER NEEDS AT LEAST ONE POSSE');
       return;
     }
-    teams.splice(ti, 1);
-    if (gameState.data.activeTeam >= teams.length) gameState.data.activeTeam = teams.length - 1;
-    else if (gameState.data.activeTeam > ti) gameState.data.activeTeam--;
-    gameState.save();
-    this.scene.restart({ tab: 'posses' });
+    confirmDialog(this, 'DISBAND POSSE?', `${teams[ti].name} will ride off for good.`, 'DISBAND', () => {
+      teams.splice(ti, 1);
+      if (gameState.data.activeTeam >= teams.length) gameState.data.activeTeam = teams.length - 1;
+      else if (gameState.data.activeTeam > ti) gameState.data.activeTeam--;
+      gameState.save();
+      this.scene.restart({ tab: 'posses' });
+    });
   }
 
   private makeSlot(memberId: string | null, ti: number, si: number, x: number, y: number): void {
@@ -304,7 +402,7 @@ export class CaptureSelectScene extends Phaser.Scene {
 
   private openSlotPicker(ti: number, si: number): void {
     const { width, height } = this.scale;
-    const unique = [...new Set(gameState.data.herd)];
+    const unique = [...new Set(gameState.data.herd.map((c) => c.speciesId))];
     if (unique.length === 0) {
       this.showTempMsg('WRANGLE SOME CRITTERS FIRST');
       return;
@@ -348,7 +446,7 @@ export class CaptureSelectScene extends Phaser.Scene {
       if (id) {
         const sp = SPECIES.find((s) => s.id === id);
         const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-        modal.push(this.add.image(x, y - 14, texKey).setDepth(63));
+        modal.push(this.add.image(x, y - 14, texKey).setDisplaySize(84, 84).setDepth(63));
         modal.push(
           this.add
             .text(x, y + 46, sp ? sp.name : id, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.ink })
@@ -372,13 +470,13 @@ export class CaptureSelectScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.tempMsg?.destroy();
     this.tempMsg = this.add
-      .text(width / 2, height - NAV_HEIGHT - 50, msg, {
+      .text(width / 2, height - NAV_HEIGHT - 120, msg, {
         fontFamily: FONT.ui,
         fontSize: '18px',
         color: HEX.saddle
       })
       .setOrigin(0.5)
-      .setDepth(20);
+      .setDepth(40);
     this.tweens.add({ targets: this.tempMsg, alpha: 0, delay: 1100, duration: 300 });
   }
 }
