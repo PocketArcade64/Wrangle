@@ -208,7 +208,8 @@ Later additions:
 - Each critter can be deployed and use a move to help and they can be resummoned infinitely until hit in each battle 
 - The assists fill the capture meter below the pokemon but you need to do a loop to deal the final 1 capture point to finish the meter
 - Critters of the same type have different moves so you can pick one over the other
-
+- Show type icons stacked vertically to the right of each critter in the Posse menu to indicate which moves they know (in the future I will add more moves and allow move changing)
+- 	- Make physical/special icon variations for each type
 
 - The tutorial in a standard ranch that explains the basic concepts. Then, you get teleported to an alternate dimension and choose your first starter
 
