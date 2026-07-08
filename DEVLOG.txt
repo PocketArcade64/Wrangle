@@ -5,6 +5,21 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3l] 2026-07-08 - Standalone settle race fix + horseshoe spacing
+----------------------------------------------------------------------
+- M3k's layout CONFIRMED WORKING on the iPhone (screenshot: parchment
+  status strip above, nav clear of the home bar) but ~1 in 3 cold
+  standalone launches ended shifted down+right until relaunch. Cause:
+  iOS settles the safe-area insets at an unpredictable moment in the
+  first seconds, with NO event; our single 350ms scale.refresh()
+  could land mid-settle and stick. Now refreshing on a spread of
+  timers (100/350/700/1200/2000/3000ms) + the existing viewport
+  events - the last refresh after settling wins.
+- Horseshoe stamina pips: spacing 46 -> 52 (8px even gap between the
+  44px glyphs); 5/5 text follows.
+- STATUS: cold-launch the home screen app several times to confirm
+  the shift is gone.
+----------------------------------------------------------------------
 [M3k] 2026-07-08 - HOTFIX: standalone safe-area take 2 (M3j failed)
 ----------------------------------------------------------------------
 - M3j's margin-top + calc(100dvh - env(...)) approach FAILED on the

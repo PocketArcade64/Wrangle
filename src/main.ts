@@ -53,12 +53,14 @@ const game = new Phaser.Game({
   ]
 });
 
-// iOS standalone (home-screen) launches can settle their safe-area insets
-// a beat after our first measurement, without firing a resize event. Snap
-// the canvas to the container again shortly after boot and on any viewport
-// change; a mismatched aspect just letterboxes into the parchment bg.
+// iOS standalone (home-screen) launches settle their safe-area insets at an
+// unpredictable moment in the first couple of seconds, without firing any
+// resize event. A single delayed refresh can land mid-settle and leave the
+// canvas mis-centered (shifted down/right) until relaunch - so re-snap on
+// every viewport event AND on a spread of timers; the last one after the
+// insets settle wins. A mismatched aspect just letterboxes into parchment.
 const refresh = () => game.scale.refresh();
 window.addEventListener('resize', refresh);
 window.addEventListener('orientationchange', refresh);
 window.visualViewport?.addEventListener('resize', refresh);
-setTimeout(refresh, 350);
+for (const ms of [100, 350, 700, 1200, 2000, 3000]) setTimeout(refresh, ms);
