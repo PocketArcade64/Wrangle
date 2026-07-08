@@ -25,7 +25,7 @@ const vh = gameEl && gameEl.clientHeight > 0 ? gameEl.clientHeight : window.inne
 const aspect = vw > 0 ? vh / vw : 16 / 9;
 const BASE_HEIGHT = Math.round(Phaser.Math.Clamp(BASE_WIDTH * aspect, 1280, 1600));
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: BASE_WIDTH,
@@ -52,3 +52,13 @@ new Phaser.Game({
     DailyScene
   ]
 });
+
+// iOS standalone (home-screen) launches can settle their safe-area insets
+// a beat after our first measurement, without firing a resize event. Snap
+// the canvas to the container again shortly after boot and on any viewport
+// change; a mismatched aspect just letterboxes into the parchment bg.
+const refresh = () => game.scale.refresh();
+window.addEventListener('resize', refresh);
+window.addEventListener('orientationchange', refresh);
+window.visualViewport?.addEventListener('resize', refresh);
+setTimeout(refresh, 350);

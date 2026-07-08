@@ -11,7 +11,10 @@
          of how the wrapped app will look. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "default" makes standalone mode START the webview BELOW the status
+         bar / Dynamic Island (iOS paints that strip with our parchment
+         theme-color) instead of drawing the page underneath it. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Wrangle" />
     <!-- App icon (browser tab + ADD TO HOME SCREEN). The real iOS icon set
          is generated from this art at the M10 Capacitor wrap. -->
@@ -33,21 +36,20 @@
         user-select: none;
         -webkit-tap-highlight-color: transparent;
       }
+      /* Pin the game between the safe areas with FIXED positioning - no
+         dvh, no calc(), no margins (all of which have iOS quirks). In
+         browser Safari the insets are 0 and this is simply the full
+         visible viewport; in standalone mode the box starts below the
+         status area and stops above the home indicator. */
       #game {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: env(safe-area-inset-top, 0px);
+        bottom: env(safe-area-inset-bottom, 0px);
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 100vw;
-        height: 100vh;
-        /* iOS Safari: 100vh extends behind the browser chrome; dvh tracks
-           the real visible viewport so the bottom isn't cut off. */
-        height: 100dvh;
-        /* Standalone (ADD TO HOME SCREEN) renders edge-to-edge behind the
-           Dynamic Island and home indicator - inset the game to the safe
-           area so nothing hides under them. In browser Safari the insets
-           are 0 and these resolve to the plain 100dvh above. */
-        margin-top: env(safe-area-inset-top, 0px);
-        height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
       }
     </style>
   </head>

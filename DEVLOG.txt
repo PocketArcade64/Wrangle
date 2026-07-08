@@ -5,6 +5,31 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M3k] 2026-07-08 - HOTFIX: standalone safe-area take 2 (M3j failed)
+----------------------------------------------------------------------
+- M3j's margin-top + calc(100dvh - env(...)) approach FAILED on the
+  user's iPhone: top bar still under the Dynamic Island, bottom nav
+  pushed up AND clipped. Diagnosis: the calc()+env() height line
+  didn't take (Safari parser quirk) while margin-top did - container
+  kept full height, got pushed down, overflow clipped the bottom.
+- New approach, no calc/dvh/margins:
+  1) apple-mobile-web-app-status-bar-style black-translucent ->
+     "default": standalone webview now STARTS BELOW the status bar /
+     island (iOS paints that strip with our parchment theme-color).
+  2) #game is position:fixed with top/bottom: env(safe-area-inset-*)
+     - a plain inset box, no height computation at all. Browser
+     Safari resolves the insets to 0 (unchanged behavior).
+  3) main.ts: game.scale.refresh() on resize/orientationchange/
+     visualViewport resize + once 350ms after boot - standalone can
+     settle insets after our first measurement without any event.
+     Aspect drift just letterboxes into parchment.
+- Xcode guidance given: simulator/Capacitor wrap is the ONLY true
+  test of native inset behavior, but not needed for the web loop yet;
+  do a first Capacitor wrap dry-run (~M5) if web-standalone quirks
+  keep burning playtest cycles; full treatment stays at M10.
+- STATUS: delete + re-add the home screen icon (icon caches hard),
+  verify top bar below the island and full nav above the home bar.
+----------------------------------------------------------------------
 [M3j] 2026-07-08 - Standalone safe-area fix, 110px bars, big shoes
 ----------------------------------------------------------------------
 - FIXED the "everything shifted up" report after re-adding the app to
