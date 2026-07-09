@@ -77,6 +77,11 @@ export interface WrangleSave {
   playerXp: number;
   /** Bounty board day-state: challenge tallies + roundup turn-ins. */
   quests: QuestState;
+  /**
+   * Up to 2 critter uids the player picked (Player profile) to headline
+   * the home diorama. Empty slots are filled with random seen species.
+   */
+  displayCritters: (string | null)[];
 }
 
 export interface QuestState {
@@ -99,7 +104,7 @@ const DEFAULTS: WrangleSave = {
   pins: [],
   dailyAvailable: true,
   leadCreatureId: 'herbifuzz',
-  biome: 'DUSTY FLATS',
+  biome: 'FRONTIER FLATS',
   herd: [],
   seen: {},
   lasso: { rope: 0, grit: 0, charge: 0 },
@@ -109,7 +114,8 @@ const DEFAULTS: WrangleSave = {
   playerName: 'THE DRIFTER',
   playerLevel: 1,
   playerXp: 0,
-  quests: { day: '', stats: {}, claimed: [], turnIns: {} }
+  quests: { day: '', stats: {}, claimed: [], turnIns: {} },
+  displayCritters: [null, null]
 };
 
 export function rollPedigree(): Pedigree {
@@ -163,6 +169,17 @@ class GameStateStore {
       this.data.staminaMax = 5;
       this.data.stamina = 5;
     }
+
+    // the home diorama's caption grew up into the real region name
+    if (this.data.biome === 'DUSTY FLATS') this.data.biome = 'FRONTIER FLATS';
+
+    // display slots: fill to 2, drop references to critters no longer owned
+    if (!Array.isArray(this.data.displayCritters)) this.data.displayCritters = [null, null];
+    while (this.data.displayCritters.length < 2) this.data.displayCritters.push(null);
+    const owned = new Set(this.data.herd.map((c) => c.uid));
+    this.data.displayCritters = this.data.displayCritters
+      .slice(0, 2)
+      .map((u) => (u && owned.has(u) ? u : null));
 
     // posse slots stored SPECIES ids before critter uids; convert each to
     // the first unclaimed critter of that species, and drop duplicates

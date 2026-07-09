@@ -5,6 +5,81 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4h] 2026-07-08 - Living title/home vistas, 107-challenge board
+----------------------------------------------------------------------
+- BOUNTY BOARD: "ROUNDUP CONTRACTS" and "DAILY CHALLENGES" heading
+  texts REMOVED (rows moved up, BOARD_H 1410 -> 1448). Claiming a
+  challenge or turning in a contract critter NO LONGER jumps the board
+  back to the top - the scene restart threads { scrollY } through
+  init() and re-lands exactly where you were.
+- ~107-CHALLENGE DAILY POOL (new src/data/challenges.ts): template-
+  generated in the spirit of the original five - any-catch (4), type
+  catches (12), specific-species catches (40), stage clears (4),
+  region clears (2), per-theme clears (18: all six trail flavors),
+  full-posse finishes (3), mono-type clears (6), knockouts (3), boss
+  kills (3), level-ups (3), gold-earned (3), rare evolved catch, boss
+  lasso, clean-rope captures (2), roundup turn-ins (2). ONLY
+  COMPLETABLE challenges generate: species/type templates draw from
+  the union of unlocked themes' pools (same findable set as the
+  posters), so nothing uncatchable is ever posted; the pool grows by
+  itself when new maps unlock. Board posts a DAILY-SEEDED 6 (max 2
+  per family for variety); tallies/claims still reset at local
+  midnight via the quests() day store, so every part of the board
+  now rolls at sunup.
+- NEW TALLY PLUMBING: StageScene kills bump kos/bosses/goldEarned +
+  levelUps; stageClear bumps clearTheme_<id>, goldEarned, and
+  generalized monoClear_<Type> (every type the WHOLE posse shares -
+  replaces the old grassClear stat; the grass challenge lives on as
+  monoClear_Grass). CaptureScene wins bump catchType_<T> (both
+  types), catchSpecies_<id>, rareCatch (evolved), bossCatch,
+  goldEarned, and cleanCatch (new lineBreaks counter - zero breaks =
+  clean); BountiesScene turn-ins bump turnInCount.
+- NEW src/ui/vignette.ts - the shared living-vignette toolkit:
+  - skyLook(): REAL-CLOCK sky. Dawn 5-7:30 (low heavy amber sun),
+    day 7:30-17:30 (pale sun w/ rays riding an arc), dusk 17:30-20:30
+    (low red-orange sun, warm bands), night otherwise (DARK MOON -
+    dim shadowed disc w/ craters - plus a per-day-seeded starfield).
+    Flat banded skies, staircase pixel discs, no gradients. Terrain
+    palette (ground/mesa/cactus/wood) re-lit per phase.
+  - Frontier terrain: mesas + WINDMILL silhouette on the skyline,
+    haze band, speckled flats, cacti/fence/brush mid-ground props.
+  - WalkerTroupe: wandering critters on TWO DEPTH LANES - back-lane
+    walkers render smaller (54-60px vs 88-96px), slower, and BEHIND
+    the mid-ground props; they drift between lanes with a scale glide.
+    Idle emotes: pixel EMOTION BUBBLES (square, ink-bordered - heart/
+    note/!/zzz/happy, muted world-art symbol colors) + excited double
+    hops. ART_FACES_LEFT knob at the top if the art walks backwards.
+- TITLE SCREEN REMADE as a living vista: logo now x3 integer scale
+  (648px wide - fills the 720 width with 36px sky each side) over a
+  hard ink pixel drop-shadow; sky/sun/moon match the player's real
+  time; up to 3 RANDOM SEEN species stroll the flats below. Text
+  colors flip parchment/ink by phase; "menu shell - m2" footer gone.
+- HOME DIORAMA v2: the framed box is now a FRONTIER FLATS
+  interpretation of the last map region ridden (save.biome carries
+  the region name - DUSTY FLATS saves migrate to FRONTIER FLATS;
+  future regions plug into the same caption + terrain hook), lit by
+  the same real-time sky. MAX 2 critters wander it on the depth
+  lanes, hop, bubble, and every ~11s the pair WALKS OVER TO EACH
+  OTHER to chat (bubbles + hop) when both are up front. Dust motes
+  kept.
+- DISPLAY CRITTERS: new save field displayCritters (2 uid slots,
+  cleared on release + migration). Player profile gains a DISPLAY
+  CRITTERS section (2 slots -> picker); picks headline the home
+  diorama, empty slots fill with random seen species. TITLE walkers
+  stay fully random per spec. possePicker.ts got a generic
+  openCritterPicker core (posse behavior unchanged on top of it).
+- RECONCILIATION CALLS: (1) "last map you played" read as the REGION
+  (map screen = Frontier Flats), not the per-stage theme - flag if
+  you wanted per-theme vistas instead; (2) bubble symbol colors are
+  muted world-art tones (diegetic, like the wagon wheel), not UI
+  accent usage.
+- STATUS: playtest the board (no headings, claim keeps scroll, 6
+  fresh challenges/day), title at different times of day (change the
+  phone clock: dawn/day/dusk/night), home pair behavior + greets,
+  display-critter picking on the profile, and whether critters face
+  their walking direction (if backwards: flip ART_FACES_LEFT in
+  vignette.ts).
+----------------------------------------------------------------------
 [META] 2026-07-08 - Handoff: Fable 5 -> Opus 4.8
 ----------------------------------------------------------------------
 - docs/OPUS_TIPS.txt fully rewritten as the knowledge-transfer doc:

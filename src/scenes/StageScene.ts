@@ -1646,10 +1646,16 @@ export class StageScene extends Phaser.Scene {
     this.goldText.setText(`+${this.goldEarned}`);
     sfx('coin');
 
+    // bounty board daily tallies
+    gameState.bumpQuest('kos');
+    if (e.boss) gameState.bumpQuest('bosses');
+    gameState.bumpQuest('goldEarned', gold);
+
     const xp = xpFromKill(e.level, e.boss);
     this.team.forEach((m, i) => {
       if (m.hp <= 0 && i !== this.activeIdx) return;
       const gained = applyXp(m.inst, i === this.activeIdx ? xp : Math.floor(xp / 2));
+      if (gained > 0) gameState.bumpQuest('levelUps', gained);
       if (gained > 0 && i === this.activeIdx) {
         m.stats = battleStats(m.sp, m.inst.pedigree, m.inst.level);
         m.hp = Math.min(m.stats.hp, m.hp + Math.round(m.stats.hp * 0.3));
@@ -1947,8 +1953,17 @@ export class StageScene extends Phaser.Scene {
     // bounty board daily-challenge tallies
     gameState.bumpQuest('stages');
     gameState.bumpQuest('flats'); // this map IS Frontier Flats
+    gameState.bumpQuest(`clearTheme_${this.theme.id}`);
+    gameState.bumpQuest('goldEarned', 40);
     if (this.team.length === 3 && this.team.every((m) => m.hp > 0)) gameState.bumpQuest('fullPosse');
-    if (this.team.every((m) => m.sp.type1 === 'Grass' || m.sp.type2 === 'Grass')) gameState.bumpQuest('grassClear');
+    // mono-type clears: bump every type the WHOLE posse shares
+    const shared = new Set([this.team[0].sp.type1, this.team[0].sp.type2].filter((t): t is string => !!t));
+    for (const m of this.team.slice(1)) {
+      for (const t of [...shared]) {
+        if (m.sp.type1 !== t && m.sp.type2 !== t) shared.delete(t);
+      }
+    }
+    for (const t of shared) gameState.bumpQuest(`monoClear_${t}`);
     gameState.save();
     this.endOverlay('TRAIL CLEARED!', `+${this.goldEarned} GOLD EARNED`, HEX.brass);
   }

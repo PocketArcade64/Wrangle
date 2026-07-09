@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SPECIES } from '../data/species';
+import { SPECIES, SpeciesDef } from '../data/species';
 import { gameState, xpForNextLevel } from '../state/GameState';
 import { dateKey } from '../util/daily';
 import { movesForSpecies } from '../battle/moves';
@@ -9,6 +9,14 @@ import { ensureIcons } from '../ui/icons';
 import { addGoldCounter } from '../ui/goldCounter';
 import { openPossePicker } from '../ui/possePicker';
 import { buildNav } from '../ui/nav';
+import {
+  drawFrontierBackdrop,
+  drawFrontierForeground,
+  drawSky,
+  seenSpecies,
+  skyLook,
+  WalkerTroupe
+} from '../ui/vignette';
 
 // same height as the Critters + Daily top bars so screens line up
 const STATUS_H = 110;
@@ -171,6 +179,13 @@ export class HomeScene extends Phaser.Scene {
 
   // ---------- living diorama ----------
 
+  /**
+   * The home vista: a Frontier Flats interpretation of the last map region
+   * ridden, lit by the player's REAL local time (shared vignette toolkit -
+   * dawn/day/dusk/dark-moon skies), with the two featured critters
+   * wandering the flats on depth lanes, hopping and chatting in pixel
+   * emotion bubbles. Display picks come from the Player profile.
+   */
   private buildDiorama(x: number, y: number, w: number, h: number): void {
     // wood frame: ink outline, saddle frame with plank cuts, ink inner line
     const frame = this.add.graphics();
@@ -190,7 +205,8 @@ export class HomeScene extends Phaser.Scene {
     const inY = y + 15;
     const inW = w - 30;
     const inH = h - 30;
-    const groundY = inY + inH * 0.62;
+    const horizonY = inY + Math.round(inH * 0.5);
+    const bottomY = inY + inH;
 
     const maskG = this.add.graphics().setVisible(false);
     maskG.fillStyle(0xffffff);
@@ -198,61 +214,31 @@ export class HomeScene extends Phaser.Scene {
     const content = this.add.container(0, 0);
     content.setMask(maskG.createGeometryMask());
 
+    // sky + skyline + flats, then the two walker depth lanes around the
+    // mid-ground props (back lane walks BEHIND the cacti/fence, smaller)
+    const look = skyLook();
     const art = this.add.graphics();
-    // sky
-    art.fillStyle(COLORS.parchmentLight);
-    art.fillRect(inX, inY, inW, inH);
-    // pixel sun, high and pale
-    art.fillStyle(0xf6ead0);
-    art.fillRect(inX + inW - 130, inY + 40, 44, 44);
-    art.fillRect(inX + inW - 122, inY + 32, 28, 60);
-    // distant mesas - the cool counterpoint
-    art.fillStyle(COLORS.denim);
-    art.fillRect(inX + 30, groundY - 110, 150, 110);
-    art.fillRect(inX + 60, groundY - 140, 90, 30);
-    art.fillRect(inX + inW - 240, groundY - 80, 190, 80);
-    art.fillRect(inX + inW - 200, groundY - 104, 110, 24);
-    // haze band where mesas meet the flats
-    art.fillStyle(COLORS.parchmentDark);
-    art.fillRect(inX, groundY - 8, inW, 8);
-    // ground
-    art.fillStyle(COLORS.sand);
-    art.fillRect(inX, groundY, inW, inY + inH - groundY);
-    art.fillStyle(COLORS.saddle, 0.22);
-    for (let i = 0; i < 46; i++) {
-      art.fillRect(
-        inX + Math.random() * (inW - 4),
-        groundY + 8 + Math.random() * (inY + inH - groundY - 12),
-        3,
-        3
-      );
-    }
-    // cacti - sage, passive
-    this.drawCactus(art, inX + inW * 0.72, groundY + 34, 1);
-    this.drawCactus(art, inX + inW * 0.86, groundY + 78, 1.4);
-    this.drawCactus(art, inX + inW * 0.12, groundY + 60, 0.8);
-    // fence line
-    art.fillStyle(COLORS.saddleDark);
-    for (let fx = inX + 20; fx < inX + inW * 0.5; fx += 64) {
-      art.fillRect(fx, groundY + 96, 6, 26);
-    }
-    art.fillRect(inX + 20, groundY + 102, inW * 0.5 - 20, 4);
+    drawSky(art, inX, inY, inW, horizonY, look);
+    drawFrontierBackdrop(art, inX, inW, horizonY, bottomY, look);
     content.add(art);
+    const backLayer = this.add.container(0, 0);
+    content.add(backLayer);
+    const midG = this.add.graphics();
+    drawFrontierForeground(midG, inX, inW, horizonY, bottomY, look);
+    content.add(midG);
+    const frontLayer = this.add.container(0, 0);
+    content.add(frontLayer);
 
-    // lead creature idle-animating in the scene
-    const lead =
-      SPECIES.find((sp) => sp.id === gameState.data.leadCreatureId) ?? SPECIES[0];
-    const leadKey = this.textures.exists(lead.textureKey) ? lead.textureKey : 'pl-unknown';
-    const shadow = this.add.rectangle(inX + inW * 0.38, groundY + 64, 96, 8, COLORS.ink, 0.16);
-    const critter = this.add.image(inX + inW * 0.38, groundY + 4, leadKey).setScale(2);
-    content.add([shadow, critter]);
-    this.tweens.add({
-      targets: critter,
-      y: critter.y - 5,
-      duration: 1300,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
+    new WalkerTroupe(this, this.displayPair(), {
+      left: inX + 10,
+      right: inX + inW - 10,
+      frontY: bottomY - 24,
+      backY: horizonY + 20,
+      frontSize: 88,
+      backSize: 54,
+      frontLayer,
+      backLayer,
+      interact: true
     });
 
     // drifting dust motes - flat squares, no glow
@@ -260,7 +246,7 @@ export class HomeScene extends Phaser.Scene {
       delay: 700,
       loop: true,
       callback: () => {
-        const my = groundY - 40 + Math.random() * 90;
+        const my = horizonY - 30 + Math.random() * 90;
         const mote = this.add.rectangle(
           inX + inW + 6,
           my,
@@ -281,7 +267,7 @@ export class HomeScene extends Phaser.Scene {
       }
     });
 
-    // caption plate - a little brass-free nameplate for the biome
+    // caption plate - names the region this vista interprets
     const cap = this.add.graphics();
     cap.fillStyle(COLORS.ink);
     cap.fillRect(inX + 10, inY + inH - 46, 216, 38);
@@ -296,13 +282,28 @@ export class HomeScene extends Phaser.Scene {
       .setOrigin(0.5);
   }
 
-  private drawCactus(g: Phaser.GameObjects.Graphics, x: number, y: number, s: number): void {
-    g.fillStyle(COLORS.sage);
-    g.fillRect(x, y - 34 * s, 9 * s, 34 * s);
-    g.fillRect(x - 8 * s, y - 26 * s, 8 * s, 5 * s);
-    g.fillRect(x - 8 * s, y - 34 * s, 5 * s, 12 * s);
-    g.fillRect(x + 9 * s, y - 18 * s, 8 * s, 5 * s);
-    g.fillRect(x + 12 * s, y - 26 * s, 5 * s, 12 * s);
+  /**
+   * Up to 2 species for the diorama: the profile's display picks first,
+   * random seen species filling any empty slot.
+   */
+  private displayPair(): SpeciesDef[] {
+    const out: SpeciesDef[] = [];
+    for (const uid of gameState.data.displayCritters) {
+      if (!uid) continue;
+      const inst = gameState.data.herd.find((c) => c.uid === uid);
+      const sp = inst ? SPECIES.find((s) => s.id === inst.speciesId) : undefined;
+      if (sp) out.push(sp);
+    }
+    const pool = seenSpecies().filter((sp) => !out.includes(sp));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    while (out.length < 2 && pool.length > 0) {
+      const sp = pool.pop();
+      if (sp) out.push(sp);
+    }
+    return out.slice(0, 2);
   }
 
   // ---------- posse quick-select carousel ----------

@@ -127,6 +127,15 @@ GAME SYSTEMS MAP (where things live)
 - Type assets: badges sprites/types/<Name>_46x15.png (key type-<Name>),
   dots <Name>_circle_19x19.png (key typedot-<Name>) - files override
   the generated placeholders automatically.
+- Living vignettes: ui/vignette.ts = shared real-clock sky (dawn/day/
+  dusk/dark-moon night, flat banded - never gradients), frontier terrain
+  drawing, and WalkerTroupe (seen-species walkers on 2 depth lanes with
+  emotion bubbles/hops/greets). Title + Home both ride it; knobs
+  (ART_FACES_LEFT, day boundaries, speeds, emote odds) top of file.
+- Daily challenges: data/challenges.ts template-generates ~107 defs
+  from FINDABLE species/types only; BountiesScene posts a daily-seeded
+  6 (2-per-family cap). Stats bumped from CaptureScene/StageScene/
+  BountiesScene - add new bump sites when new mechanics land.
 - Dev menu: Player screen -> DEV MENU -> password "critter45".
 
 TUNING PHILOSOPHY (this is the entire feedback loop with the user)

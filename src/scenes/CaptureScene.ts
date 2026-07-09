@@ -7,6 +7,7 @@ import { makeButton } from '../ui/button';
 import { gameState, newCritter } from '../state/GameState';
 import { ensureIcons } from '../ui/icons';
 import { gaugeDecayDelay, gaugeDecayRate, healthBars, ropeBudget } from '../data/lassoUpgrades';
+import { EVOLVED_IDS } from '../data/evolutions';
 import { STAGE_THEMES } from '../data/stages';
 import { sfx } from '../audio/audio';
 
@@ -75,6 +76,8 @@ export class CaptureScene extends Phaser.Scene {
   private stageThemeId?: string;
   private bossCapture = false;
   private creatureBaseScale = 1;
+  /** Line breaks this attempt (body snaps + attacks) - 0 = a clean catch. */
+  private lineBreaks = 0;
 
   constructor() {
     super('Capture');
@@ -100,6 +103,7 @@ export class CaptureScene extends Phaser.Scene {
     this.telegraphing = false;
     this.healthCells = [];
     this.toastTween = undefined;
+    this.lineBreaks = 0;
   }
 
   create(): void {
@@ -326,6 +330,7 @@ export class CaptureScene extends Phaser.Scene {
   private breakLine(msg: string, isAttack: boolean): void {
     this.line.clear();
     this.streak = 0;
+    this.lineBreaks++;
     sfx('snap');
     this.showToast(msg, isAttack ? '#e05c4a' : '#ffe9c9');
   }
@@ -342,7 +347,16 @@ export class CaptureScene extends Phaser.Scene {
       // into the herd as a unique individual (fresh pedigree roll), plus pay
       gameState.data.herd.push(newCritter(this.species.id));
       gameState.data.currency += CAPTURE_REWARD;
+      // bounty board daily tallies
       gameState.bumpQuest('catches');
+      gameState.bumpQuest('goldEarned', CAPTURE_REWARD);
+      gameState.bumpQuest(`catchSpecies_${this.species.id}`);
+      for (const t of [this.species.type1, this.species.type2]) {
+        if (t) gameState.bumpQuest(`catchType_${t}`);
+      }
+      if (EVOLVED_IDS.has(this.species.id)) gameState.bumpQuest('rareCatch');
+      if (this.bossCapture) gameState.bumpQuest('bossCatch');
+      if (this.lineBreaks === 0) gameState.bumpQuest('cleanCatch');
       gameState.save();
       this.tweens.add({
         targets: this.creatureImg,

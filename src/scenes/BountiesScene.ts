@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SpeciesDef } from '../data/species';
 import { EVOLUTIONS, EVOLVED_IDS } from '../data/evolutions';
 import { STAGE_THEMES, themeSpeciesPool } from '../data/stages';
+import { ChallengeDef, CHALLENGES_PER_DAY, dailyChallenges } from '../data/challenges';
 import { gameState } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { confirmDialog } from '../ui/confirm';
@@ -15,30 +16,23 @@ import { dateKey, msUntilMidnight, seededRng } from '../util/daily';
 const BASE_REWARDS = [120, 160, 200];
 const BOARD_X = 36;
 const BOARD_Y = 110;
-const BOARD_H = 1410;
-
-/** Daily challenges - tallies bumped by gameplay via gameState.bumpQuest. */
-const CHALLENGES: { id: string; stat: string; label: string; need: number; reward: number }[] = [
-  { id: 'catch5', stat: 'catches', label: 'WRANGLE ANY 5 CRITTERS', need: 5, reward: 60 },
-  { id: 'stage10', stat: 'stages', label: 'CLEAR 10 STAGES', need: 10, reward: 150 },
-  { id: 'flats2', stat: 'flats', label: 'CLEAR 2 FRONTIER FLATS STAGES', need: 2, reward: 50 },
-  { id: 'posse3', stat: 'fullPosse', label: 'FINISH A STAGE WITH ALL 3 STANDING', need: 1, reward: 80 },
-  { id: 'grass1', stat: 'grassClear', label: 'CLEAR A STAGE WITH ONLY GRASS TYPES', need: 1, reward: 80 }
-];
+const BOARD_H = 1448;
 
 /**
  * The bounty board, now a working office: the classic 3 wanted posters up
- * top (names hidden until seen), ROUNDUP CONTRACTS that take multiple
+ * top (names hidden until seen), roundup contracts that take multiple
  * critters (basics/stage-1 only, progress bar fills per turn-in, reward on
  * completion - only critters CAUGHT TODAY are accepted), and a column of
- * daily challenges fed by gameplay tallies. Everything rolls at sunup.
- * The board scrolls (drag + momentum).
+ * daily challenges picked fresh each day from the ~100-strong pool in
+ * data/challenges.ts. Everything on the board rolls at sunup. The board
+ * scrolls (drag + momentum), and claims keep your scroll position.
  */
 export class BountiesScene extends Phaser.Scene {
   private countdown!: Phaser.GameObjects.Text;
   private content!: Phaser.GameObjects.Container;
   private scrollY = 0;
   private minScroll = 0;
+  private restoreScroll = 0;
   private dragging = false;
   private dragStartY = 0;
   private scrollStart = 0;
@@ -49,6 +43,11 @@ export class BountiesScene extends Phaser.Scene {
 
   constructor() {
     super('Bounties');
+  }
+
+  /** Claim/turn-in restarts pass the scroll back so the board doesn't jump. */
+  init(data?: { scrollY?: number }): void {
+    this.restoreScroll = data?.scrollY ?? 0;
   }
 
   create(): void {
@@ -116,30 +115,20 @@ export class BountiesScene extends Phaser.Scene {
       (sp) => !picks.includes(sp) && (!EVOLVED_IDS.has(sp.id) || stage1.has(sp.id))
     );
     const contracts = contractPool.slice(0, 2);
-    const cy = BOARD_Y + 372;
-    this.content.add(
-      this.add
-        .text(width / 2, cy, 'ROUNDUP CONTRACTS', { fontFamily: FONT.display, fontSize: '24px', color: HEX.parchment })
-        .setOrigin(0.5)
-    );
+    const cy = BOARD_Y + 360;
     contracts.forEach((sp, i) => {
       const need = 2 + Math.floor(rng() * 2);
       const reward = need * 70;
       const px = BOARD_X + 23 + i * (290 + 23);
-      this.drawContract(px, cy + 26, 290, 344, sp, need, reward);
+      this.drawContract(px, cy, 290, 344, sp, need, reward);
     });
 
-    // row 3: daily challenges
-    const chY = BOARD_Y + 776;
-    this.content.add(
-      this.add
-        .text(width / 2, chY, 'DAILY CHALLENGES', { fontFamily: FONT.display, fontSize: '24px', color: HEX.parchment })
-        .setOrigin(0.5)
-    );
-    CHALLENGES.forEach((ch, i) => this.drawChallenge(ch, chY + 30 + i * 92));
+    // row 3: today's challenges, drawn fresh each day from the big pool
+    const chY = BOARD_Y + 740;
+    dailyChallenges(CHALLENGES_PER_DAY).forEach((ch, i) => this.drawChallenge(ch, chY + i * 92));
 
     // the sheriff's note, bottom left of the board
-    this.drawSheriffNote(BOARD_X + 16, BOARD_Y + BOARD_H - 128);
+    this.drawSheriffNote(BOARD_X + 16, BOARD_Y + BOARD_H - 136);
 
     const sub = this.add
       .text(width / 2, BOARD_Y + BOARD_H + 28, 'DAILY BOUNTIES POST AT SUNUP', {
@@ -157,6 +146,9 @@ export class BountiesScene extends Phaser.Scene {
     this.time.addEvent({ delay: 500, loop: true, callback: () => this.updateCountdown() });
 
     this.minScroll = Math.min(0, height - NAV_HEIGHT - (BOARD_Y + BOARD_H + 96));
+    // land back where the player was before a claim/turn-in rebuilt the board
+    this.scrollY = Phaser.Math.Clamp(this.restoreScroll, this.minScroll, 0);
+    this.content.y = this.scrollY;
     this.bindScroll();
     buildNav(this, 'bounties');
   }
@@ -364,12 +356,13 @@ export class BountiesScene extends Phaser.Scene {
         releaseCritters([candidate.uid]);
         const q2 = gameState.quests();
         q2.turnIns[sp.id] = (q2.turnIns[sp.id] ?? 0) + 1;
+        gameState.bumpQuest('turnInCount');
         if (q2.turnIns[sp.id] >= need) {
           gameState.data.currency += reward;
           sfx('clear');
         }
         gameState.save();
-        this.scene.restart();
+        this.scene.restart({ scrollY: this.scrollY });
       },
       true
     );
@@ -377,7 +370,7 @@ export class BountiesScene extends Phaser.Scene {
 
   // ---------- daily challenges ----------
 
-  private drawChallenge(ch: { id: string; stat: string; label: string; need: number; reward: number }, y: number): void {
+  private drawChallenge(ch: ChallengeDef, y: number): void {
     const { width } = this.scale;
     const q = gameState.quests();
     const have = Math.min(ch.need, q.stats[ch.stat] ?? 0);
@@ -423,7 +416,7 @@ export class BountiesScene extends Phaser.Scene {
           gameState.data.currency += ch.reward;
           gameState.save();
           sfx('coin');
-          this.scene.restart();
+          this.scene.restart({ scrollY: this.scrollY });
         }, '18px')
       );
     } else {

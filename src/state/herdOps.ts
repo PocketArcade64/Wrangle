@@ -11,5 +11,8 @@ export function releaseCritters(uids: string[]): void {
   for (const team of gameState.data.teams) {
     team.members = team.members.map((m) => (m && remaining.has(m) ? m : null));
   }
+  gameState.data.displayCritters = gameState.data.displayCritters.map((m) =>
+    m && remaining.has(m) ? m : null
+  );
   gameState.save();
 }

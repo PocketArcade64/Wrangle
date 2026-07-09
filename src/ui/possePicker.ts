@@ -4,24 +4,24 @@ import { CritterInstance, gameState } from '../state/GameState';
 import { COLORS, FONT, HEX, drawPixelPanel } from './theme';
 
 /**
- * Modal picker for a posse slot. Stays open until the X (top right) is
- * pressed or a pick is made - stray taps on the dim do NOT dismiss it.
- * Slots hold individual critters (uids): two of the same SPECIES may ride
- * together, but a critter already in ANY posse slot is excluded, so the
- * same animal can't fill two slots. CLEAR empties the slot. Returns false
- * (shows nothing) when the herd is empty.
+ * Modal critter picker. Stays open until the X (top right) is pressed or a
+ * pick is made - stray taps on the dim do NOT dismiss it. The generic core
+ * (openCritterPicker) lists individual critters minus an exclusion set and
+ * hands back the picked uid (null = CLEAR); posse slots and the profile's
+ * display slots both ride it. Returns false (shows nothing) when the herd
+ * is empty.
  */
-export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onDone: () => void): boolean {
+export function openCritterPicker(
+  scene: Phaser.Scene,
+  excluded: Set<string>,
+  onPick: (uid: string | null) => void,
+  emptyMsg: string
+): boolean {
   const { width, height } = scene.scale;
   const herd = gameState.data.herd;
   if (herd.length === 0) return false;
 
-  // critters already riding in any posse (including this slot's occupant)
-  const used = new Set<string>();
-  for (const team of gameState.data.teams) {
-    for (const m of team.members) if (m) used.add(m);
-  }
-  const available = herd.filter((c) => !used.has(c.uid));
+  const available = herd.filter((c) => !excluded.has(c.uid));
 
   const modal: Phaser.GameObjects.GameObject[] = [];
   const close = () => modal.forEach((o) => o.destroy());
@@ -49,10 +49,8 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
   modal.push(closeBtn);
 
   const pick = (uid: string | null) => {
-    gameState.data.teams[ti].members[si] = uid;
-    gameState.save();
     close();
-    onDone();
+    onPick(uid);
   };
 
   const options: (CritterInstance | null)[] = [null, ...available.slice(0, 15)];
@@ -97,7 +95,7 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
   if (available.length === 0) {
     modal.push(
       scene.add
-        .text(width / 2, 560, 'EVERY CRITTER YOU OWN IS ALREADY\nRIDING WITH A POSSE', {
+        .text(width / 2, 560, emptyMsg, {
           fontFamily: FONT.ui,
           fontSize: '18px',
           color: HEX.sage,
@@ -109,4 +107,26 @@ export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onD
   }
 
   return true;
+}
+
+/**
+ * Posse-slot picker: two of the same SPECIES may ride together, but a
+ * critter already in ANY posse slot is excluded, so the same animal can't
+ * fill two slots.
+ */
+export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onDone: () => void): boolean {
+  const used = new Set<string>();
+  for (const team of gameState.data.teams) {
+    for (const m of team.members) if (m) used.add(m);
+  }
+  return openCritterPicker(
+    scene,
+    used,
+    (uid) => {
+      gameState.data.teams[ti].members[si] = uid;
+      gameState.save();
+      onDone();
+    },
+    'EVERY CRITTER YOU OWN IS ALREADY\nRIDING WITH A POSSE'
+  );
 }
