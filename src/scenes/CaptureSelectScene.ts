@@ -214,7 +214,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     this.listContainer.y = ny;
   }
 
-  private makeCell(sp: SpeciesDef, index: number, x: number, y: number, inst?: CritterInstance): void {
+  private makeCell(sp: SpeciesDef, _index: number, x: number, y: number, inst?: CritterInstance): void {
     const caught = this.captureCount(sp.id) > 0;
     const seen = (gameState.data.seen[sp.id] ?? 0) > 0;
     // dex convention: seen reveals sprite + name; caught reveals details
@@ -222,17 +222,19 @@ export class CaptureSelectScene extends Phaser.Scene {
     const bg = this.add
       .rectangle(x, y, CELL_W - 16, CELL_H - 16, COLORS.parchmentLight)
       .setStrokeStyle(3, COLORS.saddle);
-    const numLabel =
-      this.activeTab === 'tally'
-        ? `#${String(SPECIES.indexOf(sp) + 1).padStart(3, '0')}`
-        : `#${index + 1}`;
     const cellTop = y - (CELL_H - 16) / 2;
-    const num = this.add.text(x - (CELL_W - 16) / 2 + 8, cellTop + 6, numLabel, {
-      fontFamily: FONT.ui,
-      fontSize: '18px',
-      color: HEX.saddle
-    });
-    // sprite fills the band between the dex number and the name, with a
+    // dex numbers belong to the ledger only - herd cells stay clean
+    const parts: Phaser.GameObjects.GameObject[] = [bg];
+    if (this.activeTab === 'tally') {
+      parts.push(
+        this.add.text(x - (CELL_W - 16) / 2 + 8, cellTop + 6, `#${String(SPECIES.indexOf(sp) + 1).padStart(3, '0')}`, {
+          fontFamily: FONT.ui,
+          fontSize: '18px',
+          color: HEX.saddle
+        })
+      );
+    }
+    // sprite fills the band between the top strip and the name, with a
     // little room above and below
     const numBottom = cellTop + 28;
     const nameTop = y + 46;
@@ -254,7 +256,7 @@ export class CaptureSelectScene extends Phaser.Scene {
     // types shown as the badge art. INTEGER scale (x2 = 92px) at integer
     // positions - fractional scaling made the badge pixels render slightly
     // differently per column (the "thick W" artifact).
-    const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name];
+    parts.push(img, name);
     if (inst) {
       // the individual's battle level, centered above the sprite
       parts.push(

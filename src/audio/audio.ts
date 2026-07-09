@@ -130,7 +130,9 @@ export type SfxName =
   | 'fail'
   | 'boss'
   | 'punch'
-  | 'spin';
+  | 'spin'
+  | 'showtime'
+  | 'notch';
 
 /** Fire-and-forget synthesized effect. Safe to call before unlock (no-op). */
 export function sfx(name: SfxName): void {
@@ -256,6 +258,26 @@ export function sfx(name: SfxName): void {
       break;
     case 'spin':
       tone(600, 0.04, { vol: 0.05 });
+      break;
+    case 'showtime':
+      // entering the lasso minigame: a whip crack into a quick western
+      // bugle lick - "da-da-da-DAA, da-DAAA" over a trotting bass
+      noise(0.08, { freq: 3600, slide: 0.25, vol: 0.11 });
+      tone(392, 0.07, { at: t + 0.02, vol: 0.1 });
+      tone(494, 0.07, { at: t + 0.1, vol: 0.1 });
+      tone(587, 0.07, { at: t + 0.18, vol: 0.11 });
+      tone(784, 0.11, { at: t + 0.26, vol: 0.12 });
+      tone(659, 0.07, { at: t + 0.38, vol: 0.1 });
+      tone(784, 0.24, { at: t + 0.46, vol: 0.13 });
+      tone(196, 0.2, { wave: 'triangle', at: t + 0.02, vol: 0.1 });
+      tone(147, 0.14, { wave: 'triangle', at: t + 0.26, vol: 0.09 });
+      tone(196, 0.3, { wave: 'triangle', at: t + 0.46, vol: 0.1 });
+      break;
+    case 'notch':
+      // the fortune wheel's pointer clacking over a rim stud - short
+      // woodblock knock, fired once per wedge boundary while spinning
+      tone(880, 0.03, { wave: 'square', slide: 0.85, vol: 0.05 });
+      noise(0.025, { freq: 2600, slide: 0.6, vol: 0.035 });
       break;
   }
 }

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { gameState } from '../state/GameState';
+import { sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
@@ -100,6 +101,7 @@ export class PlayerScene extends Phaser.Scene {
         .setStrokeStyle(3, COLORS.saddle)
         .setInteractive({ useHandCursor: true })
         .on('pointerup', () => {
+          sfx('ui');
           const other = gameState.data.displayCritters[1 - i];
           const excluded = new Set<string>(other ? [other] : []);
           openCritterPicker(

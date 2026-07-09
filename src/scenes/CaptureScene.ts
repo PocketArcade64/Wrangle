@@ -350,7 +350,6 @@ export class CaptureScene extends Phaser.Scene {
       // bounty board daily tallies
       gameState.bumpQuest('catches');
       gameState.bumpQuest('goldEarned', CAPTURE_REWARD);
-      gameState.bumpQuest(`catchSpecies_${this.species.id}`);
       for (const t of [this.species.type1, this.species.type2]) {
         if (t) gameState.bumpQuest(`catchType_${t}`);
       }

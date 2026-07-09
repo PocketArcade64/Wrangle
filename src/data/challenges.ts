@@ -8,18 +8,21 @@ import { dateKey, seededRng } from '../util/daily';
  * The daily-challenge pool for the bounty board. Challenges are generated
  * from templates against what the player can ACTUALLY find (the union of
  * every unlocked theme's species pool), so nothing impossible is ever
- * posted: no Fire-type challenges while no unlocked map spawns Fire, no
- * "wrangle a Flambaa" until a map carries one. As new maps/areas unlock,
- * the pool grows on its own.
+ * posted: no Fire-type challenges while no unlocked map spawns Fire. As
+ * new maps/areas unlock, the pool grows on its own.
  *
- * Current pool size with the Frontier Flats data: ~107 challenges
- * (4 any-catch + 12 type-catch + 40 species-catch + 4 stage + 2 region +
- * 18 themed clears + 3 full-posse + 6 mono-type + 3 knockout + 3 boss +
- * 3 level-up + 3 gold + 2 clean-rope + 2 turn-in + rare + boss-lasso).
+ * NO species-specific challenges here by design - hunting one particular
+ * critter is the posters' and roundup contracts' job on the upper board.
+ * This section stays gameplay/stage flavored.
+ *
+ * Current pool size with the Frontier Flats data: ~67 challenges
+ * (4 any-catch + 12 type-catch + 4 stage + 2 region + 18 themed clears +
+ * 3 full-posse + 6 mono-type + 3 knockout + 3 boss + 3 level-up +
+ * 3 gold + 2 clean-rope + 2 turn-in + rare + boss-lasso).
  *
  * Every `stat` key is a gameState.quests() day tally bumped by gameplay:
- *   CaptureScene: catches, catchType_<T>, catchSpecies_<id>, rareCatch,
- *                 bossCatch, cleanCatch, goldEarned
+ *   CaptureScene: catches, catchType_<T>, rareCatch, bossCatch,
+ *                 cleanCatch, goldEarned
  *   StageScene:   stages, flats, clearTheme_<id>, fullPosse,
  *                 monoClear_<T>, kos, bosses, levelUps, goldEarned
  *   BountiesScene: turnInCount
@@ -95,28 +98,7 @@ export function challengePool(): ChallengeDef[] {
     });
   }
 
-  // 3) specific species (findable basics only)
-  for (const sp of basics) {
-    const n = sp.name.toUpperCase();
-    pool.push({
-      id: `csp-${sp.id}-1`,
-      stat: `catchSpecies_${sp.id}`,
-      label: `WRANGLE A ${n}`,
-      need: 1,
-      reward: 45,
-      family: 'cspecies'
-    });
-    pool.push({
-      id: `csp-${sp.id}-2`,
-      stat: `catchSpecies_${sp.id}`,
-      label: `WRANGLE 2 ${n}`,
-      need: 2,
-      reward: 85,
-      family: 'cspecies'
-    });
-  }
-
-  // 4) stage clears
+  // 3) stage clears
   ([
     [2, 40],
     [3, 60],
@@ -126,7 +108,7 @@ export function challengePool(): ChallengeDef[] {
     pool.push({ id: `stage${need}`, stat: 'stages', label: `CLEAR ${need} STAGES`, need, reward, family: 'stage' })
   );
 
-  // 5) region clears (this map IS Frontier Flats)
+  // 4) region clears (this map IS Frontier Flats)
   ([
     [2, 50],
     [4, 90]
@@ -134,7 +116,7 @@ export function challengePool(): ChallengeDef[] {
     pool.push({ id: `flats${need}`, stat: 'flats', label: `CLEAR ${need} FRONTIER FLATS STAGES`, need, reward, family: 'region' })
   );
 
-  // 6) themed clears, all six trail flavors
+  // 5) themed clears, all six trail flavors
   for (const th of Object.values(STAGE_THEMES)) {
     ([
       [1, 45],
@@ -152,7 +134,7 @@ export function challengePool(): ChallengeDef[] {
     );
   }
 
-  // 7) full-posse finishes
+  // 6) full-posse finishes
   ([
     [1, 80],
     [2, 130],
@@ -168,7 +150,7 @@ export function challengePool(): ChallengeDef[] {
     })
   );
 
-  // 8) mono-type clears - only when 2+ findable basics carry the type
+  // 7) mono-type clears - only when 2+ findable basics carry the type
   for (const t of types) {
     if ((typeCounts.get(t) ?? 0) < 2) continue;
     const shown = badgeName(t).toUpperCase();
@@ -182,7 +164,7 @@ export function challengePool(): ChallengeDef[] {
     });
   }
 
-  // 9) knockouts
+  // 8) knockouts
   ([
     [10, 45],
     [20, 75],
@@ -191,7 +173,7 @@ export function challengePool(): ChallengeDef[] {
     pool.push({ id: `kos${need}`, stat: 'kos', label: `DEFEAT ${need} WILD CRITTERS`, need, reward, family: 'kos' })
   );
 
-  // 10) bosses
+  // 9) bosses
   ([
     [1, 55],
     [2, 95],
@@ -207,7 +189,7 @@ export function challengePool(): ChallengeDef[] {
     })
   );
 
-  // 11) level-ups
+  // 10) level-ups
   ([
     [1, 40],
     [3, 75],
@@ -223,7 +205,7 @@ export function challengePool(): ChallengeDef[] {
     })
   );
 
-  // 12) gold earned wrangling (trail kills, clears, capture pay)
+  // 11) gold earned wrangling (trail kills, clears, capture pay)
   ([
     [50, 40],
     [120, 70],
@@ -239,7 +221,7 @@ export function challengePool(): ChallengeDef[] {
     })
   );
 
-  // 13) one-offs: rare lassos + clean-rope wins + roundup turn-ins
+  // 12) one-offs: rare lassos + clean-rope wins + roundup turn-ins
   pool.push({ id: 'rare1', stat: 'rareCatch', label: 'WRANGLE A RARE EVOLVED CRITTER', need: 1, reward: 150, family: 'rare' });
   pool.push({ id: 'bosscatch1', stat: 'bossCatch', label: 'LASSO A TRAIL BOSS', need: 1, reward: 120, family: 'rare' });
   ([

@@ -407,13 +407,18 @@ export interface TroupeOpts {
   /** Feet baselines for the two depth lanes. */
   frontY: number;
   backY: number;
-  /** Critter display sizes (px) per lane - back is smaller = farther. */
-  frontSize: number;
-  backSize: number;
+  /**
+   * INTEGER sprite scales per lane (pixel discipline) - back is smaller =
+   * farther. 2/1 makes an 80px critter 160px up close, 80px in the back.
+   */
+  frontScale: number;
+  backScale: number;
   /** Layer for the front lane (draw AFTER the mid-ground props). */
   frontLayer: Phaser.GameObjects.Container;
   /** Layer for the back lane (draw BEFORE the mid-ground props). */
   backLayer: Phaser.GameObjects.Container;
+  /** Flat feet shadows - pass false at night (no sun, no shadows). */
+  shadows?: boolean;
   /** Home mode: the pair wander over to greet each other now and then. */
   interact?: boolean;
 }
@@ -441,16 +446,12 @@ export class WalkerTroupe {
     return lane === 'front' ? this.opts.frontY : this.opts.backY;
   }
 
-  private laneSize(lane: Lane): number {
-    return lane === 'front' ? this.opts.frontSize : this.opts.backSize;
+  private laneScale(lane: Lane): number {
+    return lane === 'front' ? this.opts.frontScale : this.opts.backScale;
   }
 
   private layer(lane: Lane): Phaser.GameObjects.Container {
     return lane === 'front' ? this.opts.frontLayer : this.opts.backLayer;
-  }
-
-  private scaleFor(w: Walker, lane: Lane): number {
-    return this.laneSize(lane) / Math.max(w.img.width, w.img.height);
   }
 
   /** Schedule a callback that dies quietly if the walker gets hijacked. */
@@ -467,12 +468,14 @@ export class WalkerTroupe {
     const key = this.scene.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
     const x = Math.round(left + 50 + Math.random() * (right - left - 100));
     const img = this.scene.add.image(x, this.laneY(lane), key).setOrigin(0.5, 1);
+    img.setScale(this.laneScale(lane));
+    // feet shadow: sized to the sprite, tucked slightly under the toes;
+    // invisible when shadows are off (night - no sun, no shadows)
     const shadow = this.scene.add
-      .rectangle(x, this.laneY(lane), Math.round(this.opts.frontSize * 0.66), 6, COLORS.ink, 0.16)
+      .rectangle(x, this.laneY(lane) - 4, Math.round(img.width * 0.6), 6, COLORS.ink, this.opts.shadows === false ? 0 : 0.16)
       .setOrigin(0.5, 0.5);
+    shadow.setScale(this.laneScale(lane), 1);
     const w: Walker = { img, shadow, lane, busy: false, seq: 0 };
-    img.setScale(this.scaleFor(w, lane));
-    shadow.setScale(lane === 'front' ? 1 : 0.62, 1);
     this.layer(lane).add([shadow, img]);
     this.walkers.push(w);
     this.later(w, 300 + Math.random() * 1200, () => this.next(w));
@@ -517,8 +520,8 @@ export class WalkerTroupe {
         targets: w.img,
         x: targetX,
         y: this.laneY(toLane),
-        scaleX: this.scaleFor(w, toLane),
-        scaleY: this.scaleFor(w, toLane),
+        scaleX: this.laneScale(toLane),
+        scaleY: this.laneScale(toLane),
         duration,
         onComplete: () => {
           if (w.seq === s) done();
@@ -527,8 +530,8 @@ export class WalkerTroupe {
       w.shadowTween = this.scene.tweens.add({
         targets: w.shadow,
         x: targetX,
-        y: this.laneY(toLane),
-        scaleX: toLane === 'front' ? 1 : 0.62,
+        y: this.laneY(toLane) - 4,
+        scaleX: this.laneScale(toLane),
         duration
       });
     } else {
@@ -598,7 +601,7 @@ export class WalkerTroupe {
     w.img.y = baseY;
     this.scene.tweens.add({
       targets: w.img,
-      y: baseY - (w.lane === 'front' ? 26 : 16),
+      y: baseY - (w.lane === 'front' ? 30 : 18),
       duration: 170,
       yoyo: true,
       repeat: 1,
@@ -622,10 +625,10 @@ export class WalkerTroupe {
       w.shadowTween?.remove();
       w.bobTween = undefined;
       // normalize in case a lane-transition glide was interrupted mid-tween
-      w.img.setScale(this.scaleFor(w, 'front'));
+      w.img.setScale(this.laneScale('front'));
       w.img.y = this.laneY('front');
-      w.shadow.setPosition(w.img.x, this.laneY('front'));
-      w.shadow.setScale(1, 1);
+      w.shadow.setPosition(w.img.x, this.laneY('front') - 4);
+      w.shadow.setScale(this.laneScale('front'), 1);
     }
 
     const { left, right } = this.opts;

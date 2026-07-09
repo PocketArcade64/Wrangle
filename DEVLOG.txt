@@ -5,6 +5,59 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4i] 2026-07-08 - Feedback round: sounds, showdown pen, drifter XP
+----------------------------------------------------------------------
+- CHALLENGES: species-catch templates REMOVED per feedback (hunting a
+  specific critter is the posters'/contracts' job on the upper board)
+  - the bottom section stays gameplay/stage flavored. Pool ~107 -> ~67.
+- NEW 'showtime' SFX: defeating a critter and dropping into the lasso
+  minigame now fires a whip crack into a quick western bugle lick
+  ("da-da-da-DAA, da-DAAA" over a trotting triangle bass). Plays in
+  StageScene right as the Capture scene takes over.
+- NEW 'notch' SFX: the fortune wheel clacks a woodblock knock at every
+  wedge boundary while spinning (onUpdate counts PI/4 crossings) - the
+  ticks decelerate with the wheel, prize-booth style.
+- HERD GRID: the #1/#2 cell numbers are GONE from MY HERD (they were
+  herd-array indices, meaningless); the ledger keeps its dex #001s.
+- TITLE: clay bar under the logo removed (subtitle moved up to fill).
+- WALKERS BIGGER + GROUNDED (both screens): lanes now use INTEGER
+  scales - front x2 (80px art = 160px, like the old diorama lead),
+  back x1 - and the feet shadow is sized to the sprite (0.6x width),
+  tucked 4px under the toes, and NOT DRAWN AT NIGHT (no sun, no
+  shadows; the shadows opt in vignette.ts).
+- DISPLAY SLOTS "don't work" REPORT: couldn't reproduce a fault by
+  inspection (same interactive-rect pattern as the working posse
+  pickers). Most likely cause: with an EMPTY/1-critter herd the picker
+  silently refused to open. Fixed properly: openCritterPicker now
+  ALWAYS opens - an empty herd shows "YOUR HERD IS EMPTY - GO WRANGLE
+  SOME CRITTERS FIRST", exclusions show their own line - and slot taps
+  click ('ui'). Posse callers keep their old empty-herd fallback.
+  IF IT STILL DEAD-TAPS: report whether the modal appears at all.
+- TEST WRANGLE MOVED TO THE DEV MENU: the ledger button is gone; DEV
+  MENU gains "TEST WRANGLE A CRITTER" -> new DevWrangleScene (every
+  species in a scrolling grid, tap one to jump into its capture).
+  Registered in main.ts. Players now only catch critters on the trail
+  - the onboarding gap now NEEDS the starter flow soon.
+- DRIFTER XP IS REAL: stage clears award PLAYER_XP_PER_CLEAR (40,
+  knob in StageScene) via new gameState.addPlayerXp(); every drifter
+  level gained pays PLAYER_LEVEL_GOLD (100, knob in GameState.ts).
+  The clear overlay now reads "+N GOLD - +40 DRIFTER XP" plus a
+  "DRIFTER LEVEL n! +100 GOLD" line when you level. Home's player row
+  XP bar was already live - it fills for real now.
+- SHOWDOWN PEN (Pokemon Rumble style): the trail's end is now a
+  CIRCULAR ARENA - row half-widths trace a circle (R 300) around the
+  boss at (360, 430), COMPLETELY SEALED above the dome (solid wall
+  rows), entered through a 300px-wide neck below that blends back
+  into the winding trail over 140px. Knobs: ARENA_CX/CY/R, NECK_HALF/
+  END/BLEND in StageScene. Wall renderer paints sealed rows straight
+  across; speckle/props skip sliver rows; tumbleweeds won't spawn on
+  sealed rows during the boss fight. Old "boss bulge" formula removed.
+- STATUS: playtest the showdown pen shape + boss fight inside it,
+  the lasso-entry jingle + wheel ticks, bigger walkers + night (no
+  shadows), display slot taps (report if the modal still won't open),
+  dev-menu test wrangles, and drifter XP pacing (40/clear, 100 gold
+  per level - both one-line knobs).
+----------------------------------------------------------------------
 [M4h] 2026-07-08 - Living title/home vistas, 107-challenge board
 ----------------------------------------------------------------------
 - BOUNTY BOARD: "ROUNDUP CONTRACTS" and "DAILY CHALLENGES" heading

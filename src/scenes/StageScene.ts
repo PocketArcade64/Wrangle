@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SpeciesDef, speciesById } from '../data/species';
 import { generateStage, StageDef, StageTheme, STAGE_THEMES, STAGE_LENGTH } from '../data/stages';
-import { CritterInstance, gameState } from '../state/GameState';
+import { CritterInstance, gameState, PLAYER_LEVEL_GOLD } from '../state/GameState';
 import { badgeName, effectiveness } from '../data/typeChart';
 import { BattleStats, battleStats, wildStats, damageRoll, xpFromKill, applyXp } from '../battle/stats';
 import { cooldownMs, MoveDef, movesForSpecies } from '../battle/moves';
@@ -19,6 +19,16 @@ const DASH_MS = 170;
 const DASH_CD = 600;
 const CAPTURE_CHANCE = 0.2;
 const MISS_CHANCE = 0.45;
+// Rumble-style showdown arena at the trail's end: a circular pen around
+// the boss, fully closed above, entered through a neck from below.
+const ARENA_CX = 360;
+const ARENA_CY = 430;
+const ARENA_R = 300;
+const NECK_HALF = 150;
+const NECK_END = 880;
+const NECK_BLEND = 140;
+/** Drifter XP the player earns per stage cleared. */
+const PLAYER_XP_PER_CLEAR = 40;
 
 interface PathRow {
   cx: number;
@@ -332,9 +342,10 @@ export class StageScene extends Phaser.Scene {
     const wpCount = Math.ceil(STAGE_LENGTH / wpGap) + 2;
     const wx: number[] = [];
     for (let i = 0; i < wpCount; i++) wx.push(230 + rng() * 260);
-    // straight, centered stretches at the boss (top) and the start (bottom)
-    wx[0] = 360;
-    wx[1] = 360;
+    // straight, centered runs into the arena (top) and at the start (bottom)
+    wx[0] = ARENA_CX;
+    wx[1] = ARENA_CX;
+    wx[2] = ARENA_CX;
     wx[wpCount - 1] = 360;
     wx[wpCount - 2] = 360;
     for (let r = 0; r < rows; r++) {
@@ -346,9 +357,30 @@ export class StageScene extends Phaser.Scene {
       const smooth = t * t * (3 - 2 * t);
       let cx = wx[i0] + (wx[i1] - wx[i0]) * smooth;
       let half = 200 + Math.sin(y * 0.0045) * 26;
-      if (y < 760) half = Math.min(320, half + (760 - y) * 0.16); // boss arena bulge
+      // THE SHOWDOWN PEN (Pokemon Rumble style): the trail's end is a
+      // circular arena around the boss - the row half-widths trace a
+      // circle, sealed shut above the dome, opened by an entrance neck
+      // below that blends back into the winding trail.
+      if (y < ARENA_CY - ARENA_R) {
+        cx = ARENA_CX;
+        half = 0; // solid wall above the arena - no way around
+      } else if (y <= ARENA_CY + ARENA_R) {
+        cx = ARENA_CX;
+        const dy = y - ARENA_CY;
+        const circle = Math.sqrt(Math.max(0, ARENA_R * ARENA_R - dy * dy));
+        // sub-24px dome slivers read as wall; below center the neck keeps
+        // the entrance from pinching shut
+        half = dy > 0 ? Math.max(circle, NECK_HALF) : circle < 24 ? 0 : circle;
+      } else if (y <= NECK_END) {
+        cx = ARENA_CX;
+        half = NECK_HALF;
+      } else if (y <= NECK_END + NECK_BLEND) {
+        const bt = (y - NECK_END) / NECK_BLEND;
+        cx = ARENA_CX + (cx - ARENA_CX) * bt;
+        half = NECK_HALF + (half - NECK_HALF) * bt;
+      }
       cx = Phaser.Math.Clamp(cx, half + 20, WORLD_W - half - 20);
-      const jitter = (r * 2654435761) % 3 === 0 ? 8 : 0;
+      const jitter = half > 0 && (r * 2654435761) % 3 === 0 ? 8 : 0;
       this.path.push({ cx, half, jitter });
     }
   }
@@ -378,6 +410,12 @@ export class StageScene extends Phaser.Scene {
     for (let r = 0; r < rows; r++) {
       const y = r * ROW_H;
       const row = this.path[r];
+      if (row.half <= 0) {
+        // sealed ground above the showdown pen - wall straight across
+        g.fillStyle(t.wall);
+        g.fillRect(0, y, WORLD_W, ROW_H);
+        continue;
+      }
       const lx = Math.floor((row.cx - row.half + row.jitter) / 8) * 8;
       const rx = Math.ceil((row.cx + row.half - row.jitter) / 8) * 8;
       g.fillStyle(t.ground);
@@ -396,11 +434,12 @@ export class StageScene extends Phaser.Scene {
       g.fillRect(rx - 2, y, 2, ROW_H);
     }
 
-    // ground speckle inside the corridor
+    // ground speckle inside the corridor (skip sealed/sliver rows)
     g.fillStyle(t.groundDark);
     for (let i = 0; i < 420; i++) {
       const y = Math.floor(rng() * STAGE_LENGTH);
       const row = this.rowAt(y);
+      if (row.half < 40) continue;
       const x = row.cx - row.half + 20 + rng() * (row.half * 2 - 40);
       g.fillRect(Math.floor(x / 4) * 4, Math.floor(y / 4) * 4, 4, 4);
     }
@@ -410,7 +449,7 @@ export class StageScene extends Phaser.Scene {
       const row = this.rowAt(y);
       this.drawWallDecor(g, row.cx - row.half - 26, y + rng() * 60, rng);
       this.drawWallDecor(g, row.cx + row.half + 26, y + 40 + rng() * 60, rng);
-      if (rng() < 0.7) {
+      if (row.half >= 120 && rng() < 0.7) {
         const side = rng() < 0.5 ? row.cx - row.half + 48 + rng() * 40 : row.cx + row.half - 48 - rng() * 40;
         this.drawProp(g, side, y + rng() * 80, rng);
       }
@@ -585,7 +624,7 @@ export class StageScene extends Phaser.Scene {
         this.spawnEnemy(spId, cx + ox + rng() * 20 - 10, grp.y + oy, grp.level, gi, false, isRare);
       }
     });
-    this.spawnEnemy(this.def.bossId, this.rowAt(430).cx, 430, this.def.bossLevel, this.def.groups.length, true, false);
+    this.spawnEnemy(this.def.bossId, this.rowAt(ARENA_CY).cx, ARENA_CY, this.def.bossLevel, this.def.groups.length, true, false);
   }
 
   private spawnEnemy(spId: string, x: number, y: number, level: number, group: number, boss: boolean, rare: boolean): void {
@@ -1202,15 +1241,18 @@ export class StageScene extends Phaser.Scene {
       if (kind === 'tumbleweed') {
         const y = py - 320 - Math.random() * 160;
         const row = this.rowAt(y);
-        const fromLeft = Math.random() < 0.5;
-        this.weeds.push({
-          x: fromLeft ? row.cx - row.half + 10 : row.cx + row.half - 10,
-          y,
-          vx: (fromLeft ? 1 : -1) * (160 + Math.random() * 60),
-          spin: 0,
-          hit: false,
-          gone: false
-        });
+        // no weeds across the sealed rows above the showdown pen
+        if (row.half >= 80) {
+          const fromLeft = Math.random() < 0.5;
+          this.weeds.push({
+            x: fromLeft ? row.cx - row.half + 10 : row.cx + row.half - 10,
+            y,
+            vx: (fromLeft ? 1 : -1) * (160 + Math.random() * 60),
+            spin: 0,
+            hit: false,
+            gone: false
+          });
+        }
       } else {
         this.drops.push({
           x: this.playerImg.x + Math.random() * 120 - 60,
@@ -1672,6 +1714,7 @@ export class StageScene extends Phaser.Scene {
         if (this.over) return;
         if (e.boss) this.pendingClear = true;
         stopMusic();
+        sfx('showtime'); // the whip-crack bugle lick: lasso time
         this.scene.run('Capture', { speciesId: e.sp.id, fromStage: true, themeId: this.theme.id, boss: e.boss });
         this.scene.bringToTop('Capture');
         this.scene.sleep();
@@ -1733,7 +1776,7 @@ export class StageScene extends Phaser.Scene {
       for (const e of this.enemies) if (e.group === gi) ids.add(e.sp.id);
       for (const id of ids) this.noteSeen(id);
     });
-    if (!this.bossRevealed && py < 430 + 1000) {
+    if (!this.bossRevealed && py < ARENA_CY + 1000) {
       this.bossRevealed = true;
       this.noteSeen(this.def.bossId);
       playMusic('showdown');
@@ -1964,8 +2007,15 @@ export class StageScene extends Phaser.Scene {
       }
     }
     for (const t of shared) gameState.bumpQuest(`monoClear_${t}`);
+    // drifter XP: clearing trails is how the player themselves levels up
+    const drifterUps = gameState.addPlayerXp(PLAYER_XP_PER_CLEAR);
     gameState.save();
-    this.endOverlay('TRAIL CLEARED!', `+${this.goldEarned} GOLD EARNED`, HEX.brass);
+    this.endOverlay(
+      'TRAIL CLEARED!',
+      `+${this.goldEarned} GOLD - +${PLAYER_XP_PER_CLEAR} DRIFTER XP`,
+      HEX.brass,
+      drifterUps > 0 ? `DRIFTER LEVEL ${gameState.data.playerLevel}! +${drifterUps * PLAYER_LEVEL_GOLD} GOLD` : undefined
+    );
   }
 
   private stageFail(): void {
@@ -1985,7 +2035,7 @@ export class StageScene extends Phaser.Scene {
     this.scene.start('Map');
   }
 
-  private endOverlay(title: string, sub: string, subColor: string): void {
+  private endOverlay(title: string, sub: string, subColor: string, extra?: string): void {
     const { width, height } = this.scale;
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.65);
     this.add
@@ -1994,6 +2044,11 @@ export class StageScene extends Phaser.Scene {
     this.add
       .text(width / 2, height * 0.4 + 64, sub, { fontFamily: FONT.ui, fontSize: '20px', color: subColor })
       .setOrigin(0.5);
+    if (extra) {
+      this.add
+        .text(width / 2, height * 0.4 + 102, extra, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.brass })
+        .setOrigin(0.5);
+    }
     makeButton(this, width / 2, height * 0.6, 320, 70, 'BACK TO MAP', () => this.scene.start('Map'), '20px');
   }
 }

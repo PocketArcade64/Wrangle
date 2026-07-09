@@ -32,6 +32,9 @@ export function xpForNextLevel(level: number): number {
   return 100 + (level - 1) * 50;
 }
 
+/** Gold paid out per drifter (player) level gained - placeholder reward. */
+export const PLAYER_LEVEL_GOLD = 100;
+
 /** A saved exploration pin - its seed regenerates the exact same stage. */
 export interface StagePin {
   cellX: number;
@@ -216,6 +219,23 @@ class GameStateStore {
     const q = this.quests();
     q.stats[stat] = (q.stats[stat] ?? 0) + n;
     this.save();
+  }
+
+  /**
+   * Award drifter XP (stage clears feed this). Every level gained pays
+   * PLAYER_LEVEL_GOLD. Returns how many levels were gained.
+   */
+  addPlayerXp(amount: number): number {
+    this.data.playerXp += amount;
+    let ups = 0;
+    while (this.data.playerXp >= xpForNextLevel(this.data.playerLevel)) {
+      this.data.playerXp -= xpForNextLevel(this.data.playerLevel);
+      this.data.playerLevel++;
+      ups++;
+      this.data.currency += PLAYER_LEVEL_GOLD;
+    }
+    this.save();
+    return ups;
   }
 
   /** Regenerate 1 stamina per hour offline/online, up to the cap. */

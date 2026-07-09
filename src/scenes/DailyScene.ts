@@ -269,11 +269,21 @@ export class DailyScene extends Phaser.Scene {
     // land wedge idx under the top pointer after 4 extra full turns
     const wanted = -((idx * Math.PI) / 4);
     const delta = Phaser.Math.Angle.Normalize(wanted - rot);
+    // the pointer clacks over a rim stud at every wedge boundary - the
+    // ticks slow with the wheel for that prize-booth deceleration feel
+    let notches = 0;
     this.tweens.add({
       targets: this.wheel,
       rotation: rot + delta + Math.PI * 8,
       duration: 3200,
       ease: 'Cubic.easeOut',
+      onUpdate: () => {
+        const passed = Math.floor((this.wheel.rotation - rot) / (Math.PI / 4));
+        if (passed > notches) {
+          notches = passed;
+          sfx('notch');
+        }
+      },
       onComplete: () => {
         const reward = table[idx];
         gameState.data.currency += reward;

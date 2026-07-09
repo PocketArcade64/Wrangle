@@ -8,8 +8,8 @@ import { COLORS, FONT, HEX, drawPixelPanel } from './theme';
  * pick is made - stray taps on the dim do NOT dismiss it. The generic core
  * (openCritterPicker) lists individual critters minus an exclusion set and
  * hands back the picked uid (null = CLEAR); posse slots and the profile's
- * display slots both ride it. Returns false (shows nothing) when the herd
- * is empty.
+ * display slots both ride it. An empty herd still opens the modal with a
+ * clear message - a tap should never silently do nothing.
  */
 export function openCritterPicker(
   scene: Phaser.Scene,
@@ -19,7 +19,6 @@ export function openCritterPicker(
 ): boolean {
   const { width, height } = scene.scale;
   const herd = gameState.data.herd;
-  if (herd.length === 0) return false;
 
   const available = herd.filter((c) => !excluded.has(c.uid));
 
@@ -95,7 +94,7 @@ export function openCritterPicker(
   if (available.length === 0) {
     modal.push(
       scene.add
-        .text(width / 2, 560, emptyMsg, {
+        .text(width / 2, 560, herd.length === 0 ? 'YOUR HERD IS EMPTY -\nGO WRANGLE SOME CRITTERS FIRST' : emptyMsg, {
           fontFamily: FONT.ui,
           fontSize: '18px',
           color: HEX.sage,
@@ -115,6 +114,8 @@ export function openCritterPicker(
  * fill two slots.
  */
 export function openPossePicker(scene: Phaser.Scene, ti: number, si: number, onDone: () => void): boolean {
+  // posse callers show their own "wrangle some critters first" fallback
+  if (gameState.data.herd.length === 0) return false;
   const used = new Set<string>();
   for (const team of gameState.data.teams) {
     for (const m of team.members) if (m) used.add(m);

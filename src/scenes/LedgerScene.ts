@@ -123,11 +123,8 @@ export class LedgerScene extends Phaser.Scene {
       'Range unknown. Habitat notes will be inked in once the frontier map is charted.'
     ]);
 
-    // temporary testing entry point into the capture mini-game
-    makeButton(this, width / 2, pgY + pgH - 64, 340, 70, 'TEST WRANGLE', () =>
-      this.scene.start('Capture', { speciesId: sp.id })
-    , '20px');
-
+    // (TEST WRANGLE moved to the dev menu's wrangle submenu - real
+    // captures come from encounters out on the trail)
     buildNav(this, 'collection');
   }
 

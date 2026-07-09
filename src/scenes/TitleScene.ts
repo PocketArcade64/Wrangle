@@ -49,12 +49,13 @@ export class TitleScene extends Phaser.Scene {
     new WalkerTroupe(this, pool.slice(0, 3), {
       left: 0,
       right: width,
-      frontY: height - 120,
+      frontY: height - 110,
       backY: horizonY + 44,
-      frontSize: 96,
-      backSize: 60,
+      frontScale: 2,
+      backScale: 1,
       frontLayer,
-      backLayer
+      backLayer,
+      shadows: look.phase !== 'night'
     });
 
     // the hand-made logo, full width: 216x107 at x3 integer scale = 648px
@@ -74,10 +75,8 @@ export class TitleScene extends Phaser.Scene {
         .setLetterSpacing(4);
     }
 
-    // single clay accent under the brand
-    this.add.rectangle(width / 2, logoCy + 186, 250, 8, COLORS.clay);
     this.add
-      .text(width / 2, logoCy + 224, "a frontier lasso-'em-up", {
+      .text(width / 2, logoCy + 210, "a frontier lasso-'em-up", {
         fontFamily: FONT.ui,
         fontSize: '20px',
         color: look.darkText ? HEX.saddle : HEX.parchment

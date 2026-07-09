@@ -78,6 +78,7 @@ export class DevScene extends Phaser.Scene {
         gameState.save();
         this.say('PUNCH + FREE SPIN RESET');
       }],
+      ['TEST WRANGLE A CRITTER', () => this.scene.start('DevWrangle')],
       ['WIPE SAVE + RESTART', () => {
         confirmDialog(this, 'WIPE SAVE?', 'The whole save is erased and the game restarts.', 'WIPE', () =>
           gameState.hardReset()

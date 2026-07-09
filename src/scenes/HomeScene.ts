@@ -232,12 +232,13 @@ export class HomeScene extends Phaser.Scene {
     new WalkerTroupe(this, this.displayPair(), {
       left: inX + 10,
       right: inX + inW - 10,
-      frontY: bottomY - 24,
-      backY: horizonY + 20,
-      frontSize: 88,
-      backSize: 54,
+      frontY: bottomY - 20,
+      backY: horizonY + 24,
+      frontScale: 2,
+      backScale: 1,
       frontLayer,
       backLayer,
+      shadows: look.phase !== 'night',
       interact: true
     });
 
