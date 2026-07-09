@@ -1,4 +1,5 @@
 import creaturesCsv from './creatures.csv?raw';
+import { generateBaseStats } from './statGen';
 
 export type MovementPattern = 'graze' | 'flee' | 'charge';
 export type AttackPattern = 'none' | 'radial';
@@ -144,17 +145,20 @@ function buildSpecies(): SpeciesDef[] {
       throw new Error(`creatures.csv (${id}): atkStyle must be one of ${ATK_STYLES.join(' / ')}`);
     }
 
+    // blank CSV stat cells get deterministic generated spreads (evolution
+    // stage totals + archetype leans - see statGen.ts); filled cells win
+    const gen = generateBaseStats(id, get(r, 'type1') || undefined, get(r, 'type2') || undefined, movement, atkStyle);
     species.push({
       id,
       name: name || id.toUpperCase(),
       type1: get(r, 'type1') || undefined,
       type2: get(r, 'type2') || undefined,
-      hp: optNum(r, 'hp'),
-      attack: optNum(r, 'attack'),
-      defense: optNum(r, 'defense'),
-      spAttack: optNum(r, 'spAttack'),
-      spDefense: optNum(r, 'spDefense'),
-      speed: optNum(r, 'speed'),
+      hp: optNum(r, 'hp') ?? gen.hp,
+      attack: optNum(r, 'attack') ?? gen.attack,
+      defense: optNum(r, 'defense') ?? gen.defense,
+      spAttack: optNum(r, 'spAttack') ?? gen.spAttack,
+      spDefense: optNum(r, 'spDefense') ?? gen.spDefense,
+      speed: optNum(r, 'speed') ?? gen.speed,
       atkStyle,
       requiredLoops: optNum(r, 'loops') ?? DEFAULT_LOOPS,
       bodyRadius: optNum(r, 'bodyRadius') ?? DEFAULT_BODY_RADIUS,

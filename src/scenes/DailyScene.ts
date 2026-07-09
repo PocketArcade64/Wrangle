@@ -266,21 +266,24 @@ export class DailyScene extends Phaser.Scene {
     this.spinLabel.setText('SPINNING...');
     const idx = Phaser.Math.Between(0, 7);
     const rot = this.wheel.rotation;
-    // land wedge idx under the top pointer after 4 extra full turns
-    const wanted = -((idx * Math.PI) / 4);
+    // land somewhere INSIDE wedge idx - a real wheel doesn't stop dead
+    // center every time (offset stays clear of the boundary studs)
+    const off = (Math.random() * 2 - 1) * (Math.PI / 8) * 0.72;
+    const wanted = -((idx * Math.PI) / 4) + off;
     const delta = Phaser.Math.Angle.Normalize(wanted - rot);
-    // the pointer clacks over a rim stud at every wedge boundary - the
-    // ticks slow with the wheel for that prize-booth deceleration feel
+    // the pointer clacks over a rim stud at every wedge boundary; the
+    // quint ease gives a long dramatic crawl at the end, ticks spreading
+    // out with it - will it clear one more stud or won't it
     let notches = 0;
     this.tweens.add({
       targets: this.wheel,
-      rotation: rot + delta + Math.PI * 8,
-      duration: 3200,
-      ease: 'Cubic.easeOut',
+      rotation: rot + delta + Math.PI * 10,
+      duration: 5200,
+      ease: 'Quint.easeOut',
       onUpdate: () => {
         const passed = Math.floor((this.wheel.rotation - rot) / (Math.PI / 4));
-        if (passed > notches) {
-          notches = passed;
+        while (passed > notches) {
+          notches++;
           sfx('notch');
         }
       },

@@ -33,3 +33,16 @@ export const EVOLUTIONS: Record<string, string> = {
 
 /** Every species that is an evolution of something (not a wild basic). */
 export const EVOLVED_IDS = new Set(Object.values(EVOLUTIONS));
+
+/** Evolution stage: 0 = wild basic, 1 = first evolution, 2 = final. */
+export function evoStage(id: string): number {
+  let stage = 0;
+  let cur = id;
+  while (stage < 2 && EVOLVED_IDS.has(cur)) {
+    const parent = Object.keys(EVOLUTIONS).find((k) => EVOLUTIONS[k] === cur);
+    if (!parent) break;
+    stage++;
+    cur = parent;
+  }
+  return stage;
+}

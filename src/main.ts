@@ -14,6 +14,7 @@ import { TypeChartScene } from './scenes/TypeChartScene';
 import { DailyScene } from './scenes/DailyScene';
 import { MapScene } from './scenes/MapScene';
 import { StageScene } from './scenes/StageScene';
+import { StagePauseScene } from './scenes/StagePauseScene';
 import { DevScene } from './scenes/DevScene';
 import { DevWrangleScene } from './scenes/DevWrangleScene';
 import { unlockAudio } from './audio/audio';
@@ -62,6 +63,7 @@ const game = new Phaser.Game({
     DailyScene,
     MapScene,
     StageScene,
+    StagePauseScene,
     DevScene,
     DevWrangleScene
   ]

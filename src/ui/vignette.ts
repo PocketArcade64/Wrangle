@@ -380,11 +380,15 @@ export function ensureBubbles(scene: Phaser.Scene): void {
 
 // ---------- wandering critters ----------
 
-/** Species the player has laid eyes on (ledger seen or owned). */
-export function seenSpecies(): SpeciesDef[] {
-  return SPECIES.filter(
-    (sp) => (gameState.data.seen[sp.id] ?? 0) > 0 || gameState.data.herd.some((c) => c.speciesId === sp.id)
-  );
+/**
+ * Species with at least one member in the herd RIGHT NOW - the only
+ * critters allowed to wander the title/home vistas. Turn a critter in at
+ * the bounty office (or release it) and its species stops appearing the
+ * moment the herd no longer carries one.
+ */
+export function herdSpecies(): SpeciesDef[] {
+  const ids = new Set(gameState.data.herd.map((c) => c.speciesId));
+  return SPECIES.filter((sp) => ids.has(sp.id));
 }
 
 type Lane = 'front' | 'back';

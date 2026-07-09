@@ -108,13 +108,18 @@ export class MapScene extends Phaser.Scene {
         .text(t1x, tabTop + tabH / 2, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
         .setOrigin(0.5);
     }
-    // placeholder for the next region
+    // placeholder for the next region, unlock price on show
     const t2x = 528;
     this.add.rectangle(t2x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentDark).setStrokeStyle(4, COLORS.saddleDark);
     this.add
-      .text(t2x, tabTop + tabH / 2, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+      .text(t2x, tabTop + tabH / 2 - 16, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
       .setOrigin(0.5)
       .setAlpha(0.6);
+    const coin = this.add.image(t2x - 66, tabTop + tabH / 2 + 16, 'icon-coin').setTint(COLORS.brass).setScale(0.5).setAlpha(0.8);
+    this.add
+      .text(coin.x + 18, tabTop + tabH / 2 + 16, '1000 TO UNLOCK', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.brass })
+      .setOrigin(0, 0.5)
+      .setAlpha(0.8);
   }
 
   // ---------- signposts under the map ----------

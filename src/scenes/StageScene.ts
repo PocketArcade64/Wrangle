@@ -9,6 +9,7 @@ import { playMusic, stopMusic, sfx } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
+import { confirmDialog } from '../ui/confirm';
 import { seededRng } from '../util/daily';
 
 const WORLD_W = 720;
@@ -141,6 +142,8 @@ interface PBullet {
   range: number;
   traveled: number;
   color: number;
+  /** Pixel-art body: what the projectile looks like in flight. */
+  style: 'orb' | 'pellet' | 'star' | 'skull' | 'roar';
   gone: boolean;
 }
 
@@ -160,8 +163,32 @@ interface Drop {
   done: boolean;
 }
 
+/**
+ * The move-VFX vocabulary: a dozen detailed pixel-art primitives, all drawn
+ * per-frame from parameters on the 4px grid (no antialiased shapes). Each
+ * of the 34 moves composes 1-3 of these in its type's palette, and every
+ * landed hit stamps an 'impact' starburst.
+ */
+type FxKind =
+  | 'line' // plain telegraph line (beam warmups)
+  | 'circle' // legacy filled disc (quantized now)
+  | 'ring' // expanding blocky ring pulse
+  | 'cone' // legacy flat cone (kept for fallbacks)
+  | 'slash' // sweeping crescent of chunky blocks (melee family)
+  | 'impact' // starburst impact frame (every landed hit)
+  | 'sparks' // seeded particle scatter (embers/droplets/venom...)
+  | 'bolt' // jagged two-tone lightning/vine line
+  | 'beam' // thick stepped beam with jagged flanks (Draconic Surge)
+  | 'dust' // rolling cone of dust puffs
+  | 'petals' // spinning petal/feather burst
+  | 'shards' // flying elongated pixel shards (ice/metal/rock)
+  | 'wisps' // rising swaying smoke/spirit trails
+  | 'crack' // radiating jagged ground fractures
+  | 'swirl' // orbiting particles gathering or bursting
+  | 'chevron'; // stacked V shockwaves pushing outward
+
 interface Fx {
-  kind: 'line' | 'circle' | 'ring' | 'cone';
+  kind: FxKind;
   x: number;
   y: number;
   x2?: number;
@@ -171,9 +198,43 @@ interface Fx {
   spread?: number;
   width?: number;
   color: number;
+  color2?: number;
+  seed?: number;
+  count?: number;
+  /** Sparks only: particles arc downward (drips/debris). */
+  grav?: boolean;
+  /** Swirl only: particles gather INTO the center instead of leaving it. */
+  gather?: boolean;
   born: number;
   until: number;
 }
+
+/** Two-tone pixel palettes per move type: a = body, b = bright edge. */
+const TYPE_FX: Record<string, { a: number; b: number }> = {
+  Fire: { a: 0xd97f4e, b: 0xf2c14e },
+  Water: { a: 0x5f8aa8, b: 0xcfe8f2 },
+  Grass: { a: 0x6a8842, b: 0xa8c05a },
+  Lightning: { a: 0xe8d24a, b: 0xfff8d0 },
+  Earth: { a: 0x8a6a3e, b: 0xc9b98a },
+  Air: { a: 0xb8c8d0, b: 0xf0f4f4 },
+  Dark: { a: 0x3a3244, b: 0x6a5a7a },
+  Psychic: { a: 0xb06a9e, b: 0xe8b8d8 },
+  Ghost: { a: 0x4a5a50, b: 0x9ad0b0 },
+  Metal: { a: 0x7a7a82, b: 0xc8c8cc },
+  Mystical: { a: 0xd0a848, b: 0xf8e8a8 },
+  Normal: { a: 0xc9b998, b: 0xf0e2c2 },
+  Fighting: { a: 0xb06a48, b: 0xe8a060 },
+  Poison: { a: 0x8a5aa0, b: 0xc08ad0 },
+  Bug: { a: 0x8a9a3a, b: 0xc8d060 },
+  Frost: { a: 0x7fb8d8, b: 0xe8f6ff },
+  Dragon: { a: 0xa04838, b: 0xe8804e }
+};
+
+function fxPal(type: string): { a: number; b: number } {
+  return TYPE_FX[type] ?? TYPE_FX.Normal;
+}
+
+const q4 = (n: number) => Math.round(n / 4) * 4;
 
 /**
  * A generated stage - the Rumble-style core loop, rebuilt on a WORLD
@@ -706,7 +767,18 @@ export class StageScene extends Phaser.Scene {
     this.goldText = this.add
       .text(width - 188, 36, '+0', { fontFamily: FONT.ui, fontSize: '20px', color: HEX.brass })
       .setOrigin(0, 0.5);
-    makeButton(this, width - 76, 40, 110, 48, 'FLEE', () => this.quit(), '18px');
+    makeButton(this, width - 76, 40, 110, 48, 'FLEE', () => {
+      if (this.over) return;
+      confirmDialog(
+        this,
+        'FLEE THE TRAIL?',
+        'You keep the XP and gold already earned, but this run ends here.',
+        'FLEE',
+        () => this.quit(),
+        true
+      );
+    }, '18px');
+    makeButton(this, width - 76, 98, 110, 44, 'PAUSE', () => this.pauseStage(), '16px');
     const total = this.def.groups.length + 1;
     for (let i = 0; i < total; i++) {
       this.pips.push(
@@ -809,6 +881,13 @@ export class StageScene extends Phaser.Scene {
     this.dashVy = (ny * len) / (DASH_MS / 1000);
     this.dashMove = move;
     this.dashHit = move ? new Set() : undefined;
+    if (move) {
+      // TALON DIVE - a wind wake and loose feathers behind the strike
+      const pal = fxPal(move.type);
+      const seed = Math.floor(Math.random() * 100000);
+      this.fx('chevron', this.playerImg.x, this.playerImg.y, 280, { dir: Math.atan2(ny, nx), r: len * 0.8, color: pal.a, color2: pal.b });
+      this.fx('petals', this.playerImg.x, this.playerImg.y, 460, { count: 7, r: 90, seed, color: 0xf0f4f4, color2: 0xb8c8d0 });
+    }
     sfx('dash');
   }
 
@@ -1129,7 +1208,10 @@ export class StageScene extends Phaser.Scene {
       if (t >= 1) {
         lob.img.destroy();
         sfx('burst');
+        const lseed = Math.floor(Math.random() * 100000);
         if (lob.move.behavior === 'lobPatch') {
+          // WILDFIRE LOB lands: ember splash, then the burning patch
+          this.fx('sparks', lob.toX, lob.toY, 360, { count: 12, r: 70, seed: lseed, color: 0xf2c14e, color2: 0xd97f4e });
           this.patches.push({
             x: lob.toX,
             y: lob.toY,
@@ -1139,7 +1221,10 @@ export class StageScene extends Phaser.Scene {
             poison: false
           });
         } else {
-          this.fxList.push({ kind: 'circle', x: lob.toX, y: lob.toY, r: lob.move.burstR ?? 110, color: 0x8fae5a, born: time, until: time + 260 });
+          // BLOOMBURST detonates: a ring of petals and seed sparks
+          this.fx('ring', lob.toX, lob.toY, 300, { r: lob.move.burstR ?? 110, color: 0x6a8842, color2: 0xa8c05a });
+          this.fx('petals', lob.toX, lob.toY, 520, { count: 16, r: (lob.move.burstR ?? 110) + 20, seed: lseed, color: 0xe8b8d8, color2: 0xf0e2c2 });
+          this.fx('sparks', lob.toX, lob.toY, 380, { count: 10, r: 80, seed: lseed + 1, color: 0xa8c05a, color2: 0x6a8842 });
           for (const e of this.enemies) {
             if (e.dead) continue;
             if (Phaser.Math.Distance.Between(lob.toX, lob.toY, e.img.x, e.img.y) < (lob.move.burstR ?? 110) + 30) {
@@ -1204,20 +1289,21 @@ export class StageScene extends Phaser.Scene {
   }
 
   private fireBeam(dir: { x: number; y: number }, move: MoveDef, scale: number, length: number, halfW: number): void {
-    const time = this.time.now;
     const ox = this.playerImg.x;
     const oy = this.playerImg.y;
-    this.fxList.push({
-      kind: 'line',
-      x: ox,
-      y: oy,
-      x2: ox + dir.x * length,
-      y2: oy + dir.y * length,
-      width: Math.round(halfW / 3),
-      color: move.type === 'Dragon' ? 0xc75b4a : 0xe8d24a,
-      born: time,
-      until: time + 240
-    });
+    const ex = ox + dir.x * length;
+    const ey = oy + dir.y * length;
+    const pal = fxPal(move.type);
+    const seed = Math.floor(Math.random() * 100000);
+    if (move.type === 'Dragon') {
+      // DRACONIC SURGE - a roaring flame beam with jagged flanks
+      this.fx('beam', ox, oy, 300, { x2: ex, y2: ey, width: Math.round(halfW * 1.4), color: pal.a, color2: pal.b });
+      this.fx('sparks', ox + dir.x * 44, oy + dir.y * 44, 340, { count: 10, r: 60, seed, color: 0xe8804e, color2: 0xf2c14e });
+    } else {
+      // OVERCHARGE BOLT - one great jagged strike down the line
+      this.fx('bolt', ox, oy, 260, { x2: ex, y2: ey, width: Math.max(10, Math.round(halfW / 2)), seed, color: 0xb8912a, color2: 0xfff8d0 });
+    }
+    this.fx('impact', ex, ey, 280, { r: 60, color: pal.a, color2: pal.b });
     for (const e of this.enemies) {
       if (e.dead) continue;
       const relX = e.img.x - ox;
@@ -1327,6 +1413,8 @@ export class StageScene extends Phaser.Scene {
     this.fireBeam(this.aimDir(), c.move, 0.5 + frac, 350 + frac * 550, 20 + frac * 34);
   }
 
+  /** DRACONIC SURGE channel: embers gather into the maw while a stepped
+   *  aim guide thickens with the charge. */
   private drawChannel(time: number): void {
     const c = this.channel;
     if (!c) return;
@@ -1334,13 +1422,29 @@ export class StageScene extends Phaser.Scene {
     const maxS = c.move.channelMaxS ?? 1.2;
     const frac = Phaser.Math.Clamp((time - c.start) / 1000 / maxS, 0, 1);
     const len = 350 + frac * 550;
-    this.fxG.lineStyle(4 + frac * 20, 0xc75b4a, 0.45);
-    this.fxG.lineBetween(
-      this.playerImg.x,
-      this.playerImg.y,
-      this.playerImg.x + c.dir.x * len,
-      this.playerImg.y + c.dir.y * len
-    );
+    const ox = this.playerImg.x;
+    const oy = this.playerImg.y;
+    // embers spiraling inward, faster and hotter as the charge builds
+    for (let i = 0; i < 10; i++) {
+      const cyc = ((time * (0.5 + this.prand(3, i) * 0.6) + i * 173) % 600) / 600;
+      const a = this.prand(7, i) * Math.PI * 2 + time * 0.003;
+      const d = (1 - cyc) * (70 - frac * 20) + 12;
+      const s = cyc < 0.5 ? 4 : 6;
+      this.fxG.fillStyle(cyc < 0.5 ? 0xe8804e : 0xf2c14e, 0.4 + frac * 0.5);
+      this.fxG.fillRect(q4(ox + Math.cos(a) * d) - s / 2, q4(oy + Math.sin(a) * d) - s / 2, s, s);
+    }
+    // stepped aim guide
+    const w = 6 + Math.round(frac * 18);
+    for (let d = 34; d < len; d += 16) {
+      this.fxG.fillStyle(0xc75b4a, 0.22 + frac * 0.3);
+      this.fxG.fillRect(q4(ox + c.dir.x * d) - w / 2, q4(oy + c.dir.y * d) - w / 2, w, w);
+    }
+  }
+
+  /** Push a pixel-fx item lasting `ms`; opts override the defaults. */
+  private fx(kind: FxKind, x: number, y: number, ms: number, opts: Partial<Fx> = {}): void {
+    const time = this.time.now;
+    this.fxList.push({ kind, x, y, color: 0xf0e2c2, born: time, until: time + ms, ...opts });
   }
 
   private executeMove(move: MoveDef): void {
@@ -1352,12 +1456,65 @@ export class StageScene extends Phaser.Scene {
     const oy = this.playerImg.y;
     const ang = Math.atan2(dy, dx);
     const near = this.nearestEnemy(700);
+    const pal = fxPal(move.type);
+    const seed = Math.floor(Math.random() * 100000);
 
     switch (move.behavior) {
       case 'melee': {
         sfx('punch');
         const spread = move.spread ?? 1;
-        this.fxList.push({ kind: 'cone', x: ox, y: oy, dir: ang, spread, r: move.range, color: 0xf0e2c2, born: time, until: time + 160 });
+        this.fx('slash', ox, oy, 220, { dir: ang, spread, r: move.range, color: pal.a, color2: pal.b });
+        this.fx('sparks', ox + dx * move.range * 0.6, oy + dy * move.range * 0.6, 300, {
+          count: 8,
+          r: 54,
+          seed,
+          color: pal.b,
+          color2: pal.a
+        });
+        // per-type garnish so every strike reads as ITS move
+        const gx = ox + dx * move.range * 0.7;
+        const gy = oy + dy * move.range * 0.7;
+        switch (move.type) {
+          case 'Dragon': // RIDGEBACK SLAM - the ground itself gives way
+            this.cameras.main.shake(140, 0.007);
+            this.fx('crack', gx, gy, 620, { r: 150, count: 6, seed, color: COLORS.ink });
+            this.fx('shards', gx, gy, 420, { r: 110, count: 9, seed, grav: true, color: 0x8a6a3e, color2: 0xc9b98a });
+            break;
+          case 'Fighting': // IRON GRIP TOSS - a big grab-and-slam burst
+            this.fx('impact', gx, gy, 300, { r: 74, color: pal.a, color2: pal.b });
+            break;
+          case 'Frost': // PERMAFROST FANG - ice crystals bite outward
+            this.fx('shards', gx, gy, 380, { r: 96, count: 8, seed, color: 0x7fb8d8, color2: 0xe8f6ff });
+            break;
+          case 'Poison': // VENOM SPUR KICK - venom spatters and drips
+            this.fx('sparks', gx, gy, 480, { count: 10, r: 66, seed: seed + 1, grav: true, color: 0x8a5aa0, color2: 0xc08ad0 });
+            break;
+          case 'Mystical': // CHARMSPUR KICK - charmed petals scatter
+            this.fx('petals', gx, gy, 460, { count: 10, r: 90, seed, color: 0xf8e8a8, color2: 0xe8b8d8 });
+            break;
+          case 'Psychic': // MINDSPUR STRIKE - a mind-ring snaps shut
+            this.fx('ring', gx, gy - 20, 320, { r: 44, color: pal.a, color2: pal.b });
+            break;
+          case 'Metal': // RIVET RAM - rivets ping off the plating
+            this.fx('shards', gx, gy, 340, { r: 70, count: 6, seed, grav: true, color: 0x7a7a82, color2: 0xc8c8cc });
+            break;
+          case 'Bug': // PINCER RUSH - the second pincer crosses back
+            this.time.delayedCall(150, () => {
+              if (!this.over) {
+                this.fx('slash', this.playerImg.x, this.playerImg.y, 200, {
+                  dir: ang + 0.35,
+                  spread,
+                  r: move.range,
+                  color: pal.a,
+                  color2: pal.b
+                });
+              }
+            });
+            break;
+          case 'Dark': // BACKALLEY BITE - dark wisps curl off the strike
+            this.fx('wisps', gx, gy, 420, { count: 3, seed, color: 0x3a3244, color2: 0x6a5a7a });
+            break;
+        }
         const targets = this.coneTargets(ox, oy, dx, dy, move.range, spread);
         const list = move.aoe ? targets : targets.slice(0, 1);
         for (const e of list) {
@@ -1381,8 +1538,16 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'arc': {
+        // BURNING LASH - a whip of flame trailing embers
         sfx('whip');
-        this.fxList.push({ kind: 'cone', x: ox, y: oy, dir: ang, spread: move.spread ?? 1.1, r: move.range, color: 0xe8944a, born: time, until: time + 160 });
+        this.fx('slash', ox, oy, 240, { dir: ang, spread: move.spread ?? 1.1, r: move.range, color: pal.a, color2: pal.b });
+        this.fx('sparks', ox + dx * move.range * 0.55, oy + dy * move.range * 0.55, 460, {
+          count: 14,
+          r: 90,
+          seed,
+          color: 0xf2c14e,
+          color2: 0xd97f4e
+        });
         for (const e of this.coneTargets(ox, oy, dx, dy, move.range, move.spread ?? 1.1)) {
           this.applyHit(e, move, 1);
           this.applyOnHitEffects(e, move, time);
@@ -1391,9 +1556,23 @@ export class StageScene extends Phaser.Scene {
       }
       case 'conePush':
       case 'coneKnock': {
+        // RIPTIDE SLAM - a crashing crown of water; GALE HERD - wind wall
         sfx('wave');
         const spread = move.spread ?? 1;
-        this.fxList.push({ kind: 'cone', x: ox, y: oy, dir: ang, spread, r: move.range, color: 0x9fc4d8, born: time, until: time + 180 });
+        this.fx('chevron', ox, oy, 260, { dir: ang, r: move.range + 40, color: pal.a, color2: pal.b });
+        if (move.type === 'Water') {
+          this.fx('sparks', ox + dx * 70, oy + dy * 70, 420, {
+            count: 12,
+            r: 90,
+            seed,
+            grav: true,
+            color: 0xcfe8f2,
+            color2: 0x5f8aa8
+          });
+        } else {
+          this.fx('petals', ox + dx * 70, oy + dy * 70, 460, { count: 8, r: 110, seed, color: 0xf0f4f4, color2: 0xb8c8d0 });
+          this.fx('dust', ox, oy, 380, { dir: ang, spread, r: move.range, count: 6, seed: seed + 1, color: 0xc9b98a, color2: 0xe3d5ab });
+        }
         for (const e of this.coneTargets(ox, oy, dx, dy, move.range, spread)) {
           this.applyHit(e, move, 1);
           e.kbx = dx * (move.knockback ?? 130) * 3.2;
@@ -1402,10 +1581,12 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'tether': {
+        // BRAMBLE LASSO - a jagged vine whips out, leaves burst on the bite
         sfx('tether');
         const first = this.coneTargets(ox, oy, dx, dy, move.range, 0.3)[0];
         if (first) {
-          this.fxList.push({ kind: 'line', x: ox, y: oy, x2: first.img.x, y2: first.img.y, color: 0x7c8b6f, born: time, until: time + 300 });
+          this.fx('bolt', ox, oy, 340, { x2: first.img.x, y2: first.img.y, width: 8, seed, color: 0x4a6030, color2: 0xa8c05a });
+          this.fx('petals', first.img.x, first.img.y, 420, { count: 8, r: 70, seed: seed + 1, color: 0xa8c05a, color2: 0x6a8842 });
           this.applyHit(first, move, 1);
           first.rootUntil = time + (move.rootS ?? 1.5) * 1000;
           this.popup(first.img.x, first.img.y - 40, 'ROOTED', '#7c8b6f');
@@ -1413,13 +1594,23 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'jabChain': {
+        // LIVE WIRE JAB - a crackling poke that arcs to a neighbor
         sfx('zap');
         const first = this.coneTargets(ox, oy, dx, dy, move.range, move.spread ?? 0.9)[0];
         if (first) {
+          this.fx('bolt', ox, oy, 200, { x2: first.img.x, y2: first.img.y, width: 10, seed, color: 0xb8912a, color2: 0xfff8d0 });
+          this.fx('sparks', first.img.x, first.img.y, 260, { count: 8, r: 46, seed: seed + 1, color: 0xfff8d0, color2: 0xe8d24a });
           this.applyHit(first, move, 1);
           const chain = this.nearestEnemyToExcept(first.img.x, first.img.y, 180, first);
           if (chain) {
-            this.fxList.push({ kind: 'line', x: first.img.x, y: first.img.y, x2: chain.img.x, y2: chain.img.y, color: 0xe8d24a, born: time, until: time + 200 });
+            this.fx('bolt', first.img.x, first.img.y, 220, {
+              x2: chain.img.x,
+              y2: chain.img.y,
+              width: 8,
+              seed: seed + 2,
+              color: 0xb8912a,
+              color2: 0xfff8d0
+            });
             this.applyHit(chain, move, 0.5);
           }
         }
@@ -1437,10 +1628,13 @@ export class StageScene extends Phaser.Scene {
       }
       case 'lobPatch':
       case 'lobBurst': {
+        // WILDFIRE LOB - a smoldering coal; BLOOMBURST - a swollen seed pod
         sfx('lob');
         const tx = near ? near.img.x : ox + dx * move.range;
         const ty = near ? near.img.y : oy + dy * move.range;
-        const img = this.add.rectangle(ox, oy, 16, 16, move.behavior === 'lobPatch' ? 0xc7683a : 0x6f9a4a);
+        const img = this.add
+          .rectangle(ox, oy, 18, 18, move.behavior === 'lobPatch' ? 0xd97f4e : 0x6a8842)
+          .setStrokeStyle(2, COLORS.ink);
         this.topLayer.add(img);
         this.lobs.push({ x: ox, y: oy, fromX: ox, fromY: oy, toX: tx, toY: ty, t: 0, move, img });
         break;
@@ -1457,8 +1651,23 @@ export class StageScene extends Phaser.Scene {
               [m.sp.type1, m.sp.type2].filter((t): t is string => !!t).map(badgeName).includes('Bug')
           ).length;
           scale = 1 + (move.allyBonus ?? 0.5) * allies;
+          // SWARMCALL - the swarm answers, circling out from the caller
+          this.fx('swirl', ox, oy, 620, { count: 16, r: move.range, seed, color: 0x8a9a3a, color2: 0xc8d060 });
+        } else {
+          // ECHOING HOLLER - three staggered sound rings roll outward
+          for (let i = 0; i < 3; i++) {
+            this.fxList.push({
+              kind: 'ring',
+              x: ox,
+              y: oy,
+              r: move.range * (0.7 + i * 0.15),
+              color: pal.a,
+              color2: pal.b,
+              born: time + i * 90,
+              until: time + i * 90 + 320
+            });
+          }
         }
-        this.fxList.push({ kind: 'ring', x: ox, y: oy, r: move.range, color: 0xf0e2c2, born: time, until: time + 300 });
         for (const e of this.enemies) {
           if (e.dead) continue;
           if (Phaser.Math.Distance.Between(ox, oy, e.img.x, e.img.y) < move.range + 30) {
@@ -1474,9 +1683,13 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'selfCircle': {
+        // CANYON CRUSH - the ground cracks, rocks and dust fly
         sfx('burst');
         this.cameras.main.shake(120, 0.006);
-        this.fxList.push({ kind: 'ring', x: ox, y: oy, r: move.range, color: 0xb0a068, born: time, until: time + 320 });
+        this.fx('ring', ox, oy, 320, { r: move.range, color: pal.a, color2: pal.b });
+        this.fx('crack', ox, oy, 700, { r: move.range, count: 6, seed, color: COLORS.ink });
+        this.fx('shards', ox, oy, 460, { r: move.range * 0.9, count: 10, seed: seed + 1, grav: true, color: 0x8a6a3e, color2: 0xc9b98a });
+        this.fx('dust', ox, oy, 500, { dir: 0, spread: 3.2, r: move.range * 0.8, count: 10, seed: seed + 2, color: 0xc9b98a, color2: 0xe3d5ab });
         for (const e of this.enemies) {
           if (e.dead) continue;
           if (Phaser.Math.Distance.Between(ox, oy, e.img.x, e.img.y) < move.range + 30) this.applyHit(e, move, 1);
@@ -1485,8 +1698,9 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'expandCone': {
+        // DUST RECKONING - a rolling wall of blinding dust
         sfx('wave');
-        this.fxList.push({ kind: 'cone', x: ox, y: oy, dir: ang, spread: move.spread ?? 0.9, r: move.range, color: 0xc9b98a, born: time, until: time + 420 });
+        this.fx('dust', ox, oy, 520, { dir: ang, spread: move.spread ?? 0.9, r: move.range, count: 14, seed, color: 0xc9b98a, color2: 0xe3d5ab });
         for (const e of this.coneTargets(ox, oy, dx, dy, move.range, move.spread ?? 0.9)) {
           this.applyHit(e, move, 1);
           e.accDownUntil = time + (move.accDownS ?? 4) * 1000;
@@ -1495,13 +1709,15 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'blink': {
+        // SHADOW BOUNTY - fold into smoke, reappear behind the mark
         const target = near && Phaser.Math.Distance.Between(ox, oy, near.img.x, near.img.y) < move.range ? near : undefined;
         if (target) {
           sfx('dash');
-          this.fxList.push({ kind: 'ring', x: ox, y: oy, r: 40, color: 0x4a3a5a, born: time, until: time + 240 });
+          this.fx('swirl', ox, oy, 300, { count: 8, r: 50, seed, gather: true, color: 0x3a3244, color2: 0x6a5a7a });
+          this.fx('wisps', ox, oy - 10, 420, { count: 4, seed: seed + 1, color: 0x3a3244, color2: 0x6a5a7a });
           const nx = this.clampX(target.img.x - target.fx * 74, target.img.y - target.fy * 74, 40);
           this.playerImg.setPosition(nx, Phaser.Math.Clamp(target.img.y - target.fy * 74, 330, STAGE_LENGTH - 60));
-          this.fxList.push({ kind: 'ring', x: this.playerImg.x, y: this.playerImg.y, r: 40, color: 0x4a3a5a, born: time, until: time + 240 });
+          this.fx('wisps', this.playerImg.x, this.playerImg.y - 10, 420, { count: 4, seed: seed + 2, color: 0x3a3244, color2: 0x6a5a7a });
           this.applyHit(target, move, 1);
           this.selfStunUntil = time + (move.selfStunS ?? 0.5) * 1000;
         }
@@ -1509,7 +1725,11 @@ export class StageScene extends Phaser.Scene {
       }
       case 'fanOrbs':
       case 'pellets': {
+        // FARSIGHT PULSE fans seeing-orbs; SHRAPNEL VOLLEY sprays slugs
         sfx(move.behavior === 'pellets' ? 'burst' : 'zap');
+        if (move.behavior === 'pellets') {
+          this.fx('impact', ox + dx * 30, oy + dy * 30, 200, { r: 40, color: pal.a, color2: pal.b });
+        }
         const n = move.orbCount ?? 3;
         const spreadTotal = move.behavior === 'pellets' ? 1 : 0.7;
         for (let i = 0; i < n; i++) {
@@ -1525,22 +1745,29 @@ export class StageScene extends Phaser.Scene {
       }
       case 'trackingRoar': {
         sfx('holler');
+        this.fx('chevron', ox, oy, 240, { dir: ang, r: 90, color: pal.a, color2: pal.b });
         this.spawnPBullet(move, dx, dy, move.homing ?? 4.5);
         break;
       }
       case 'curseOrb': {
         sfx('tether');
+        this.fx('wisps', ox, oy - 10, 380, { count: 3, seed, color: 0x4a5a50, color2: 0x9ad0b0 });
         this.spawnPBullet(move, dx, dy, move.homing ?? 0.8);
         break;
       }
       case 'cloudSelf': {
+        // TOXIC BLOOMCLOUD - the cloud itself bubbles (patch renderer)
         sfx('wave');
+        this.fx('sparks', ox, oy, 400, { count: 10, r: 80, seed, color: 0xc08ad0, color2: 0x8a5aa0 });
         this.patches.push({ x: ox, y: oy, until: time + (move.cloudS ?? 4) * 1000, nextTick: 0, move, poison: true });
         break;
       }
       case 'veil': {
+        // BLIZZARD VEIL - snow squall out, cold focus gathering in
         sfx('wave');
-        this.fxList.push({ kind: 'ring', x: ox, y: oy, r: move.range, color: 0xbfe4ff, born: time, until: time + 400 });
+        this.fx('ring', ox, oy, 420, { r: move.range, color: 0x7fb8d8, color2: 0xe8f6ff });
+        this.fx('shards', ox, oy, 700, { count: 12, r: move.range * 0.9, seed, grav: true, color: 0xe8f6ff, color2: 0x7fb8d8 });
+        this.fx('swirl', ox, oy, 500, { count: 10, r: 70, seed: seed + 1, gather: true, color: 0xe8f6ff, color2: 0xbfe4ff });
         for (const e of this.enemies) {
           if (e.dead) continue;
           if (Phaser.Math.Distance.Between(ox, oy, e.img.x, e.img.y) < move.range + 30) {
@@ -1553,8 +1780,10 @@ export class StageScene extends Phaser.Scene {
         break;
       }
       case 'phase360': {
+        // GRAVE GRAPPLE - a full-circle spectral sweep
         sfx('tether');
-        this.fxList.push({ kind: 'ring', x: ox, y: oy, r: move.range, color: 0x9ad0b0, born: time, until: time + 240 });
+        this.fx('slash', ox, oy, 300, { dir: ang, spread: Math.PI, r: move.range, color: 0x4a5a50, color2: 0x9ad0b0 });
+        this.fx('wisps', ox, oy, 460, { count: 4, seed, color: 0x4a5a50, color2: 0x9ad0b0 });
         const target = this.nearestEnemy(move.range + 34);
         if (target) this.applyHit(target, move, 1);
         break;
@@ -1566,13 +1795,16 @@ export class StageScene extends Phaser.Scene {
 
   private spawnPBullet(move: MoveDef, nx: number, ny: number, homing: number): void {
     const speed = move.projSpeed ?? 300;
-    const colors: Record<string, number> = {
-      Psychic: 0xd08ad0,
-      Metal: 0xb8b8b8,
-      Mystical: 0xf0d060,
-      Fighting: 0xe8a060,
-      Ghost: 0x9ad0b0
-    };
+    const style: PBullet['style'] =
+      move.behavior === 'pellets'
+        ? 'pellet'
+        : move.behavior === 'homingStar'
+          ? 'star'
+          : move.behavior === 'trackingRoar'
+            ? 'roar'
+            : move.behavior === 'curseOrb'
+              ? 'skull'
+              : 'orb';
     this.pBullets.push({
       x: this.playerImg.x,
       y: this.playerImg.y,
@@ -1583,7 +1815,8 @@ export class StageScene extends Phaser.Scene {
       homing,
       range: move.range,
       traveled: 0,
-      color: colors[move.type] ?? 0xf0e2c2,
+      color: fxPal(move.type).b,
+      style,
       gone: false
     });
   }
@@ -1662,6 +1895,11 @@ export class StageScene extends Phaser.Scene {
     const def = move.kind === 'physical' ? e.stats.def : e.stats.spd;
     const dmg = damageRoll(f.inst.level, move.power * powerScale, atk, def, mult);
     e.hp -= dmg;
+    // every landed hit stamps a type-colored impact frame
+    if (!quiet) {
+      const pal = fxPal(move.type);
+      this.fx('impact', e.img.x, e.img.y, 240, { r: 44, color: pal.a, color2: pal.b });
+    }
     if (!quiet) sfx('hit');
     const color = mult > 1 ? '#e8d24a' : mult < 1 ? '#9aa4ac' : '#f0e2c2';
     this.popup(e.img.x, e.img.y - 34, `${dmg}`, color);
@@ -1853,38 +2091,167 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  /** Deterministic per-particle hash so effects don't shimmer per frame. */
+  private prand(seed: number, i: number): number {
+    const v = Math.sin(seed * 127.1 + i * 311.7) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
   private drawFx(time: number): void {
     this.fxList = this.fxList.filter((fx) => fx.until > time);
     for (const fx of this.fxList) {
-      const life = (fx.until - time) / Math.max(1, fx.until - fx.born);
-      const alpha = 0.25 + 0.55 * life;
-      if (fx.kind === 'line' && fx.x2 !== undefined && fx.y2 !== undefined) {
-        this.fxG.lineStyle(fx.width ?? 6, fx.color, alpha);
-        this.fxG.lineBetween(fx.x, fx.y, fx.x2, fx.y2);
-      } else if (fx.kind === 'circle') {
-        this.fxG.fillStyle(fx.color, alpha * 0.6);
-        this.fxG.fillCircle(fx.x, fx.y, fx.r ?? 60);
-      } else if (fx.kind === 'ring') {
-        this.fxG.lineStyle(5, fx.color, alpha);
-        this.fxG.strokeCircle(fx.x, fx.y, (fx.r ?? 60) * (1.2 - life * 0.4));
-      } else if (fx.kind === 'cone' && fx.dir !== undefined && fx.spread !== undefined) {
-        this.fxG.fillStyle(fx.color, alpha * 0.4);
-        this.fxG.slice(fx.x, fx.y, fx.r ?? 100, fx.dir - fx.spread, fx.dir + fx.spread, false);
-        this.fxG.fillPath();
+      if (time < fx.born) continue; // staggered fx not started yet
+      const prog = Phaser.Math.Clamp((time - fx.born) / Math.max(1, fx.until - fx.born), 0, 1);
+      switch (fx.kind) {
+        case 'line': {
+          this.fxG.lineStyle(fx.width ?? 6, fx.color, 0.25 + 0.55 * (1 - prog));
+          this.fxG.lineBetween(fx.x, fx.y, fx.x2 ?? fx.x, fx.y2 ?? fx.y);
+          break;
+        }
+        case 'circle': {
+          // quantized disc rows - never a smooth circle
+          const r = fx.r ?? 60;
+          this.fxG.fillStyle(fx.color, (0.25 + 0.55 * (1 - prog)) * 0.6);
+          for (let yy = -r; yy < r; yy += 8) {
+            const half = Math.round(Math.sqrt(Math.max(0, r * r - (yy + 4) * (yy + 4))) / 8) * 8;
+            if (half > 0) this.fxG.fillRect(q4(fx.x) - half, q4(fx.y) + yy, half * 2, 8);
+          }
+          break;
+        }
+        case 'ring': {
+          const r = (fx.r ?? 60) * (0.35 + 0.65 * prog);
+          const n = 20;
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            const big = i % 2 === 0;
+            const s = big ? 8 : 5;
+            this.fxG.fillStyle(big ? fx.color : (fx.color2 ?? fx.color), 1 - prog);
+            this.fxG.fillRect(q4(fx.x + Math.cos(a) * r) - s / 2, q4(fx.y + Math.sin(a) * r) - s / 2, s, s);
+          }
+          break;
+        }
+        case 'cone': {
+          this.fxG.fillStyle(fx.color, (1 - prog) * 0.4);
+          this.fxG.slice(fx.x, fx.y, fx.r ?? 100, (fx.dir ?? 0) - (fx.spread ?? 1), (fx.dir ?? 0) + (fx.spread ?? 1), false);
+          this.fxG.fillPath();
+          break;
+        }
+        case 'slash': {
+          this.drawSlashFx(fx, prog);
+          break;
+        }
+        case 'impact': {
+          this.drawImpactFx(fx, prog);
+          break;
+        }
+        case 'sparks': {
+          this.drawSparksFx(fx, prog);
+          break;
+        }
+        case 'bolt': {
+          this.drawBoltFx(fx, prog, time);
+          break;
+        }
+        case 'beam': {
+          this.drawBeamFx(fx, prog, time);
+          break;
+        }
+        case 'dust': {
+          this.drawDustFx(fx, prog);
+          break;
+        }
+        case 'petals': {
+          this.drawPetalsFx(fx, prog);
+          break;
+        }
+        case 'shards': {
+          this.drawShardsFx(fx, prog);
+          break;
+        }
+        case 'wisps': {
+          this.drawWispsFx(fx, prog, time);
+          break;
+        }
+        case 'crack': {
+          this.drawCrackFx(fx, prog);
+          break;
+        }
+        case 'swirl': {
+          this.drawSwirlFx(fx, prog);
+          break;
+        }
+        case 'chevron': {
+          this.drawChevronFx(fx, prog);
+          break;
+        }
       }
     }
+
+    // lingering zones: bubbling poison clouds + flickering fire patches
     for (const p of this.patches) {
-      const base = p.poison ? 0x8a5aa0 : 0xc7683a;
-      const core = p.poison ? 0xa878b8 : 0xe8944a;
-      this.fxG.fillStyle(base, 0.32);
-      this.fxG.fillCircle(p.x, p.y, 100);
-      this.fxG.fillStyle(core, 0.3);
-      this.fxG.fillCircle(p.x, p.y, 62);
+      const flick = Math.floor(time / 90);
+      if (p.poison) {
+        this.fxG.fillStyle(0x8a5aa0, 0.32);
+        for (let yy = -96; yy < 96; yy += 8) {
+          const half = Math.round(Math.sqrt(Math.max(0, 9216 - (yy + 4) * (yy + 4))) / 8) * 8;
+          if (half > 0) this.fxG.fillRect(q4(p.x) - half, q4(p.y) + yy, half * 2, 8);
+        }
+        // bubbles rise on a 900ms cycle and pop into four corner pixels
+        for (let i = 0; i < 4; i++) {
+          const cyc = ((time + i * 300) % 900) / 900;
+          const bx = q4(p.x + Math.cos(i * 2.4) * 48);
+          const by = q4(p.y + 20 - cyc * 70);
+          if (cyc < 0.85) {
+            this.fxG.fillStyle(0xc08ad0, 0.8);
+            this.fxG.fillRect(bx - 3, by - 3, 6, 6);
+          } else {
+            this.fxG.fillStyle(0xc08ad0, 0.6);
+            this.fxG.fillRect(bx - 6, by - 6, 3, 3);
+            this.fxG.fillRect(bx + 3, by - 6, 3, 3);
+            this.fxG.fillRect(bx - 6, by + 3, 3, 3);
+            this.fxG.fillRect(bx + 3, by + 3, 3, 3);
+          }
+        }
+      } else {
+        // fire patch: scorched ground + a ring of flickering flame tongues
+        this.fxG.fillStyle(0x6a4028, 0.4);
+        for (let yy = -88; yy < 88; yy += 8) {
+          const half = Math.round(Math.sqrt(Math.max(0, 7744 - (yy + 4) * (yy + 4))) / 8) * 8;
+          if (half > 0) this.fxG.fillRect(q4(p.x) - half, q4(p.y) + yy, half * 2, 8);
+        }
+        for (let i = 0; i < 6; i++) {
+          const fxx = q4(p.x + Math.cos((i / 6) * Math.PI * 2) * 56);
+          const fyy = q4(p.y + Math.sin((i / 6) * Math.PI * 2) * 40);
+          const h = 18 + ((flick + i) % 2) * 8;
+          this.fxG.fillStyle(0xd97f4e, 0.9);
+          this.fxG.fillRect(fxx - 6, fyy - h, 12, h);
+          this.fxG.fillStyle(0xf2c14e, 0.9);
+          this.fxG.fillRect(fxx - 3, fyy - h + 4, 6, Math.max(4, h - 10));
+        }
+      }
     }
+
+    // flood waves: white foam teeth over two water bands, droplets behind
     for (const w of this.waves) {
-      this.fxG.fillStyle(0x7fa8c4, 0.6);
-      this.fxG.fillRect(w.x - 170, w.y - 20, 340, 40);
+      const stag = Math.floor(time / 80) % 2;
+      this.fxG.fillStyle(0x4f7ea0, 0.75);
+      this.fxG.fillRect(q4(w.x) - 168, q4(w.y) - 12, 336, 32);
+      this.fxG.fillStyle(0x7fa8c4, 0.85);
+      this.fxG.fillRect(q4(w.x) - 168, q4(w.y) - 20, 336, 12);
+      for (let i = 0; i < 21; i++) {
+        const tx = q4(w.x) - 168 + i * 16;
+        const th = (i + stag) % 2 === 0 ? 10 : 6;
+        this.fxG.fillStyle(0xcfe8f2, 0.95);
+        this.fxG.fillRect(tx, q4(w.y) - 20 - th + (w.dirY > 0 ? 40 + th : 0), 8, th);
+      }
+      for (let i = 0; i < 5; i++) {
+        const dx = q4(w.x - 140 + i * 68 + ((stag + i) % 2) * 10);
+        this.fxG.fillStyle(0xcfe8f2, 0.6);
+        this.fxG.fillRect(dx, q4(w.y - w.dirY * (30 + (i % 3) * 12)), 4, 4);
+      }
     }
+
+    // enemy shots stay simple ink-and-gold squares (readable = dodgeable)
     for (const b of this.bullets) {
       this.fxG.fillStyle(COLORS.ink, 0.9);
       this.fxG.fillRect(b.x - 6, b.y - 6, 12, 12);
@@ -1892,10 +2259,7 @@ export class StageScene extends Phaser.Scene {
       this.fxG.fillRect(b.x - 3, b.y - 3, 6, 6);
     }
     for (const b of this.pBullets) {
-      this.fxG.fillStyle(COLORS.ink, 0.9);
-      this.fxG.fillRect(b.x - 6, b.y - 6, 12, 12);
-      this.fxG.fillStyle(b.color, 1);
-      this.fxG.fillRect(b.x - 4, b.y - 4, 8, 8);
+      this.drawPBullet(b, time);
     }
     for (const w of this.weeds) {
       const wob = Math.floor(w.spin) % 2 === 0;
@@ -1923,10 +2287,369 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // ---------- pixel fx primitives (all on the 4px grid) ----------
+
+  /** Sweeping crescent of chunky blocks with a bright leading edge. */
+  private drawSlashFx(fx: Fx, prog: number): void {
+    const dir = fx.dir ?? 0;
+    const spread = fx.spread ?? 1;
+    const r = fx.r ?? 100;
+    const sweep = dir - spread + 2 * spread * Math.min(1, prog * 1.2);
+    for (let i = 0; i < 6; i++) {
+      const a = sweep - i * 0.15;
+      if (a < dir - spread) break;
+      const size = 18 - i * 2;
+      for (let k = 0; k < 3; k++) {
+        const rad = r * (0.5 + k * 0.22);
+        const px = q4(fx.x + Math.cos(a) * rad);
+        const py = q4(fx.y + Math.sin(a) * rad);
+        this.fxG.fillStyle(i < 2 ? (fx.color2 ?? 0xffffff) : fx.color, i < 2 ? 0.95 : Math.max(0.15, 0.55 - i * 0.07));
+        this.fxG.fillRect(px - size / 2, py - size / 2, size, size);
+      }
+    }
+  }
+
+  /** Starburst impact frame: shrinking flash + 8 flying shards. */
+  private drawImpactFx(fx: Fx, prog: number): void {
+    const flash = Math.max(4, Math.round((1 - prog) * 28));
+    this.fxG.fillStyle(fx.color2 ?? 0xffffff, 1 - prog * 0.5);
+    this.fxG.fillRect(q4(fx.x) - flash / 2, q4(fx.y) - flash / 2, flash, flash);
+    const d = 12 + prog * (fx.r ?? 48);
+    for (let i = 0; i < 8; i++) {
+      const a = (Math.PI / 4) * i + 0.393;
+      const s = i % 2 === 0 ? 8 : 5;
+      this.fxG.fillStyle(fx.color, 1 - prog);
+      this.fxG.fillRect(q4(fx.x + Math.cos(a) * d) - s / 2, q4(fx.y + Math.sin(a) * d) - s / 2, s, s);
+    }
+  }
+
+  /** Seeded particle scatter; grav arcs them downward (drips/debris). */
+  private drawSparksFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 10;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a = this.prand(seed, i) * Math.PI * 2;
+      const sp = 0.4 + this.prand(seed, i + 50) * 0.8;
+      const d = prog * (fx.r ?? 70) * sp;
+      const px = fx.x + Math.cos(a) * d;
+      let py = fx.y + Math.sin(a) * d;
+      if (fx.grav) py += prog * prog * 70;
+      const s = this.prand(seed, i + 100) < 0.4 ? 6 : 4;
+      this.fxG.fillStyle(this.prand(seed, i + 150) < 0.5 ? fx.color : (fx.color2 ?? fx.color), 1 - prog);
+      this.fxG.fillRect(q4(px) - s / 2, q4(py) - s / 2, s, s);
+    }
+  }
+
+  /** Jagged two-tone bolt: dark casing under a flickering bright core. */
+  private drawBoltFx(fx: Fx, prog: number, time: number): void {
+    if (fx.x2 === undefined || fx.y2 === undefined) return;
+    const segs = 6;
+    const dx = fx.x2 - fx.x;
+    const dy = fx.y2 - fx.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const seed = (fx.seed ?? 1) + Math.floor(time / 90);
+    const flick = Math.floor(time / 50) % 2 === 0 ? 1 : 0.6;
+    const pts: { x: number; y: number }[] = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const off = i === 0 || i === segs ? 0 : (this.prand(seed, i) - 0.5) * 46;
+      pts.push({ x: q4(fx.x + dx * t + nx * off), y: q4(fx.y + dy * t + ny * off) });
+    }
+    const layers: [number, number, number][] = [
+      [fx.width ?? 10, fx.color, 0.7 * flick],
+      [Math.max(4, (fx.width ?? 10) - 6), fx.color2 ?? 0xffffff, flick]
+    ];
+    for (const [w, col, al] of layers) {
+      for (let i = 0; i < segs; i++) {
+        const steps = Math.max(1, Math.round(Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y) / 8));
+        for (let k = 0; k <= steps; k++) {
+          const px = pts[i].x + ((pts[i + 1].x - pts[i].x) * k) / steps;
+          const py = pts[i].y + ((pts[i + 1].y - pts[i].y) * k) / steps;
+          this.fxG.fillStyle(col, al * (1 - prog * 0.6));
+          this.fxG.fillRect(q4(px) - w / 2, q4(py) - w / 2, w, w);
+        }
+      }
+    }
+  }
+
+  /** Thick stepped beam with jagged flame flanks (Draconic Surge). */
+  private drawBeamFx(fx: Fx, prog: number, time: number): void {
+    if (fx.x2 === undefined || fx.y2 === undefined) return;
+    const dx = fx.x2 - fx.x;
+    const dy = fx.y2 - fx.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+    const nx = -uy;
+    const ny = ux;
+    const w = Math.max(8, Math.round((fx.width ?? 32) * (1 - prog * 0.35)));
+    const flick = Math.floor(time / 60);
+    for (let d = 0; d < len; d += 8) {
+      const cx = q4(fx.x + ux * d);
+      const cy = q4(fx.y + uy * d);
+      this.fxG.fillStyle(fx.color, (1 - prog) * 0.9);
+      this.fxG.fillRect(cx - w / 2, cy - w / 2, w, w);
+      // jagged flanks alternate sides every step
+      const side = (Math.floor(d / 8) + flick) % 2 === 0 ? 1 : -1;
+      this.fxG.fillStyle(fx.color2 ?? fx.color, (1 - prog) * 0.8);
+      this.fxG.fillRect(q4(cx + nx * side * (w / 2 + 4)) - 3, q4(cy + ny * side * (w / 2 + 4)) - 3, 6, 6);
+    }
+    // hot core
+    const cw = Math.max(4, w - 10);
+    for (let d = 0; d < len; d += 8) {
+      this.fxG.fillStyle(0xfff4dc, (1 - prog) * 0.9);
+      this.fxG.fillRect(q4(fx.x + ux * d) - cw / 2, q4(fx.y + uy * d) - cw / 2, cw, cw);
+    }
+  }
+
+  /** Rolling cone of dust puffs that grow as they travel. */
+  private drawDustFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 9;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a = (fx.dir ?? 0) + (this.prand(seed, i) - 0.5) * 2 * (fx.spread ?? 0.8);
+      const d = (0.25 + 0.75 * this.prand(seed, i + 30)) * prog * (fx.r ?? 240);
+      const cx = q4(fx.x + Math.cos(a) * d);
+      const cy = q4(fx.y + Math.sin(a) * d);
+      const s = 10 + Math.round(prog * 14) + Math.round(this.prand(seed, i + 60) * 6);
+      this.fxG.fillStyle(fx.color, 0.5 * (1 - prog));
+      this.fxG.fillRect(cx - s / 2, cy - s / 2, s, s);
+      this.fxG.fillStyle(fx.color2 ?? fx.color, 0.4 * (1 - prog));
+      this.fxG.fillRect(cx - s / 4, cy - s / 2 - 4, Math.max(4, s / 2), 4);
+    }
+  }
+
+  /** Petals/feathers flying out, spinning between cross-shapes. */
+  private drawPetalsFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 10;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a = this.prand(seed, i) * Math.PI * 2;
+      const d = (0.3 + 0.7 * this.prand(seed, i + 40)) * prog * (fx.r ?? 100);
+      const px = q4(fx.x + Math.cos(a) * d);
+      const py = q4(fx.y + Math.sin(a) * d + prog * prog * 30);
+      const col = i % 2 === 0 ? fx.color : (fx.color2 ?? fx.color);
+      this.fxG.fillStyle(col, 1 - prog);
+      // spin: alternate wide/tall petal per particle + progress step
+      if ((i + Math.floor(prog * 6)) % 2 === 0) this.fxG.fillRect(px - 5, py - 2, 10, 5);
+      else this.fxG.fillRect(px - 2, py - 5, 5, 10);
+    }
+  }
+
+  /** Elongated pixel shards (ice/metal/rock) flying from the center. */
+  private drawShardsFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 7;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a = this.prand(seed, i) * Math.PI * 2;
+      const d = (0.3 + 0.7 * this.prand(seed, i + 40)) * prog * (fx.r ?? 90);
+      const px = q4(fx.x + Math.cos(a) * d);
+      const py = q4(fx.y + Math.sin(a) * d + (fx.grav ? prog * prog * 50 : 0));
+      const horiz = Math.abs(Math.cos(a)) > Math.abs(Math.sin(a));
+      this.fxG.fillStyle(fx.color, 1 - prog);
+      if (horiz) {
+        this.fxG.fillRect(px - 8, py - 2, 16, 5);
+        this.fxG.fillStyle(fx.color2 ?? 0xffffff, 1 - prog);
+        this.fxG.fillRect(px - 4, py - 1, 8, 2);
+      } else {
+        this.fxG.fillRect(px - 2, py - 8, 5, 16);
+        this.fxG.fillStyle(fx.color2 ?? 0xffffff, 1 - prog);
+        this.fxG.fillRect(px - 1, py - 4, 2, 8);
+      }
+    }
+  }
+
+  /** Rising, swaying smoke/spirit trails. */
+  private drawWispsFx(fx: Fx, prog: number, time: number): void {
+    const n = fx.count ?? 4;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const baseX = fx.x + (this.prand(seed, i) - 0.5) * 44;
+      for (let k = 0; k < 4; k++) {
+        const py = q4(fx.y - prog * 60 - k * 10);
+        const px = q4(baseX + Math.sin(time * 0.006 + i * 2 + k * 0.8) * 8);
+        const s = 8 - k * 1.5;
+        this.fxG.fillStyle(k < 2 ? fx.color : (fx.color2 ?? fx.color), (1 - prog) * (1 - k * 0.18));
+        this.fxG.fillRect(px - s / 2, py - s / 2, s, s);
+      }
+    }
+  }
+
+  /** Radiating jagged ground fractures that hold, then fade. */
+  private drawCrackFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 5;
+    const seed = fx.seed ?? 1;
+    const alpha = prog < 0.7 ? 0.85 : 0.85 * (1 - (prog - 0.7) / 0.3);
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * Math.PI * 2 + this.prand(seed, i) * 0.6;
+      let px = fx.x;
+      let py = fx.y;
+      let a = a0;
+      const segLen = (fx.r ?? 120) / 4;
+      for (let k = 0; k < 4; k++) {
+        const nx2 = px + Math.cos(a) * segLen;
+        const ny2 = py + Math.sin(a) * segLen;
+        const steps = Math.max(1, Math.round(segLen / 8));
+        for (let s = 0; s <= steps; s++) {
+          const w = 6 - k;
+          this.fxG.fillStyle(COLORS.ink, alpha * 0.8);
+          this.fxG.fillRect(q4(px + ((nx2 - px) * s) / steps) - w / 2, q4(py + ((ny2 - py) * s) / steps) - w / 2, w, w);
+        }
+        px = nx2;
+        py = ny2;
+        a += (this.prand(seed, i * 7 + k) - 0.5) * 1.1;
+      }
+    }
+  }
+
+  /** Particles orbiting the center - gathering in, or spiraling out. */
+  private drawSwirlFx(fx: Fx, prog: number): void {
+    const n = fx.count ?? 10;
+    const seed = fx.seed ?? 1;
+    for (let i = 0; i < n; i++) {
+      const a0 = this.prand(seed, i) * Math.PI * 2;
+      const a = a0 + prog * 5;
+      const radFrac = fx.gather ? 1 - prog : prog;
+      const d = radFrac * (fx.r ?? 90) * (0.5 + 0.5 * this.prand(seed, i + 30));
+      const s = this.prand(seed, i + 60) < 0.4 ? 6 : 4;
+      this.fxG.fillStyle(i % 2 === 0 ? fx.color : (fx.color2 ?? fx.color), fx.gather ? prog : 1 - prog);
+      this.fxG.fillRect(q4(fx.x + Math.cos(a) * d) - s / 2, q4(fx.y + Math.sin(a) * d) - s / 2, s, s);
+    }
+  }
+
+  /** Stacked V shockwaves pushing outward along a direction. */
+  private drawChevronFx(fx: Fx, prog: number): void {
+    const dir = fx.dir ?? 0;
+    const r = fx.r ?? 160;
+    for (let c = 0; c < 3; c++) {
+      const d = prog * r * (0.55 + c * 0.22);
+      const cx = fx.x + Math.cos(dir) * d;
+      const cy = fx.y + Math.sin(dir) * d;
+      this.fxG.fillStyle(c === 0 ? (fx.color2 ?? fx.color) : fx.color, (1 - prog) * (1 - c * 0.2));
+      for (let k = 0; k < 5; k++) {
+        const arm = k * 9;
+        for (const side of [-1, 1]) {
+          const aa = dir + side * 1.05;
+          const px = q4(cx + Math.cos(aa) * arm - Math.cos(dir) * k * 5);
+          const py = q4(cy + Math.sin(aa) * arm - Math.sin(dir) * k * 5);
+          this.fxG.fillRect(px - 3, py - 3, 7, 7);
+        }
+      }
+    }
+  }
+
+  /** Player projectiles: per-move pixel bodies with little trails. */
+  private drawPBullet(b: PBullet, time: number): void {
+    const pal = fxPal(b.move.type);
+    const speed = Math.hypot(b.vx, b.vy) || 1;
+    const tx = -b.vx / speed;
+    const ty = -b.vy / speed;
+    switch (b.style) {
+      case 'orb': {
+        const pulse = Math.floor(time / 120) % 2 === 0 ? 2 : 0;
+        this.fxG.fillStyle(pal.a, 0.9);
+        this.fxG.fillRect(b.x - 7 - pulse / 2, b.y - 7 - pulse / 2, 14 + pulse, 14 + pulse);
+        this.fxG.fillStyle(pal.b, 1);
+        this.fxG.fillRect(b.x - 3, b.y - 3, 6, 6);
+        this.fxG.fillStyle(pal.a, 0.5);
+        this.fxG.fillRect(q4(b.x + tx * 16) - 3, q4(b.y + ty * 16) - 3, 6, 6);
+        break;
+      }
+      case 'pellet': {
+        const horiz = Math.abs(b.vx) > Math.abs(b.vy);
+        this.fxG.fillStyle(COLORS.ink, 0.9);
+        if (horiz) this.fxG.fillRect(b.x - 8, b.y - 3, 16, 7);
+        else this.fxG.fillRect(b.x - 3, b.y - 8, 7, 16);
+        this.fxG.fillStyle(pal.b, 1);
+        if (horiz) this.fxG.fillRect(b.x - 5, b.y - 1, 10, 3);
+        else this.fxG.fillRect(b.x - 1, b.y - 5, 3, 10);
+        break;
+      }
+      case 'star': {
+        const alt = Math.floor(time / 100) % 2 === 0;
+        this.fxG.fillStyle(pal.b, 1);
+        this.fxG.fillRect(b.x - 4, b.y - 4, 8, 8);
+        this.fxG.fillStyle(pal.a, 1);
+        if (alt) {
+          this.fxG.fillRect(b.x - 12, b.y - 2, 6, 5);
+          this.fxG.fillRect(b.x + 6, b.y - 2, 6, 5);
+          this.fxG.fillRect(b.x - 2, b.y - 12, 5, 6);
+          this.fxG.fillRect(b.x - 2, b.y + 6, 5, 6);
+        } else {
+          for (const [sx, sy] of [
+            [-8, -8],
+            [8, -8],
+            [-8, 8],
+            [8, 8]
+          ]) {
+            this.fxG.fillRect(b.x + sx - 2, b.y + sy - 2, 5, 5);
+          }
+        }
+        this.fxG.fillStyle(pal.b, 0.5);
+        this.fxG.fillRect(q4(b.x + tx * 18) - 2, q4(b.y + ty * 18) - 2, 4, 4);
+        break;
+      }
+      case 'skull': {
+        // wailing curse: a dark aura around a little grinning skull
+        this.fxG.fillStyle(0x2a2434, 0.55);
+        this.fxG.fillRect(b.x - 11, b.y - 11, 22, 22);
+        this.fxG.fillStyle(0xd8e4dc, 1);
+        this.fxG.fillRect(b.x - 6, b.y - 7, 12, 10);
+        this.fxG.fillRect(b.x - 4, b.y + 3, 8, 3);
+        this.fxG.fillStyle(0x2a2434, 1);
+        this.fxG.fillRect(b.x - 4, b.y - 4, 3, 4);
+        this.fxG.fillRect(b.x + 1, b.y - 4, 3, 4);
+        this.fxG.fillStyle(0x9ad0b0, 0.6);
+        this.fxG.fillRect(q4(b.x + tx * 16) - 3, q4(b.y + ty * 16) - 3, 6, 6);
+        this.fxG.fillRect(q4(b.x + tx * 26) - 2, q4(b.y + ty * 26) - 2, 4, 4);
+        break;
+      }
+      case 'roar': {
+        // focused roar: a traveling shockwave of chevrons
+        const dir = Math.atan2(b.vy, b.vx);
+        for (let c = 0; c < 3; c++) {
+          this.fxG.fillStyle(c === 0 ? pal.b : pal.a, 1 - c * 0.25);
+          for (let k = 0; k < 4; k++) {
+            for (const side of [-1, 1]) {
+              const aa = dir + side * 1.1;
+              const px = q4(b.x - Math.cos(dir) * c * 10 + Math.cos(aa) * k * 8 - Math.cos(dir) * k * 4);
+              const py = q4(b.y - Math.sin(dir) * c * 10 + Math.sin(aa) * k * 8 - Math.sin(dir) * k * 4);
+              this.fxG.fillRect(px - 3, py - 3, 6, 6);
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
   private drawEnemyBars(time: number): void {
     this.barG.clear();
     const viewTop = -this.world.y - 60;
     const viewBottom = -this.world.y + this.scale.height + 60;
+
+    // YOUR critter's HP, right under its feet: a slim leather strap with
+    // stitch notches (deliberately unlike the capture arena's wood-and-rope
+    // gauge). Sage while healthy, adobe when hurting.
+    const f = this.team[this.activeIdx];
+    if (f) {
+      const w = 88;
+      const x = this.playerImg.x - w / 2;
+      const y = this.playerImg.y + 58;
+      this.barG.fillStyle(COLORS.ink, 0.85);
+      this.barG.fillRect(x - 2, y - 2, w + 4, 13);
+      this.barG.fillStyle(COLORS.saddleDark);
+      this.barG.fillRect(x, y, w, 9);
+      const frac = Phaser.Math.Clamp(f.hp / f.stats.hp, 0, 1);
+      this.barG.fillStyle(frac > 0.35 ? COLORS.sage : COLORS.adobeRed);
+      this.barG.fillRect(x, y, Math.max(2, Math.round(w * frac)), 9);
+      this.barG.fillStyle(COLORS.parchment, 0.55);
+      for (let sx = x + 20; sx < x + w - 4; sx += 22) {
+        this.barG.fillRect(sx, y + 7, 2, 2);
+      }
+    }
     for (const e of this.enemies) {
       if (e.dead || e.img.y < viewTop || e.img.y > viewBottom) continue;
       const w = e.boss ? 110 : 56;
@@ -2033,6 +2756,17 @@ export class StageScene extends Phaser.Scene {
     stopMusic();
     gameState.save();
     this.scene.start('Map');
+  }
+
+  /**
+   * Pause: the overlay scene takes over while this scene (and its clock -
+   * cooldowns, telegraphs, hazards) freezes. Resuming runs the 3-2-1
+   * countdown in the overlay BEFORE gameplay unfreezes.
+   */
+  private pauseStage(): void {
+    if (this.over) return;
+    this.scene.launch('StagePause');
+    this.scene.pause();
   }
 
   private endOverlay(title: string, sub: string, subColor: string, extra?: string): void {

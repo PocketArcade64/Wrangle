@@ -9,11 +9,12 @@ import { ensureIcons } from '../ui/icons';
 import { addGoldCounter } from '../ui/goldCounter';
 import { openPossePicker } from '../ui/possePicker';
 import { buildNav } from '../ui/nav';
+import { sfx } from '../audio/audio';
 import {
   drawFrontierBackdrop,
   drawFrontierForeground,
   drawSky,
-  seenSpecies,
+  herdSpecies,
   skyLook,
   WalkerTroupe
 } from '../ui/vignette';
@@ -285,7 +286,8 @@ export class HomeScene extends Phaser.Scene {
 
   /**
    * Up to 2 species for the diorama: the profile's display picks first,
-   * random seen species filling any empty slot.
+   * random HERD species filling any empty slot (only critters you still
+   * own get to hang around the homestead).
    */
   private displayPair(): SpeciesDef[] {
     const out: SpeciesDef[] = [];
@@ -295,7 +297,7 @@ export class HomeScene extends Phaser.Scene {
       const sp = inst ? SPECIES.find((s) => s.id === inst.speciesId) : undefined;
       if (sp) out.push(sp);
     }
-    const pool = seenSpecies().filter((sp) => !out.includes(sp));
+    const pool = herdSpecies().filter((sp) => !out.includes(sp));
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -522,6 +524,7 @@ export class HomeScene extends Phaser.Scene {
       .on('pointerup', () => {
         drawFace(0);
         label.y = cy - 2;
+        sfx('explore');
         this.scene.start('Map');
       });
   }
@@ -536,6 +539,9 @@ export class HomeScene extends Phaser.Scene {
     this.add
       .rectangle(cx, cy, 70, 70, 0xffffff, 0)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', () => this.scene.start('Daily'));
+      .on('pointerup', () => {
+        sfx('satchel');
+        this.scene.start('Daily');
+      });
   }
 }

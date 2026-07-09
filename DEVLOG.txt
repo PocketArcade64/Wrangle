@@ -5,6 +5,80 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4j] 2026-07-08 - Move VFX overhaul, stat curves, fierce captures
+----------------------------------------------------------------------
+- MOVE ANIMATIONS FULLY OVERHAULED: the old flat cones/circles/lines
+  are gone. New pixel-fx system in StageScene: 16 primitives, all
+  drawn per-frame as 4px-grid fillRects with seeded (non-shimmering)
+  particles - sweeping block-crescent SLASHES with bright leading
+  edges, starburst IMPACT frames (stamped on EVERY landed hit, type-
+  colored), ember/droplet/venom SPARKS (with gravity arcs), jagged
+  two-tone BOLTS (flickering core), a stepped dragon BEAM with jagged
+  flanks, rolling DUST cones, spinning PETALS/feathers, flying ice/
+  metal/rock SHARDS, rising smoke WISPS, ground CRACK fractures,
+  gathering/bursting SWIRLS, and chevron SHOCKWAVES. Every one of the
+  34 moves got its own composition in its type's two-tone palette
+  (TYPE_FX): Ridgeback Slam splits the ground, Bramble Lasso is a
+  jagged vine with a leaf-burst bite, Bloomburst rains petals,
+  Canyon Crush throws rock chunks over cracks, Shadow Bounty folds
+  into smoke wisps, Blizzard Veil is a snow squall, Grave Grapple
+  sweeps a full spectral circle, Draconic Surge gathers embers into
+  the maw while charging... Projectiles got bodies too: psychic
+  orbs pulse, shrapnel slugs are elongated, Lucky Star is an actual
+  twinkling star, Wailing Curse is a grinning skull in a dark aura,
+  Focused Roar is a traveling chevron shockwave. Fire patches now
+  flicker real flame tongues; poison clouds bubble and pop; flood
+  waves have foam teeth and trailing droplets.
+- BASE STAT CURVES (new src/data/statGen.ts): blank CSV stat cells
+  now get DETERMINISTIC generated spreads - Pokemon-INSPIRED trends
+  without copying: totals ~320/420/525 by evolution stage (+-15
+  character), atkStyle leans ATK vs SPA, capture behavior shapes the
+  body (fleers fast+frail, chargers slow bruisers, grazers hardy),
+  types nudge their stereotype (Bugs quick+papery, Poison shelled,
+  Psychic sharp...). Filled CSV cells always win. Ledger BASE STATS
+  and critter pages now show real numbers, battles use them.
+- CAPTURE TARGETS FIGHT BACK: every lassoed critter attacks now, not
+  just CSV 'radial' rows. Interval by behavior (graze 9.5s / flee
+  11.5s / charge 7.5s base) scaled by evolution stage (basics x1.35 -
+  meeker, finals x0.75) and boss (x0.65); ring reach varies (fleers
+  startle small, chargers hit wide). Knobs: AGGRO_* / RING_MAX_R in
+  CaptureScene. CSV columns still override everything.
+- NEW LASSO MUSIC "ROPE'S EYE" (tunes.ts): 120bpm A-minor ropework
+  riff w/ galloping bass + off-beat shaker, mixed quiet to sit under
+  the loop/snap sfx. Plays for the whole minigame; PICK TARGET hands
+  back to the menu theme, trail/showdown resume on stage wake.
+- CAPTURE ARENA: the drawn brown border rectangle is REMOVED - open
+  range now (movement bounds unchanged).
+- NEW SFX: 'explore' (rein snap + hoof-falls) on the EXPLORE CTA,
+  'satchel' (leather flap + jingle) on the daily satchel, 'favorite'
+  (warm rising chime) when starring a critter (unfavorite = 'back').
+- FORTUNE WHEEL v3: tick now fires for EVERY stud crossed (while-loop
+  catches multi-boundary frames, notch is louder); spin is 5 full
+  turns over 5.2s with a Quint ease-out - a long dramatic crawl at
+  the end - and it lands ANYWHERE inside the winning wedge (up to
+  72% off-center), not always dead middle.
+- VISTAS ARE HERD-ONLY: title + home walkers now draw exclusively
+  from species currently IN THE HERD (seenSpecies -> herdSpecies in
+  vignette.ts). Bounty turn-ins/releases immediately stop a species
+  appearing once your last one is gone.
+- MAP: the COMING SOON region tab now shows its price (brass coin +
+  "1000 TO UNLOCK").
+- STAGE QoL: your critter's HP now ALSO reads under its feet - a slim
+  leather strap w/ stitch notches (sage -> adobe when hurting),
+  deliberately unlike the capture arena's wood+rope gauge. FLEE now
+  asks a confirm ("you keep XP/gold, the run ends"). NEW PAUSE button
+  under FLEE -> StagePauseScene overlay: stage scene pauses (clock
+  freezes = cooldowns/telegraphs hold), RESUME runs a big 3-2-1
+  countdown while still frozen, then the trail unfreezes.
+- STATUS: BIG VFX playtest - run every move type and judge the new
+  animations (esp. melee garnishes, Draconic Surge channel + beam,
+  Bloomburst, Canyon Crush); check capture aggression pacing per
+  behavior/stage; listen to Rope's Eye + the new button sfx; spin the
+  wheel a few times (every-stud ticks, dramatic crawl, off-center
+  landings); verify pause 3-2-1 and flee confirm mid-fight; eyeball
+  generated stats on a few ledger pages (statGen knobs if the curve
+  feels off).
+----------------------------------------------------------------------
 [M4i] 2026-07-08 - Feedback round: sounds, showdown pen, drifter XP
 ----------------------------------------------------------------------
 - CHALLENGES: species-catch templates REMOVED per feedback (hunting a

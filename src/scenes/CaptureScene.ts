@@ -7,9 +7,9 @@ import { makeButton } from '../ui/button';
 import { gameState, newCritter } from '../state/GameState';
 import { ensureIcons } from '../ui/icons';
 import { gaugeDecayDelay, gaugeDecayRate, healthBars, ropeBudget } from '../data/lassoUpgrades';
-import { EVOLVED_IDS } from '../data/evolutions';
+import { EVOLVED_IDS, evoStage } from '../data/evolutions';
 import { STAGE_THEMES } from '../data/stages';
-import { sfx } from '../audio/audio';
+import { playMusic, sfx } from '../audio/audio';
 
 // Tuning knobs for the capture mini-game live here. Rope budget, health
 // bars, and gauge decay are now functions of the lasso upgrade levels -
@@ -27,6 +27,14 @@ const ROPE_TICK_SPACING = 13; // px of arclength between twist ticks
 const GAUGE_PER_LOOP = 10; // capture gauge points shown per completed loop
 const GAUGE_W = 120; // inner fill width of the capture gauge
 const CAPTURE_REWARD = 25; // Gold paid out per successful wrangle
+
+// Every capture target fights back now, flavored by its behavior. The
+// interval scales by evolution stage (basics are meeker) and boss status.
+const AGGRO_INTERVAL_MS: Record<string, number> = { graze: 9500, flee: 11500, charge: 7500 };
+const AGGRO_STAGE_MULT = [1.35, 1, 0.75]; // basic / mid / final
+const AGGRO_BOSS_MULT = 0.65;
+// Ring reach by behavior: skittish fleers startle small, chargers hit wide
+const RING_MAX_R: Record<string, number> = { graze: 230, flee: 175, charge: 265 };
 
 // Consecutive-loop combo (a la Shadows of Almia): 5 straight loops heat the
 // rope to x1.5 gauge per loop, 10 straight = x2. Any break or release cools
@@ -118,11 +126,19 @@ export class CaptureScene extends Phaser.Scene {
     if (theme) this.cameras.main.setBackgroundColor(theme.captureBg);
     else this.cameras.main.setBackgroundColor('#d9a066');
     this.drawArena();
+    playMusic('lasso');
 
+    // hostility: interval by behavior, scaled by evolution stage + boss
+    const stage = evoStage(this.species.id);
+    const aggroMs =
+      (this.species.attackIntervalMs ?? AGGRO_INTERVAL_MS[this.species.movement] ?? 9500) *
+      (AGGRO_STAGE_MULT[stage] ?? 1) *
+      (this.bossCapture ? AGGRO_BOSS_MULT : 1);
     this.creature = new CreatureActor(
       this.species,
       { x: width / 2, y: (this.arena.top + this.arena.bottom) / 2 },
-      this.arena
+      this.arena,
+      { intervalMs: aggroMs }
     );
     this.creature.onTelegraph = () => {
       this.telegraphing = true;
@@ -136,7 +152,7 @@ export class CaptureScene extends Phaser.Scene {
         y: origin.y,
         r: this.species.bodyRadius,
         prevR: this.species.bodyRadius,
-        maxR: this.species.ringMaxR ?? 230,
+        maxR: this.species.ringMaxR ?? RING_MAX_R[this.species.movement] ?? 230,
         speed: this.species.ringSpeed ?? 420,
         damage: this.species.attackDamage ?? 1
       });
@@ -399,9 +415,10 @@ export class CaptureScene extends Phaser.Scene {
       makeButton(this, width / 2, height * 0.57, 320, 70, 'TRY AGAIN', () =>
         this.scene.restart({ speciesId: this.species.id })
       ).setDepth(21);
-      makeButton(this, width / 2, height * 0.57 + 100, 320, 70, 'PICK TARGET', () =>
-        this.scene.start('CaptureSelect', { tab: 'tally' })
-      ).setDepth(21);
+      makeButton(this, width / 2, height * 0.57 + 100, 320, 70, 'PICK TARGET', () => {
+        playMusic('home'); // back to the menus - drop the lasso tune
+        this.scene.start('CaptureSelect', { tab: 'tally' });
+      }).setDepth(21);
     });
   }
 
@@ -413,18 +430,16 @@ export class CaptureScene extends Phaser.Scene {
 
   // ---------- rendering ----------
 
+  /** Open range - speckled floor only, no drawn pen (bounds still apply). */
   private drawArena(): void {
     const a = this.arena;
     const g = this.add.graphics().setDepth(0);
-    // speckled desert floor
     g.fillStyle(0xc9945a);
     for (let i = 0; i < 60; i++) {
       const x = a.left + Math.random() * (a.right - a.left);
       const y = a.top + Math.random() * (a.bottom - a.top);
       g.fillCircle(x, y, 2 + Math.random() * 3);
     }
-    g.lineStyle(5, 0x5a3a22);
-    g.strokeRect(a.left, a.top, a.right - a.left, a.bottom - a.top);
   }
 
   private redraw(): void {

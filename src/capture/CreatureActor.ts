@@ -21,6 +21,15 @@ type State = 'idle' | 'roam' | 'telegraph' | 'recover';
 const EDGE_MARGIN = 48;
 
 /**
+ * How often a capture target attacks. The scene derives this from the
+ * species' behavior and evolution stage (weaker basics are less hostile);
+ * null = a truly passive creature (not used by default anymore).
+ */
+export interface AggroConfig {
+  intervalMs: number;
+}
+
+/**
  * Movement + attack brain for a capture target. Pure logic — the scene owns
  * rendering, hazards, and HP. Scene subscribes via onTelegraph/onAttack.
  */
@@ -37,11 +46,13 @@ export class CreatureActor {
   private dashT = 0; // >0 while dashing
   private dashCooldown: number;
   private readonly arena: ArenaRect;
+  private readonly aggro: AggroConfig | null;
 
-  constructor(species: SpeciesDef, start: Vec2, arena: ArenaRect) {
+  constructor(species: SpeciesDef, start: Vec2, arena: ArenaRect, aggro: AggroConfig | null = null) {
     this.species = species;
     this.pos = { ...start };
     this.arena = arena;
+    this.aggro = aggro;
     this.target = { ...start };
     this.attackT = this.attackDelay();
     this.dashCooldown = this.dashDelay();
@@ -120,7 +131,9 @@ export class CreatureActor {
   }
 
   private tickAttack(dt: number): void {
-    if (this.species.attackPattern === 'none') return;
+    // attacks come from the aggro config; the CSV attackPattern column
+    // still force-enables the classic radial behavior when set
+    if (!this.aggro && this.species.attackPattern === 'none') return;
     this.attackT -= dt;
     if (this.attackT <= 0) {
       this.state = 'telegraph';
@@ -168,7 +181,7 @@ export class CreatureActor {
   }
 
   private attackDelay(): number {
-    const base = (this.species.attackIntervalMs ?? 5000) / 1000;
+    const base = (this.species.attackIntervalMs ?? this.aggro?.intervalMs ?? 5000) / 1000;
     return base * (0.8 + Math.random() * 0.4);
   }
 

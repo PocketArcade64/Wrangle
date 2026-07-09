@@ -112,6 +112,15 @@ GAME SYSTEMS MAP (where things live)
   battle/moves.ts (all 34 moves as data; COOLDOWN_SCALE is THE pacing
   knob), StageScene (world-container engine: corridor path table,
   behaviors switch, statuses, hazards, toasts, capture triggers).
+- Base stats: data/statGen.ts deterministically fills BLANK CSV stat
+  cells (evolution-stage totals in STAGE_TOTALS + archetype leans from
+  movement/atkStyle/types). A filled CSV cell always overrides.
+- Move VFX: StageScene's fx system - 16 pixel primitives (slash/
+  impact/sparks/bolt/beam/dust/petals/shards/wisps/crack/swirl/
+  chevron + legacy 4), all 4px-grid fillRects, seeded via prand() so
+  particles don't shimmer. TYPE_FX = two-tone palette per type; every
+  applyHit stamps an 'impact'. Compose new moves from these, don't
+  draw ad-hoc circles.
 - State: GameState.ts - save schema + migrate() (pattern: spread
   newCritter() under saved fields for new defaults; posse slots hold
   critter UIDs; DEFAULTS spread covers new top-level fields), stamina

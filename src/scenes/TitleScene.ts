@@ -5,7 +5,7 @@ import {
   drawFrontierBackdrop,
   drawFrontierForeground,
   drawSky,
-  seenSpecies,
+  herdSpecies,
   skyLook,
   WalkerTroupe
 } from '../ui/vignette';
@@ -40,8 +40,8 @@ export class TitleScene extends Phaser.Scene {
     drawFrontierForeground(midG, 0, width, horizonY, height, look);
     const frontLayer = this.add.container(0, 0);
 
-    // random critters the player has seen, out for a stroll
-    const pool = seenSpecies();
+    // random critters from the player's HERD, out for a stroll
+    const pool = herdSpecies();
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];

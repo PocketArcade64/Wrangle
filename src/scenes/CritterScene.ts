@@ -133,6 +133,7 @@ export class CritterScene extends Phaser.Scene {
     this.paintFavStar();
     this.favStar.setInteractive({ useHandCursor: true }).on('pointerup', () => {
       this.critter.favorite = !this.critter.favorite;
+      sfx(this.critter.favorite ? 'favorite' : 'back');
       gameState.save();
       this.paintFavStar();
     });

@@ -18,7 +18,7 @@ export interface Tune {
   channels: TuneChannel[];
 }
 
-export type MusicId = 'home' | 'trail' | 'showdown';
+export type MusicId = 'home' | 'trail' | 'showdown' | 'lasso';
 
 const _ = null;
 
@@ -170,8 +170,63 @@ const SHOWDOWN: Tune = {
   ]
 };
 
+/**
+ * ROPE'S EYE (lasso minigame) - 120bpm, A minor with a raised-6th sparkle.
+ * Tense but playful ropework: a circling four-bar riff that keeps leaning
+ * forward (the loop never quite rests), galloping bass under it, shaker
+ * on the off-beats. Written to sit UNDER the loop/snap sfx, not fight them.
+ */
+const LASSO: Tune = {
+  bpm: 120,
+  channels: [
+    {
+      wave: 'square',
+      vol: 0.032,
+      steps: [
+        69, _, _, 72, 74, _, 72, _, 69, _, _, _, 76, _, 74, _,
+        72, _, _, 74, 76, _, 79, _, 76, _, 74, _, 72, _, 69, _,
+        69, _, _, 72, 74, _, 72, _, 69, _, 67, _, 64, _, 67, _,
+        69, _, _, _, 76, _, _, 74, _, _, 72, _, 69, _, _, _
+      ]
+    },
+    {
+      wave: 'square',
+      vol: 0.009,
+      sustain: 7,
+      steps: [
+        57, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+        55, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+        53, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+        52, _, _, _, _, _, _, _, 57, _, _, _, _, _, _, _
+      ]
+    },
+    {
+      wave: 'triangle',
+      vol: 0.12,
+      sustain: 0.55,
+      steps: [
+        45, _, 45, 45, 52, _, 45, _, 45, _, 45, 45, 52, _, 45, _,
+        43, _, 43, 43, 50, _, 43, _, 43, _, 43, 43, 50, _, 43, _,
+        41, _, 41, 41, 48, _, 41, _, 41, _, 41, 41, 48, _, 41, _,
+        40, _, 40, 40, 47, _, 40, _, 45, _, 45, 45, 52, _, 45, _
+      ]
+    },
+    {
+      wave: 'noise',
+      vol: 0.009,
+      steps: [
+        _, _, 1, _, _, _, 1, _, _, _, 1, _, _, _, 1, 1,
+        _, _, 1, _, _, _, 1, _, _, _, 1, _, _, _, 1, _,
+        _, _, 1, _, _, _, 1, _, _, _, 1, _, _, _, 1, 1,
+        _, _, 1, _, _, _, 1, _, _, _, 1, _, 1, _, 1, _
+      ]
+    }
+  ]
+};
+
 export const TUNES: Record<MusicId, Tune> = {
   home: HOME,
   trail: TRAIL,
-  showdown: SHOWDOWN
+  showdown: SHOWDOWN,
+  lasso: LASSO
 };

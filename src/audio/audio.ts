@@ -132,7 +132,10 @@ export type SfxName =
   | 'punch'
   | 'spin'
   | 'showtime'
-  | 'notch';
+  | 'notch'
+  | 'explore'
+  | 'satchel'
+  | 'favorite';
 
 /** Fire-and-forget synthesized effect. Safe to call before unlock (no-op). */
 export function sfx(name: SfxName): void {
@@ -276,8 +279,27 @@ export function sfx(name: SfxName): void {
     case 'notch':
       // the fortune wheel's pointer clacking over a rim stud - short
       // woodblock knock, fired once per wedge boundary while spinning
-      tone(880, 0.03, { wave: 'square', slide: 0.85, vol: 0.05 });
-      noise(0.025, { freq: 2600, slide: 0.6, vol: 0.035 });
+      tone(880, 0.028, { wave: 'square', slide: 0.85, vol: 0.09 });
+      noise(0.022, { freq: 2600, slide: 0.6, vol: 0.055 });
+      break;
+    case 'explore':
+      // saddling up: rein snap + two quick hoof-falls setting off
+      noise(0.06, { freq: 3000, slide: 0.3, vol: 0.09 });
+      tone(330, 0.07, { wave: 'triangle', at: t + 0.06, vol: 0.1 });
+      tone(392, 0.07, { wave: 'triangle', at: t + 0.16, vol: 0.1 });
+      tone(494, 0.12, { at: t + 0.26, vol: 0.09 });
+      break;
+    case 'satchel':
+      // leather flap + the goods jingling inside
+      noise(0.08, { freq: 900, slide: 0.5, vol: 0.09 });
+      tone(988, 0.05, { at: t + 0.08, vol: 0.06 });
+      tone(1319, 0.08, { at: t + 0.14, vol: 0.06 });
+      break;
+    case 'favorite':
+      // pinning a star on a good critter: warm rising chime + sparkle
+      tone(523, 0.07, { wave: 'triangle', vol: 0.1 });
+      tone(784, 0.09, { at: t + 0.07, vol: 0.09 });
+      tone(1568, 0.1, { at: t + 0.15, vol: 0.05 });
       break;
   }
 }
