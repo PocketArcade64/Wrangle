@@ -1,3 +1,5 @@
+import { dateKey } from '../util/daily';
+
 export interface Pedigree {
   hp: number;
   atk: number;
@@ -73,6 +75,18 @@ export interface WrangleSave {
   playerName: string;
   playerLevel: number;
   playerXp: number;
+  /** Bounty board day-state: challenge tallies + roundup turn-ins. */
+  quests: QuestState;
+}
+
+export interface QuestState {
+  day: string;
+  /** Tallies bumped by gameplay: catches, stages, flats, fullPosse... */
+  stats: Record<string, number>;
+  /** Challenge ids already paid out today. */
+  claimed: string[];
+  /** Roundup contracts: critters turned in per species id. */
+  turnIns: Record<string, number>;
 }
 
 const KEY = 'wrangle-save-v1';
@@ -94,7 +108,8 @@ const DEFAULTS: WrangleSave = {
   daily: { lastPunch: '', punchStreak: 0, lastSpin: '' },
   playerName: 'THE DRIFTER',
   playerLevel: 1,
-  playerXp: 0
+  playerXp: 0,
+  quests: { day: '', stats: {}, claimed: [], turnIns: {} }
 };
 
 export function rollPedigree(): Pedigree {
@@ -167,6 +182,23 @@ class GameStateStore {
         return inst.uid;
       });
     }
+  }
+
+  /** Today's quest state, resetting all tallies at local midnight. */
+  quests(): QuestState {
+    const today = dateKey();
+    if (this.data.quests.day !== today) {
+      this.data.quests = { day: today, stats: {}, claimed: [], turnIns: {} };
+      this.save();
+    }
+    return this.data.quests;
+  }
+
+  /** Bump a daily challenge tally (catches, stages, flats, fullPosse...). */
+  bumpQuest(stat: string, n = 1): void {
+    const q = this.quests();
+    q.stats[stat] = (q.stats[stat] ?? 0) + n;
+    this.save();
   }
 
   /** Regenerate 1 stamina per hour offline/online, up to the cap. */

@@ -60,14 +60,10 @@ export class MapScene extends Phaser.Scene {
     bar.fillStyle(COLORS.saddle);
     bar.fillRect(0, TOP_BAR_H - 4, width, 4);
     makeButton(this, 84, 55, 130, 54, 'BACK', () => this.scene.start('Home'), '18px').setDepth(11);
-    if (this.textures.exists('map-logo')) {
-      this.add.image(width / 2, 55, 'map-logo').setDepth(11);
-    } else {
-      this.add
-        .text(width / 2, 55, 'FRONTIER FLATS', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
-        .setOrigin(0.5)
-        .setDepth(11);
-    }
+    this.add
+      .text(width / 2, 55, 'EXPLORE', { fontFamily: FONT.display, fontSize: '30px', color: HEX.ink })
+      .setOrigin(0.5)
+      .setDepth(11);
     this.add.image(width - 128, 55, 'icon-horseshoe').setTint(COLORS.sage).setScale(0.8).setDepth(11);
     this.add
       .text(width - 98, 55, `${gameState.data.stamina}/${gameState.data.staminaMax}`, {
@@ -79,8 +75,7 @@ export class MapScene extends Phaser.Scene {
       .setDepth(11);
 
     this.buildMapTabs();
-    makeButton(this, width / 2, MAP_Y + MAP_VIEW + FRAME + 28, 300, 48, 'AREA GUIDE', () => this.openAreaGuide(), '18px');
-    this.buildPinSlots(MAP_Y + MAP_VIEW + FRAME + 56);
+    this.buildSignposts();
   }
 
   /** Wood plank frame - ink outline, saddle planks, ink inner line. */
@@ -102,30 +97,70 @@ export class MapScene extends Phaser.Scene {
   private buildMapTabs(): void {
     const tabTop = TOP_BAR_H + 12;
     const tabH = MAP_Y - FRAME - tabTop; // bottoms touch the frame top
-    // active: Frontier Flats - the region logo art over its level band
+    // active: the Frontier Flats logo art fills the tab (level band lives
+    // on the signpost below the map now)
     const t1x = 186;
-    this.add.rectangle(t1x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentLight).setStrokeStyle(3, COLORS.saddle);
+    this.add.rectangle(t1x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentLight).setStrokeStyle(5, COLORS.saddle);
     if (this.textures.exists('map-logo')) {
-      this.add.image(t1x, tabTop + 28, 'map-logo').setScale(0.5);
+      this.add.image(t1x, tabTop + tabH / 2, 'map-logo').setScale(0.85);
     } else {
       this.add
-        .text(t1x, tabTop + 26, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
+        .text(t1x, tabTop + tabH / 2, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
         .setOrigin(0.5);
     }
-    this.add
-      .text(t1x, tabTop + 66, `CRITTERS LV ${FRONTIER_LEVELS.min}-${FRONTIER_LEVELS.max}`, {
-        fontFamily: FONT.ui,
-        fontSize: '16px',
-        color: HEX.sage
-      })
-      .setOrigin(0.5);
     // placeholder for the next region
     const t2x = 528;
-    this.add.rectangle(t2x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentDark).setStrokeStyle(2, COLORS.saddleDark);
+    this.add.rectangle(t2x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentDark).setStrokeStyle(4, COLORS.saddleDark);
     this.add
       .text(t2x, tabTop + tabH / 2, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
       .setOrigin(0.5)
       .setAlpha(0.6);
+  }
+
+  // ---------- signposts under the map ----------
+
+  private buildSignposts(): void {
+    const cy = MAP_Y + MAP_VIEW + FRAME + 60;
+    this.drawSignpost(130, cy, ['CRITTERS', `LV ${FRONTIER_LEVELS.min}-${FRONTIER_LEVELS.max}`]);
+    this.drawSignpost(360, cy, ['AREA', 'GUIDE'], () => this.openAreaGuide());
+    this.drawSignpost(590, cy, ['PINNED', 'STAGES'], () => this.openPinBoard());
+  }
+
+  /** A wooden trail signpost: plank on a post, tap the plank to act. */
+  private drawSignpost(x: number, cy: number, lines: string[], onTap?: () => void): void {
+    const g = this.add.graphics();
+    const w = 204;
+    const plankH = 84;
+    // post first so the plank overlaps it
+    g.fillStyle(COLORS.ink);
+    g.fillRect(x - 9, cy, 18, 108);
+    g.fillStyle(COLORS.saddleDark);
+    g.fillRect(x - 6, cy, 12, 102);
+    // plank
+    g.fillStyle(COLORS.ink);
+    g.fillRect(x - w / 2 - 3, cy - plankH / 2 - 3, w + 6, plankH + 6);
+    g.fillStyle(COLORS.saddle);
+    g.fillRect(x - w / 2, cy - plankH / 2, w, plankH);
+    g.fillStyle(0x8a6238);
+    g.fillRect(x - w / 2 + 4, cy - plankH / 2 + 4, w - 8, 6);
+    // nails
+    g.fillStyle(COLORS.ink);
+    g.fillRect(x - w / 2 + 8, cy - 2, 5, 5);
+    g.fillRect(x + w / 2 - 13, cy - 2, 5, 5);
+    lines.forEach((line, i) => {
+      this.add
+        .text(x, cy - 13 + i * 26, line, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.parchment })
+        .setOrigin(0.5);
+    });
+    if (onTap) {
+      this.add
+        .rectangle(x, cy, w + 10, plankH + 10, 0xffffff, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', () => {
+          sfx('ui');
+          onTap();
+        });
+    }
   }
 
   // ---------- pins ----------
@@ -143,46 +178,89 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
-  private buildPinSlots(y: number): void {
-    const { width } = this.scale;
+  /** The 3 saved pins, on a board behind the PINNED STAGES signpost. */
+  private openPinBoard(): void {
+    const { width, height } = this.scale;
     const pins = gameState.data.pins;
+    const modal: Phaser.GameObjects.GameObject[] = [];
+    const close = () => modal.forEach((o) => o.destroy());
+    const dim = this.add
+      .rectangle(width / 2, height / 2, width, height, COLORS.ink, 0.6)
+      .setDepth(60)
+      .setInteractive();
+    dim.on('pointerup', close);
+    modal.push(dim);
+    const g = this.add.graphics().setDepth(61);
+    drawPixelPanel(g, 40, 340, width - 80, 470, COLORS.parchment, COLORS.saddle);
+    modal.push(g);
+    modal.push(
+      this.add
+        .text(width / 2, 386, 'PINNED STAGES', { fontFamily: FONT.display, fontSize: '28px', color: HEX.ink })
+        .setOrigin(0.5)
+        .setDepth(62)
+    );
+    const closeBtn = this.add
+      .image(width - 96, 386, 'icon-x')
+      .setTint(COLORS.saddle)
+      .setDepth(62)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', close);
+    modal.push(closeBtn);
+
     for (let i = 0; i < 3; i++) {
-      const sy = y + i * 106;
-      const g = this.add.graphics();
-      drawPixelPanel(g, 32, sy, width - 64, 96, COLORS.parchmentLight, COLORS.saddle, 4);
+      const sy = 428 + i * 118;
+      const pg = this.add.graphics().setDepth(62);
+      drawPixelPanel(pg, 64, sy, width - 128, 104, COLORS.parchmentLight, COLORS.saddle, 4);
+      modal.push(pg);
       const pin = pins[i];
       if (!pin) {
-        this.add
-          .text(width / 2, sy + 48, 'EMPTY SLOT - TAP THE MAP TO SCOUT', {
-            fontFamily: FONT.ui,
-            fontSize: '18px',
-            color: HEX.sage
-          })
-          .setOrigin(0.5);
+        modal.push(
+          this.add
+            .text(width / 2, sy + 52, 'EMPTY SLOT - TAP THE MAP TO SCOUT', {
+              fontFamily: FONT.ui,
+              fontSize: '18px',
+              color: HEX.sage
+            })
+            .setOrigin(0.5)
+            .setDepth(63)
+        );
         continue;
       }
-      this.add.text(56, sy + 16, pin.name, { fontFamily: FONT.display, fontSize: '22px', color: HEX.ink });
-      this.add.text(56, sy + 52, `CELL ${pin.cellX}-${pin.cellY}${pin.completed ? '   CLEARED' : ''}`, {
-        fontFamily: FONT.ui,
-        fontSize: '18px',
-        color: pin.completed ? HEX.sage : HEX.saddle
-      });
-      // tap the pin's name area to preview what critters roam there
-      this.add
-        .rectangle(200, sy + 48, 330, 92, 0xffffff, 0)
+      modal.push(
+        this.add.text(88, sy + 18, pin.name, { fontFamily: FONT.display, fontSize: '22px', color: HEX.ink }).setDepth(63)
+      );
+      modal.push(
+        this.add
+          .text(88, sy + 56, `CELL ${pin.cellX}-${pin.cellY}${pin.completed ? '   CLEARED' : ''}`, {
+            fontFamily: FONT.ui,
+            fontSize: '18px',
+            color: pin.completed ? HEX.sage : HEX.saddle
+          })
+          .setDepth(63)
+      );
+      // tap the name area to preview what critters roam there
+      const prev = this.add
+        .rectangle(230, sy + 52, 300, 100, 0xffffff, 0)
+        .setDepth(63)
         .setInteractive({ useHandCursor: true })
-        .on('pointerup', () => this.openSpeciesList(pin.themeId));
+        .on('pointerup', () => {
+          close();
+          this.openSpeciesList(pin.themeId);
+        });
+      modal.push(prev);
       // favorite star - only one pin may hold it
-      const star = this.add.image(width - 260, sy + 48, 'icon-star').setScale(0.9);
+      const star = this.add.image(width - 280, sy + 52, 'icon-star').setScale(0.9).setDepth(64);
       star.setTint(pin.favorite ? COLORS.clay : COLORS.saddle).setAlpha(pin.favorite ? 1 : 0.4);
       star.setInteractive({ useHandCursor: true }).on('pointerup', () => {
         const was = pin.favorite;
         for (const p of gameState.data.pins) p.favorite = false;
         pin.favorite = !was;
         gameState.save();
-        this.scene.restart();
+        close();
+        this.openPinBoard();
       });
-      makeButton(this, width - 130, sy + 48, 170, 56, 'RIDE FREE', () => this.startStage(pin), '18px');
+      modal.push(star);
+      modal.push(makeButton(this, width - 156, sy + 52, 170, 56, 'RIDE FREE', () => this.startStage(pin), '18px').setDepth(64));
     }
   }
 

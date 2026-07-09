@@ -35,7 +35,8 @@ export function makeButton(
     .on('pointerout', () => press(false))
     .on('pointerup', () => {
       press(false);
-      sfx('ui');
+      // BACK buttons speak a fourth lower than forward actions
+      sfx(label === 'BACK' ? 'back' : 'ui');
       onClick();
     });
   return container;

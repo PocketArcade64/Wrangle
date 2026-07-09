@@ -21,13 +21,13 @@ export class LedgerScene extends Phaser.Scene {
   /** Set when opened from a critter's herd page - BACK returns there. */
   private fromUid?: string;
   /** That critter page's own origin, passed back so its BACK stays right. */
-  private critterFrom?: 'home';
+  private critterFrom?: 'home' | 'posses';
 
   constructor() {
     super('Ledger');
   }
 
-  init(data: { speciesId: string; fromUid?: string; critterFrom?: 'home' }): void {
+  init(data: { speciesId: string; fromUid?: string; critterFrom?: 'home' | 'posses' }): void {
     this.species = speciesById(data.speciesId);
     this.fromUid = data.fromUid;
     this.critterFrom = data.critterFrom;

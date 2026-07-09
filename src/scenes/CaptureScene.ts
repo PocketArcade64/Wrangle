@@ -73,15 +73,18 @@ export class CaptureScene extends Phaser.Scene {
   /** True when launched mid-stage - exits wake the sleeping StageScene. */
   private fromStage = false;
   private stageThemeId?: string;
+  private bossCapture = false;
+  private creatureBaseScale = 1;
 
   constructor() {
     super('Capture');
   }
 
-  init(data: { speciesId: string; fromStage?: boolean; themeId?: string }): void {
+  init(data: { speciesId: string; fromStage?: boolean; themeId?: string; boss?: boolean }): void {
     this.species = speciesById(data.speciesId);
     this.fromStage = data.fromStage ?? false;
     this.stageThemeId = data.themeId;
+    this.bossCapture = data.boss ?? false;
     // Scene objects persist across restarts — reset all round state here.
     const lasso = gameState.data.lasso;
     this.line = new LassoLine(ropeBudget(lasso.rope));
@@ -137,8 +140,12 @@ export class CaptureScene extends Phaser.Scene {
 
     this.gfx = this.add.graphics().setDepth(1);
     const texKey = this.textures.exists(this.species.textureKey) ? this.species.textureKey : 'pl-unknown';
-    // drawn a third larger than the source art (gameplay radius unchanged)
-    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, texKey).setScale(1.3).setDepth(2);
+    // every critter draws at the same fixed size (~the gauge bar's width);
+    // bosses at 1.5x. Gameplay radius unchanged.
+    this.creatureImg = this.add.image(this.creature.pos.x, this.creature.pos.y, texKey).setDepth(2);
+    const targetSize = this.bossCapture ? 189 : 126;
+    this.creatureImg.setDisplaySize(targetSize, targetSize);
+    this.creatureBaseScale = this.creatureImg.scaleX;
     this.alertText = this.add
       .text(0, 0, '!', { fontFamily: 'Silkscreen', fontSize: '44px', color: '#e01c1c' })
       .setOrigin(0.5)
@@ -233,9 +240,9 @@ export class CaptureScene extends Phaser.Scene {
     this.decayCountdown = this.decayDelayS;
     sfx('loop');
     this.popGaugeGain(Math.round(GAUGE_PER_LOOP * mult), mult > 1);
-    // squash-pop relative to the 1.3x base draw scale
-    this.creatureImg.setScale(1.45);
-    this.tweens.add({ targets: this.creatureImg, scale: 1.3, duration: 150 });
+    // squash-pop relative to the normalized base draw scale
+    this.creatureImg.setScale(this.creatureBaseScale * 1.12);
+    this.tweens.add({ targets: this.creatureImg, scale: this.creatureBaseScale, duration: 150 });
     if (this.gaugeProgress >= this.species.requiredLoops - 1e-9) {
       this.finish(true);
     }
@@ -335,6 +342,7 @@ export class CaptureScene extends Phaser.Scene {
       // into the herd as a unique individual (fresh pedigree roll), plus pay
       gameState.data.herd.push(newCritter(this.species.id));
       gameState.data.currency += CAPTURE_REWARD;
+      gameState.bumpQuest('catches');
       gameState.save();
       this.tweens.add({
         targets: this.creatureImg,

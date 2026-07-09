@@ -103,8 +103,11 @@ function noise(dur: number, opts: { vol?: number; freq?: number; slide?: number;
 
 export type SfxName =
   | 'ui'
+  | 'tab'
+  | 'back'
   | 'loop'
   | 'snap'
+  | 'release'
   | 'coin'
   | 'capture'
   | 'bust'
@@ -137,6 +140,22 @@ export function sfx(name: SfxName): void {
   switch (name) {
     case 'ui':
       tone(520, 0.05, { vol: 0.06 });
+      break;
+    case 'tab':
+      // top tabs: a two-step page flip, distinct from nav/button clicks
+      tone(620, 0.04, { vol: 0.055 });
+      tone(830, 0.05, { vol: 0.05, at: t + 0.04 });
+      break;
+    case 'back':
+      // stepping back: same click, a fourth lower
+      tone(390, 0.06, { vol: 0.06 });
+      break;
+    case 'release':
+      // a critter set loose: gate creak up, then a fading farewell trot
+      tone(300, 0.1, { wave: 'triangle', slide: 1.4, vol: 0.09 });
+      tone(392, 0.12, { wave: 'triangle', at: t + 0.12, vol: 0.08 });
+      tone(330, 0.16, { wave: 'triangle', at: t + 0.26, slide: 0.8, vol: 0.07 });
+      noise(0.2, { freq: 900, slide: 0.5, vol: 0.03, at: t + 0.3 });
       break;
     case 'loop':
       // the every-few-seconds sound of the whole game: a soft rope pluck

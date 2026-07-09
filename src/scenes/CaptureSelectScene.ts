@@ -9,6 +9,7 @@ import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
 import { confirmDialog } from '../ui/confirm';
 import { openPossePicker } from '../ui/possePicker';
+import { sfx } from '../audio/audio';
 import { buildNav, NAV_HEIGHT } from '../ui/nav';
 
 const TOP_BAR_H = 110;
@@ -139,9 +140,10 @@ export class CaptureSelectScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(12);
     if (!active) {
-      bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-        this.scene.restart({ tab })
-      );
+      bg.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+        sfx('tab');
+        this.scene.restart({ tab });
+      });
     }
   }
 
@@ -365,6 +367,7 @@ export class CaptureSelectScene extends Phaser.Scene {
       `${n} critter${n > 1 ? 's' : ''} will wander back to the wild. This can't be undone.`,
       'RELEASE',
       () => {
+        sfx('release');
         releaseCritters([...this.selected]);
         this.scene.restart({ tab: 'herd' });
       },
@@ -490,7 +493,7 @@ export class CaptureSelectScene extends Phaser.Scene {
         pressTimer?.remove();
         if (longFired) return;
         if (inst) {
-          this.scene.start('Critter', { uid: inst.uid });
+          this.scene.start('Critter', { uid: inst.uid, from: 'posses' });
           return;
         }
         openPicker();

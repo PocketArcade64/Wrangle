@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
 import { badgeName } from '../data/typeChart';
 import { movesForSpecies } from '../battle/moves';
+import { sfx } from '../audio/audio';
 import { CritterInstance, gameState, xpForNextLevel } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -62,8 +63,8 @@ export class CritterScene extends Phaser.Scene {
   private species!: SpeciesDef;
   private chartTab: ChartTab = 'stats';
   private chartView: ChartView = 'bars';
-  /** 'home' when opened from the home carousel - BACK returns there. */
-  private from?: 'home';
+  /** Where this page was opened from - BACK returns there. */
+  private from?: 'home' | 'posses';
   private favStar!: Phaser.GameObjects.Image;
   private tempMsg?: Phaser.GameObjects.Text;
 
@@ -71,7 +72,7 @@ export class CritterScene extends Phaser.Scene {
     super('Critter');
   }
 
-  init(data: { uid: string; chart?: ChartTab; view?: ChartView; from?: 'home' }): void {
+  init(data: { uid: string; chart?: ChartTab; view?: ChartView; from?: 'home' | 'posses' }): void {
     const found = gameState.data.herd.find((c) => c.uid === data.uid);
     if (!found) {
       this.scene.start('CaptureSelect', { tab: 'herd' });
@@ -87,6 +88,7 @@ export class CritterScene extends Phaser.Scene {
   /** Where BACK (and post-release) goes: wherever this page was opened from. */
   private exitScene(): void {
     if (this.from === 'home') this.scene.start('Home');
+    else if (this.from === 'posses') this.scene.start('CaptureSelect', { tab: 'posses' });
     else this.scene.start('CaptureSelect', { tab: 'herd' });
   }
 
@@ -320,9 +322,10 @@ export class CritterScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       if (!active) {
-        bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-          this.scene.restart({ uid: this.critter.uid, chart: tab, from: this.from })
-        );
+        bg.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+          sfx('tab');
+          this.scene.restart({ uid: this.critter.uid, chart: tab, from: this.from });
+        });
       }
     });
   }
@@ -348,9 +351,10 @@ export class CritterScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       if (!active) {
-        bg.setInteractive({ useHandCursor: true }).on('pointerup', () =>
-          this.scene.restart({ uid: this.critter.uid, chart: this.chartTab, view, from: this.from })
-        );
+        bg.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+          sfx('tab');
+          this.scene.restart({ uid: this.critter.uid, chart: this.chartTab, view, from: this.from });
+        });
       }
     });
   }
@@ -507,6 +511,7 @@ export class CritterScene extends Phaser.Scene {
       `${this.species.name} will wander back to the wild. This can't be undone.`,
       'RELEASE',
       () => {
+        sfx('release');
         releaseCritters([this.critter.uid]);
         this.exitScene();
       },

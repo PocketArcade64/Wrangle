@@ -1666,7 +1666,7 @@ export class StageScene extends Phaser.Scene {
         if (this.over) return;
         if (e.boss) this.pendingClear = true;
         stopMusic();
-        this.scene.run('Capture', { speciesId: e.sp.id, fromStage: true, themeId: this.theme.id });
+        this.scene.run('Capture', { speciesId: e.sp.id, fromStage: true, themeId: this.theme.id, boss: e.boss });
         this.scene.bringToTop('Capture');
         this.scene.sleep();
       });
@@ -1944,6 +1944,11 @@ export class StageScene extends Phaser.Scene {
     if (pin) pin.completed = true;
     gameState.data.currency += 40;
     this.goldEarned += 40;
+    // bounty board daily-challenge tallies
+    gameState.bumpQuest('stages');
+    gameState.bumpQuest('flats'); // this map IS Frontier Flats
+    if (this.team.length === 3 && this.team.every((m) => m.hp > 0)) gameState.bumpQuest('fullPosse');
+    if (this.team.every((m) => m.sp.type1 === 'Grass' || m.sp.type2 === 'Grass')) gameState.bumpQuest('grassClear');
     gameState.save();
     this.endOverlay('TRAIL CLEARED!', `+${this.goldEarned} GOLD EARNED`, HEX.brass);
   }

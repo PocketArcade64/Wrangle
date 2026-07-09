@@ -387,25 +387,25 @@ export class HomeScene extends Phaser.Scene {
     // that critter's page; long-press to change/clear.
     for (let s = 0; s < 3; s++) {
       const sx = x + (s - 1) * 140;
-      const slotCy = cy - 14;
-      const slot = this.add.rectangle(sx, slotCy, 84, 84, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
+      const slotCy = cy - 20;
+      const slot = this.add.rectangle(sx, slotCy, 80, 80, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
       this.carousel.add(slot);
       const memberUid = team.members[s];
       const inst = memberUid ? gameState.data.herd.find((c) => c.uid === memberUid) : undefined;
       if (inst) {
         const sp = SPECIES.find((c) => c.id === inst.speciesId);
         const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-        const img = this.add.image(sx, slotCy, texKey).setDisplaySize(72, 72);
+        const img = this.add.image(sx, slotCy, texKey).setDisplaySize(68, 68);
         this.carousel.add(img);
         const lv = this.add
-          .text(sx, cy + 42, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+          .text(sx, cy + 32, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
           .setOrigin(0.5);
         this.carousel.add(lv);
         if (sp) {
           const moves = movesForSpecies(sp);
           moves.forEach((mv, i) => {
             const key = this.textures.exists(`typedot-${mv.type}`) ? `typedot-${mv.type}` : 'typedot-Normal';
-            const dot = this.add.image(sx + (i - (moves.length - 1) / 2) * 46, cy + 72, key).setScale(2);
+            const dot = this.add.image(sx + (i - (moves.length - 1) / 2) * 46, cy + 60, key).setScale(2);
             this.carousel.add(dot);
           });
         }

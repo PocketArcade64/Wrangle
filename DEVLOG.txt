@@ -5,6 +5,49 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4g] 2026-07-08 - Sound palette, signposts, working bounty board
+----------------------------------------------------------------------
+- SOUND PALETTE SPLIT: top tabs (critters tabs, chart tabs, BARS/HEX
+  toggle) play a two-step page-flip 'tab'; BACK buttons play 'back'
+  (a fourth lower, keyed off the BACK label in makeButton); NEW
+  'release' sfx (gate creak + fading farewell trot) on every turn-
+  loose (single, mass, and bounty turn-ins).
+- CAPTURE ARENA SIZES NORMALIZED: every critter draws at 126px (about
+  the gauge bar's width) regardless of source PNG; BOSSES at 1.5x
+  (189px) - StageScene passes boss:true into the capture. Loop
+  squash-pop now scales around the normalized base.
+- HOME CAROUSEL: dots were kissing the card's inner border - slots
+  80px at cy-20, LV at cy+32, dots at cy+60 (10px clearance).
+- POSSE ROUTING FIX: tapping a posse slot critter passes
+  from:'posses' - its BACK returns to the POSSES tab, not the herd.
+- MAP SCREEN: Frontier Flats logo REMOVED from the top bar (now says
+  EXPLORE) and fills its region tab (x0.85, borders thickened 5/4).
+  AREA GUIDE button + inline pin list replaced by THREE WESTERN
+  SIGNPOSTS under the map (plank-on-post pixel art): CRITTERS LV 1-5
+  (info), AREA GUIDE (opens the guide), PINNED STAGES (opens a new
+  pin-board modal with the 3 slots: preview tap, favorite star,
+  RIDE FREE, X to close).
+- BOUNTY BOARD IS NOW A WORKING OFFICE (BountiesScene rewritten,
+  scrolls w/ momentum):
+  1) Classic 3 posters kept as-is, but names show ??? until the
+     species has been SEEN; poster pool limited to species findable
+     in unlocked maps (union of theme pools).
+  2) ROUNDUP CONTRACTS: 2 bigger daily posters (basics/stage-1
+     only), DELIVER 2-3 critters; segmented progress bar fills per
+     turn-in; reward (need x70) pays on completion. Turn-in RELEASES
+     a matching herd critter - ONLY ONES CAUGHT TODAY (caughtAt =
+     today), never favorites, never your last critter.
+  3) DAILY CHALLENGES below: wrangle 5 / clear 10 stages / clear 2
+     Frontier Flats / full-posse finish / grass-only clear - live
+     progress bars + CLAIM buttons. Tallies live in the new
+     gameState.quests() day-store (stats/claimed/turnIns, resets at
+     local midnight); bumped from CaptureScene (catches) and
+     StageScene stageClear (stages/flats/fullPosse/grassClear).
+  4) SHERIFF'S NOTICE tacked bottom-left: "WE ONLY TAKE CRITTERS
+     ROPED THAT SAME DAY. FRESH CATCHES ONLY!"
+- STATUS: playtest turn-in flow end-to-end (catch -> board -> turn
+  in -> reward), challenge tallies, signposts, and the new sounds.
+----------------------------------------------------------------------
 [M4e] 2026-07-08 - Ranger rope, hand-drawn dots, posse polish, map frame
 ----------------------------------------------------------------------
 - APP ICON now points at the user's new "Wrangle Logo Final v2
