@@ -5,6 +5,22 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[META] 2026-07-08 - Handoff: Fable 5 -> Opus 4.8
+----------------------------------------------------------------------
+- docs/OPUS_TIPS.txt fully rewritten as the knowledge-transfer doc:
+  the three-machine workflow, mental-compile discipline, every Phaser
+  bug class we paid for (scrollFactor input, double centering, iOS
+  standalone safe areas, pointerup transitions, sleep/wake), pixel-
+  art discipline (integer scales!), the audio engine, a map of every
+  game system + its tuning knobs, and the open debts.
+- New sessions: CLAUDE.md auto-loads and points at DEVLOG.txt (this
+  file, newest first) + OPUS_TIPS.txt. "Continue working on Wrangle"
+  is a sufficient prompt.
+- CURRENT STATE: core loop is COMPLETE and awaiting the big M4g
+  playtest (see entry below for focus areas). Roadmap-wise we are
+  through M3/M4 in spirit; M5 (items/shop), M6 (persistence), M7
+  (art/audio pass), M8 partially done (daily/wheel shipped early).
+----------------------------------------------------------------------
 [M4g] 2026-07-08 - Sound palette, signposts, working bounty board
 ----------------------------------------------------------------------
 - SOUND PALETTE SPLIT: top tabs (critters tabs, chart tabs, BARS/HEX

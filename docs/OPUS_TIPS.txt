@@ -1,64 +1,151 @@
-TIPS FOR CLAUDE (written by Fable 5 for Opus 4.8 or any future session)
+TIPS FOR CLAUDE (written by Fable 5, handing off to Opus 4.8)
 =======================================================================
-Lessons learned specifically while building Wrangle. Read DEVLOG.txt and
-CLAUDE.md first, then this.
+Hard-won lessons from building Wrangle M0 through M4. Read DEVLOG.txt
+and CLAUDE.md FIRST, then this file. Everything below was paid for with
+a real playtest round trip - do not relearn it the expensive way.
 
 THE #1 CONSTRAINT: YOU CANNOT RUN THE CODE HERE
-- This Windows machine has no Node.js and cannot get it. There is no
-  compile step, no dev server, no browser test. Every error you write
-  ships to the user's Mac and costs a full push/pull/playtest round trip.
-- Therefore: mentally compile everything. Re-check imports are all used
-  (tsconfig has noUnusedLocals/noUnusedParameters), types line up under
-  strict mode, and Phaser API calls actually exist in Phaser 3. When
-  unsure about an API signature, pick the most version-stable form
-  (e.g. this.add.graphics() + destroy() over this.make.graphics()).
+- This Windows machine has no Node.js and cannot get it. No compile, no
+  dev server, no browser. Every error ships to the user's Mac and costs
+  a full upload/pull/playtest round trip.
+- Therefore MENTALLY COMPILE EVERYTHING before finishing: all imports
+  used (tsconfig: strict + noUnusedLocals + noUnusedParameters - an
+  unused import is a BUILD FAILURE), types line up, every referenced
+  method exists, object literals satisfy their interfaces completely.
+  Sweep every file you touched at the end of the iteration.
+- Prefix intentionally-unused params with underscore (_time).
+- Vite dev mode does NOT typecheck - errors surface at build. Do not
+  assume "it ran for the user" means "it compiles clean".
 
-PHASER GOTCHAS THAT WILL BITE YOU
-- Scene instances persist across scene.restart()/scene.start(). Field
-  initializers run ONCE at construction. Reset ALL mutable round state
-  in init() or create(), never rely on field initializers for it.
-- Scene-level input handlers fire for taps on buttons too. Guard with
-  phase checks and screen-region (arena bounds) checks.
-- Webfonts: Phaser won't wait for CSS fonts. Explicitly
-  document.fonts.load(...) in Boot with a timeout fallback before
-  rendering any styled text.
-- Use scaleX + origin(0, 0.5) for meter fills; it is simpler and safer
-  than resizing Rectangle geometry every frame.
+THE WORKFLOW (three machines)
+- Claude writes files here -> user manually drag-and-drop uploads
+  changed files to github.com/PocketArcade64/Wrangle -> user pulls on a
+  Mac, npm run dev, playtests (browser + iPhone Safari/home-screen).
+- END EVERY ITERATION WITH AN EXACT LIST OF CHANGED FILES (new vs
+  modified). The user uploads from that list; miss one and the build
+  breaks on their machine.
+- Dotfiles (.gitignore etc.) silently drop out of drag-and-drop uploads
+  - if one changes, call it out for manual paste via GitHub web editor.
+- Batch coherent milestones; each playtest cycle is expensive. But
+  BIG systems ship in 2 drops (skeleton -> full) with playtest between.
+- Append a DEVLOG.txt entry (newest on top) after every iteration:
+  what/why, the reconciliation calls you made, and a STATUS line with
+  playtest focus. The next session starts from that entry.
+- NEVER run git commands. NEVER create README.md (GUIDE.md is the
+  project guide). All art/audio 100% original - never source online.
 
-WORK EFFICIENTLY
-- Read DEVLOG.txt first; don't re-derive project state from the code.
-  Append a DEVLOG entry after every completed iteration (newest on top).
-- Keep pure logic (math, line/loop state, creature AI) in plain TS
-  modules with no Phaser imports. It is easier to reason about without
-  being able to run it, and testable later.
-- Centralize tuning constants (top of CaptureScene.ts, src/data/
-  species.ts). Playtest feedback then becomes one-line changes instead
-  of code hunts — this is the whole feedback loop with the user.
-- Content is data, not code. New creatures = new ROW in src/data/
-  creatures.csv (user edits it in Excel; species.ts parses/validates).
-  Never fork scene logic per creature; add a pattern field instead.
-- NEVER round-trip project files through PowerShell Get-Content/
-  Set-Content: PS 5.1 default encoding corrupts UTF-8 (em-dashes etc).
-  Use the Read/Write/Edit tools for file content, always. Prefer plain
-  ASCII hyphens in code comments to dodge the whole problem class.
-- NEVER hand-count CSV commas when writing creatures.csv rows -
-  generate rows with a script and verify with awk that every line has
-  the same field count as the header (awk -F',' '{print NF}' | sort |
-  uniq -c). A misaligned data file throws at module load and the user
-  sees only a BLACK SCREEN (the real error is in the browser console).
-- Batch related work into one iteration. Each user playtest cycle is
-  expensive (manual GitHub upload + Mac pull), so ship coherent,
-  complete milestones, not fragments.
+PHASER GOTCHAS THAT COST US PLAYTEST ROUNDS (all real bugs)
+- setScrollFactor(0) UI over a scrolled camera: renders right, but
+  input hit-testing does NOT compensate (especially containers). The
+  "BACK TO MAP button does nothing" bug. THE FIX (now the architecture
+  of StageScene): scroll a WORLD CONTAINER (world.y = -scroll), keep
+  the camera fixed, and make all UI plain screen-space objects. Do not
+  reintroduce scrollFactor UI.
+- Double centering: #game centers the canvas via CSS flex AND Phaser
+  CENTER_BOTH centered via canvas margins -> flex centers the margin
+  box -> intermittent down/right shift on iOS standalone launches.
+  Exactly ONE centerer: autoCenter stays NO_CENTER, CSS flex owns it.
+- iOS standalone (ADD TO HOME SCREEN): #game is position:fixed with
+  top/bottom env(safe-area-inset-*) and the status-bar meta is
+  "default" (webview starts below the Dynamic Island). Avoid
+  calc()+env() and margin tricks (Safari parser quirks - failed once).
+  main.ts measures the #game container and re-refreshes on a spread of
+  timers (insets settle late with NO event). Testing: DELETE and re-add
+  the home-screen icon; iOS caches hard.
+- Scene transitions on pointerUP, never pointerdown - otherwise the
+  same tap's release lands on freshly created buttons in the next
+  scene (the title double-press bug).
+- Scene instances persist across restart()/start(): field initializers
+  run ONCE. Reset ALL mutable round state in init(). Every scene here
+  follows that pattern - keep it.
+- Scene-level input fires on taps over buttons too - guard with screen
+  regions (see StageScene swipe vs button row).
+- Scene sleep/wake is how mid-stage captures work: Stage does
+  scene.run('Capture', data) + bringToTop + this.scene.sleep();
+  Capture exits with scene.wake('Stage') + scene.stop(). A sleeping
+  scene's clock pauses (cooldowns freeze for free). WAKE event handler
+  in Stage resumes music / pending clears.
+- Webfonts: document.fonts.load with a timeout race in Boot.
+- Modals: scene-level drag handlers still run under a modal dim
+  (known quirk, listed as polish debt).
 
-PROJECT RULES (user preferences)
-- NEVER create README.md — the user maintains their own on GitHub.
-  Project guide lives in GUIDE.md.
-- The user manually uploads files to their GitHub repo — do NOT run git
-  commands to commit/push.
-- Dotfiles (like .gitignore) silently drop out of the user's drag-and-
-  drop uploads; if one changes, tell the user explicitly so they can
-  paste it via GitHub's web editor.
-- All text uses the Silkscreen font. 16-bit western aesthetic. All
-  assets original — never source art/audio online.
-- The user's own pixel-art creature sprites arrive later; current
-  sprites are runtime-generated placeholders in BootScene.
+PIXEL-ART DISCIPLINE (the user notices - these were bug reports)
+- INTEGER sprite scales at INTEGER coordinates only. Fractional scale
+  (1.8) made the same badge render differently per screen column
+  ("thick W" artifact). Badges are x2/x3; if spacing math forces a
+  fractional scale, change the layout, not the scale.
+- Generated pixel art: draw per-pixel with 1px fillRect loops (see
+  typeDots.ts), NOT fillCircle/antialiased shapes. Quantize decorative
+  art to 4/8/16px grids (see StageScene walls: 8px staircase edges).
+- Design canon (GAME_DESIGN.md "UI design system") is LAW: parchment/
+  saddle/clay(the one accent)/sage/denim/ink/brass(currency only) +
+  adobeRed (destructive confirms only) + wantedRed (poster ink only).
+  NO rounded UI corners/gradients/glow. Text floor ~18-20px logical
+  (16px tertiary labels only). Silkscreen UI, Pixelify display.
+- UI conventions in force: 110px top bars, BACK at (84,55) everywhere,
+  shared gold counter (ui/goldCounter.ts), wood frame language (home
+  diorama + map), modal pattern = dim(depth60) + drawPixelPanel(61) +
+  content(62+), momentum scroll pattern (CaptureSelect/Bounties).
+
+AUDIO (100% synthesized - no files exist or may be added from the web)
+- src/audio/audio.ts = WebAudio engine (typed SfxName switch + chip
+  tracker); src/audio/tunes.ts = compositions as MIDI-number step
+  arrays (16ths; null=rest; channels square/triangle/noise).
+- Unlock: browsers gate audio behind a gesture; main.ts unlocks on
+  first pointerdown, and TitleScene queues playMusic('home') EARLY so
+  the tracker idles at t=0 and starts the instant the tap lands.
+- Sound language: 'ui' click, 'tab' page-flip (top tabs), 'back' (a
+  fourth lower, auto via BACK label in makeButton), 'loop' (rope
+  pluck, heard constantly - keep soft), 'snap', 'release'. All mix
+  volumes are constants in audio.ts.
+
+GAME SYSTEMS MAP (where things live)
+- Data: creatures.csv (user edits in Excel; species.ts parses - NEVER
+  hand-count CSV commas, generate rows + verify field counts with awk;
+  a bad row = BLACK SCREEN at module load). typeChart.ts (17-type
+  canon-name chart + badgeName CSV->canon mapping). evolutions.ts
+  (basic->evolved; INFERRED FROM NAME STEMS - user must verify; drives
+  spawn rares + bounty contracts). stages.ts (themes, content-aware
+  map classifier w/ N_* threshold constants, seeded generation,
+  themeSpeciesPool for guides/bounties).
+- Battle: battle/stats.ts (levels/damage/xp; LEVEL_CAP 100),
+  battle/moves.ts (all 34 moves as data; COOLDOWN_SCALE is THE pacing
+  knob), StageScene (world-container engine: corridor path table,
+  behaviors switch, statuses, hazards, toasts, capture triggers).
+- State: GameState.ts - save schema + migrate() (pattern: spread
+  newCritter() under saved fields for new defaults; posse slots hold
+  critter UIDs; DEFAULTS spread covers new top-level fields), stamina
+  regen (1/hr), pins (3, one favorite, daily seeds), quests() day
+  store (stats/claimed/turnIns reset at midnight; bumped from
+  CaptureScene 'catches' + StageScene stageClear).
+- Routing: CritterScene/LedgerScene thread a from/'critterFrom' origin
+  ('home' | 'posses') so BACK always returns where the player came
+  from - PRESERVE it through every scene.restart() data bag.
+- Capture arena: normalized 126px critters, 189px bosses; rope budget
+  pays out from the BACK (original-Ranger styler), line only snaps on
+  body/attack hits.
+- Type assets: badges sprites/types/<Name>_46x15.png (key type-<Name>),
+  dots <Name>_circle_19x19.png (key typedot-<Name>) - files override
+  the generated placeholders automatically.
+- Dev menu: Player screen -> DEV MENU -> password "critter45".
+
+TUNING PHILOSOPHY (this is the entire feedback loop with the user)
+- Every feel number is a NAMED CONSTANT at the top of its module:
+  CaptureScene knobs, COOLDOWN_SCALE, damageRoll curve, stage speeds/
+  ranges, classifier thresholds, mix volumes, FRONTIER_LEVELS. When
+  playtest feedback arrives, the fix should be a one-line edit. When
+  you add a system, expose its knobs the same way.
+- Pure logic (geometry, LassoLine, stats, stage gen) stays in plain TS
+  modules with no Phaser imports - reasoning without running depends
+  on it.
+
+KNOWN DEBTS / OPEN THREADS (also see DEVLOG STATUS lines)
+- evolutions.ts families need user verification (guesses commented).
+- Onboarding gap: new players need 1 critter before Explore works;
+  TEST WRANGLE in ledger pages is the interim entry (replace with a
+  starter/tutorial flow eventually; remove TEST WRANGLE then).
+- window.prompt used for posse rename + dev password (works, not
+  pixel-styled). Modal drag-under quirk. Enemy-side move AI is basic
+  (contact + lunge/projectile) by design - full kit later.
+- Ad wheel is a 1.4s stub until the M10 Capacitor wrap; safe-area
+  handling is superseded by native insets at M10.
