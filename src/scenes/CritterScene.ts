@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SPECIES, SpeciesDef } from '../data/species';
 import { badgeName } from '../data/typeChart';
+import { movesForSpecies } from '../battle/moves';
 import { CritterInstance, gameState, xpForNextLevel } from '../state/GameState';
 import { releaseCritters } from '../state/herdOps';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
@@ -263,29 +264,28 @@ export class CritterScene extends Phaser.Scene {
     else this.favStar.setTint(COLORS.saddle).setAlpha(0.45);
   }
 
-  // ---------- moves (placeholder until the battle system lands in M3) ----------
+  // ---------- moves (the critter's real battle loadout) ----------
 
   private buildMoves(y: number): void {
     const { width } = this.scale;
-    const sp = this.species;
     const g = this.add.graphics();
     drawPixelPanel(g, 40, y, width - 80, 148, COLORS.parchmentLight, COLORS.saddle);
     this.add.text(64, y + 14, 'CURRENT MOVES', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle });
 
-    const word1 = sp.atkStyle === 'special' ? 'HEX' : 'STRIKE';
-    const word2 = sp.atkStyle === 'special' ? 'SURGE' : 'RUSH';
-    const t1 = sp.type1 ?? 'Normal';
-    const t2 = sp.type2 ?? t1;
-    const moves: [string, string][] = [
-      [t1, `${badgeName(t1).toUpperCase()} ${word1}`],
-      [t2, `${badgeName(t2).toUpperCase()} ${word2}`]
-    ];
-    moves.forEach(([type, name], i) => {
+    const moves = movesForSpecies(this.species);
+    moves.forEach((mv, i) => {
       const my = y + 58 + i * 44;
-      addTypeBadge(this, 118, my, type, 2);
+      addTypeBadge(this, 118, my, mv.type, 2);
       this.add
-        .text(188, my, name, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.ink })
+        .text(188, my, mv.name, { fontFamily: FONT.ui, fontSize: '20px', color: HEX.ink })
         .setOrigin(0, 0.5);
+      this.add
+        .text(width - 64, my, mv.kind === 'physical' ? 'PHYS' : 'SPEC', {
+          fontFamily: FONT.ui,
+          fontSize: '16px',
+          color: HEX.sage
+        })
+        .setOrigin(1, 0.5);
     });
   }
 

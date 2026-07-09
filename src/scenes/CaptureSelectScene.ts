@@ -249,17 +249,26 @@ export class CaptureSelectScene extends Phaser.Scene {
         wordWrap: { width: CELL_W - 24 }
       })
       .setOrigin(0.5, 0);
-    // types shown as the badge art, sized so left/middle/right padding
-    // inside the 210px cell are equal (scale 1.8 = 82.8px, ~15px gaps)
+    // types shown as the badge art. INTEGER scale (x2 = 92px) at integer
+    // positions - fractional scaling made the badge pixels render slightly
+    // differently per column (the "thick W" artifact).
     const parts: Phaser.GameObjects.GameObject[] = [bg, img, num, name];
-    const tyY = y + (CELL_H - 16) / 2 - 24;
+    if (inst) {
+      // the individual's battle level, centered above the sprite
+      parts.push(
+        this.add
+          .text(x, cellTop + 8, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+          .setOrigin(0.5, 0)
+      );
+    }
+    const tyY = y + (CELL_H - 16) / 2 - 26;
     if (this.activeTab !== 'tally' || caught) {
       const tlist = [sp.type1, sp.type2].filter((t): t is string => !!t);
       tlist.forEach((t, i) => {
-        const bx = x + (i - (tlist.length - 1) / 2) * 98;
+        const bx = x + (i - (tlist.length - 1) / 2) * 100;
         const key = `type-${badgeName(t)}`;
         if (this.textures.exists(key)) {
-          parts.push(this.add.image(bx, tyY, key).setScale(1.8));
+          parts.push(this.add.image(bx, tyY, key).setScale(2));
         } else {
           parts.push(
             this.add
@@ -370,34 +379,32 @@ export class CaptureSelectScene extends Phaser.Scene {
     const teams = gameState.data.teams;
 
     teams.forEach((team, ti) => {
-      const py = TOP_BAR_H + 34 + ti * 232;
+      const py = TOP_BAR_H + 34 + ti * 254;
       const g = this.add.graphics();
-      drawPixelPanel(g, 40, py, width - 80, 214, COLORS.parchmentLight, COLORS.saddle);
-      // name - tap to rename (underline hints it's editable)
-      const nameTxt = this.add.text(70, py + 20, team.name, {
+      drawPixelPanel(g, 40, py, width - 80, 240, COLORS.parchmentLight, COLORS.saddle);
+      // name - tap to rename
+      const nameTxt = this.add.text(70, py + 18, team.name, {
         fontFamily: FONT.display,
         fontSize: '24px',
         color: HEX.ink
       });
-      g.fillStyle(COLORS.saddle);
-      g.fillRect(70, py + 50, Math.max(60, nameTxt.width), 2);
       nameTxt.setInteractive({ useHandCursor: true }).on('pointerup', () => this.renamePosse(ti));
       if (ti === gameState.data.activeTeam) {
         this.add
-          .text(width - 116, py + 26, 'ACTIVE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.clay })
+          .text(width - 116, py + 24, 'ACTIVE', { fontFamily: FONT.ui, fontSize: '16px', color: HEX.clay })
           .setOrigin(1, 0);
       }
       // delete (min one posse always remains)
-      const del = this.add.image(width - 78, py + 34, 'icon-x').setTint(COLORS.saddle).setScale(0.7);
+      const del = this.add.image(width - 78, py + 32, 'icon-x').setTint(COLORS.saddle).setScale(0.7);
       del.setInteractive({ useHandCursor: true }).on('pointerup', () => this.deletePosse(ti));
-      // three slots, evenly spaced across the panel
+      // three slots, evenly spaced, with level + move dots stacked below
       for (let si = 0; si < 3; si++) {
-        this.makeSlot(team.members[si], ti, si, width / 2 + (si - 1) * 200, py + 110);
+        this.makeSlot(team.members[si], ti, si, width / 2 + (si - 1) * 200, py + 100);
       }
     });
 
     if (teams.length < MAX_TEAMS) {
-      makeButton(this, width / 2, TOP_BAR_H + 34 + teams.length * 232 + 46, 300, 64, '+ NEW POSSE', () => {
+      makeButton(this, width / 2, TOP_BAR_H + 34 + teams.length * 254 + 46, 300, 64, '+ NEW POSSE', () => {
         teams.push({ name: `POSSE ${teams.length + 1}`, members: [null, null, null] });
         gameState.save();
         this.scene.restart({ tab: 'posses' });
@@ -445,12 +452,15 @@ export class CaptureSelectScene extends Phaser.Scene {
       const sp = SPECIES.find((s) => s.id === inst.speciesId);
       const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
       this.add.image(x, y, texKey).setDisplaySize(92, 92);
-      // move loadout as circular type dots under the slot
+      // level, then the move loadout as circular type dots
+      this.add
+        .text(x, y + 68, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+        .setOrigin(0.5);
       if (sp) {
         const moves = movesForSpecies(sp);
         moves.forEach((mv, i) => {
           const key = this.textures.exists(`typedot-${mv.type}`) ? `typedot-${mv.type}` : 'typedot-Normal';
-          this.add.image(x + (i - (moves.length - 1) / 2) * 48, y + 80, key).setScale(2);
+          this.add.image(x + (i - (moves.length - 1) / 2) * 48, y + 104, key).setScale(2);
         });
       }
     } else {

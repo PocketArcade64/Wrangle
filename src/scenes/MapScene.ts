@@ -9,11 +9,11 @@ import { ensureIcons } from '../ui/icons';
 import { makeButton } from '../ui/button';
 
 const TOP_BAR_H = 110;
-/** Map-select tabs sit between the top bar and the map. */
-const TABS_Y = 142;
-const MAP_Y = 190;
+const MAP_Y = 224;
 const MAP_X = 30;
 const MAP_VIEW = 660;
+/** Wood frame thickness around the map. */
+const FRAME = 14;
 const MAP_TEX = 1024;
 /** Pin coordinates quantize to this texture-space grid. */
 const CELL = 32;
@@ -41,7 +41,9 @@ export class MapScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(HEX.parchment);
     this.tempMsg = undefined;
 
-    // the map itself
+    // wood plank frame (same language as the home diorama), map inside it
+    const frameG = this.add.graphics();
+    this.drawWoodFrame(frameG, MAP_X - FRAME, MAP_Y - FRAME, MAP_VIEW + FRAME * 2, MAP_VIEW + FRAME * 2);
     const map = this.add.image(MAP_X, MAP_Y, 'map-frontier').setOrigin(0);
     map.setDisplaySize(MAP_VIEW, MAP_VIEW);
     map.setInteractive({ useHandCursor: true }).on('pointerup', (p: Phaser.Input.Pointer) => {
@@ -77,33 +79,51 @@ export class MapScene extends Phaser.Scene {
       .setDepth(11);
 
     this.buildMapTabs();
-    makeButton(this, width / 2, MAP_Y + MAP_VIEW + 34, 300, 48, 'AREA GUIDE', () => this.openAreaGuide(), '18px');
-    this.buildPinSlots(MAP_Y + MAP_VIEW + 66);
+    makeButton(this, width / 2, MAP_Y + MAP_VIEW + FRAME + 28, 300, 48, 'AREA GUIDE', () => this.openAreaGuide(), '18px');
+    this.buildPinSlots(MAP_Y + MAP_VIEW + FRAME + 56);
   }
 
-  /** Region tabs above the map: Frontier Flats now, more maps later. */
+  /** Wood plank frame - ink outline, saddle planks, ink inner line. */
+  private drawWoodFrame(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number): void {
+    g.fillStyle(COLORS.ink);
+    g.fillRect(x - 3, y - 3, w + 6, h + 6);
+    g.fillStyle(COLORS.saddle);
+    g.fillRect(x, y, w, h);
+    g.fillStyle(COLORS.saddleDark);
+    for (let px = x + 20; px < x + w - 20; px += 90) {
+      g.fillRect(px, y, 3, 12);
+      g.fillRect(px + 45, y + h - 12, 3, 12);
+    }
+    g.fillStyle(COLORS.ink);
+    g.fillRect(x + 12, y + 12, w - 24, h - 24);
+  }
+
+  /** Folder-style region tabs sitting flush on the map frame's top edge. */
   private buildMapTabs(): void {
-    const { width } = this.scale;
-    // active: Frontier Flats with its critter level band
+    const tabTop = TOP_BAR_H + 12;
+    const tabH = MAP_Y - FRAME - tabTop; // bottoms touch the frame top
+    // active: Frontier Flats - the region logo art over its level band
+    const t1x = 186;
+    this.add.rectangle(t1x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentLight).setStrokeStyle(3, COLORS.saddle);
+    if (this.textures.exists('map-logo')) {
+      this.add.image(t1x, tabTop + 28, 'map-logo').setScale(0.5);
+    } else {
+      this.add
+        .text(t1x, tabTop + 26, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
+        .setOrigin(0.5);
+    }
     this.add
-      .rectangle(width / 2 - 174, TABS_Y, 330, 60, COLORS.parchmentLight)
-      .setStrokeStyle(3, COLORS.saddle);
-    this.add
-      .text(width / 2 - 174, TABS_Y - 12, 'FRONTIER FLATS', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.ink })
-      .setOrigin(0.5);
-    this.add
-      .text(width / 2 - 174, TABS_Y + 14, `CRITTERS LV ${FRONTIER_LEVELS.min}-${FRONTIER_LEVELS.max}`, {
+      .text(t1x, tabTop + 66, `CRITTERS LV ${FRONTIER_LEVELS.min}-${FRONTIER_LEVELS.max}`, {
         fontFamily: FONT.ui,
         fontSize: '16px',
         color: HEX.sage
       })
       .setOrigin(0.5);
     // placeholder for the next region
+    const t2x = 528;
+    this.add.rectangle(t2x, tabTop + tabH / 2, 330, tabH, COLORS.parchmentDark).setStrokeStyle(2, COLORS.saddleDark);
     this.add
-      .rectangle(width / 2 + 174, TABS_Y, 330, 60, COLORS.parchmentDark)
-      .setStrokeStyle(2, COLORS.saddleDark);
-    this.add
-      .text(width / 2 + 174, TABS_Y, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
+      .text(t2x, tabTop + tabH / 2, 'COMING SOON', { fontFamily: FONT.ui, fontSize: '18px', color: HEX.saddle })
       .setOrigin(0.5)
       .setAlpha(0.6);
   }

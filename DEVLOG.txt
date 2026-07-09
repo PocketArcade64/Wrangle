@@ -5,6 +5,48 @@ Claude: read this file at the start of every session to see where work left
 off, and append a new entry every time an iteration of work is completed.
 
 ----------------------------------------------------------------------
+[M4e] 2026-07-08 - Ranger rope, hand-drawn dots, posse polish, map frame
+----------------------------------------------------------------------
+- APP ICON now points at the user's new "Wrangle Logo Final v2
+  180x180.png" (old Final_173x180 file was replaced).
+- ROPE BUDGET, ORIGINAL-RANGER STYLE (user asked - yes, this is how
+  the classic styler works): exceeding the hidden budget no longer
+  snaps the line; the BACK of the rope pays out - oldest points
+  vanish while you keep drawing (LassoLine trims from the front,
+  overflow flag now means "tail paid out"). "TOO MUCH ROPE!" is gone.
+  NEW 'snap' sfx (fiber crack + low recoil) plays on ACTUAL line
+  breaks (body touch, attacks).
+- CRITTER PAGE: CURRENT MOVES now shows the REAL loadout
+  (movesForSpecies): badge + move name + PHYS/SPEC tag. Placeholder
+  "<TYPE> STRIKE/SURGE" generator deleted.
+- HERD GRID: each critter's LV shown centered above its sprite.
+- POSSE TAB RESPACED: panels 240px (was 214) so nothing kisses the
+  border - name (underline REMOVED, still tap-to-rename), slots at
+  py+100, LV 16px under each critter, move dots at py+204 with clear
+  air below. Panel spacing 254 (4 posses still clear the nav).
+- HOME CAROUSEL CARDS now carry the same info: 190px tall cards,
+  84px slots, LV under each critter, move-type dots under that;
+  diorama shrunk (clamp h-840) to pay for it.
+- BADGE ARTIFACT FIX (the "thick W" on side columns): fractional 1.8
+  scaling sampled badge pixels differently per screen position.
+  Grid badges now render at INTEGER x2 (92px) on integer offsets
+  (+/-50) - identical pixels in every column. Yes: bigger (integer)
+  was exactly the fix.
+- TYPE DOTS ARE NOW REAL PIXEL ART (drawn by Claude, per request):
+  19x19 discs rendered pixel-by-pixel (ink ring + type fill, no
+  antialiased circles) with a hand-authored 9x9 symbol per type -
+  flame, droplet, leaf, bolt, wind curls, mesa, snowflake, crescent,
+  eye, ghost, nut, star, dot, fist, venom bubbles, bug, fang.
+  Symbol auto-contrasts (ink on light dots, parchment on dark).
+  sprites/types/<Type>_circle_19x19.png files still override.
+- MAP SCREEN: the home diorama's wood plank frame now borders the
+  map (drawWoodFrame); region tabs are folder-style, sitting FLUSH
+  on the frame's top edge (not hanging from the top bar) - tab 1
+  shows the Frontier Flats logo PNG over "CRITTERS LV 1-5"; layout
+  shifted (map 224..884, guide button + pin slots below).
+- STATUS: playtest rope pay-out feel, the 17 dot symbols at 38px,
+  posse spacing, map frame + tabs.
+----------------------------------------------------------------------
 [M4d] 2026-07-08 - Stamina UX, faster moves, area guide, QoL round
 ----------------------------------------------------------------------
 - STAMINA REFILL UX (home): shoes redraw every second; the shoe

@@ -206,11 +206,8 @@ export class CaptureScene extends Phaser.Scene {
       const px = Phaser.Math.Clamp(p.x, this.arena.left, this.arena.right);
       const py = Phaser.Math.Clamp(p.y, this.arena.top, this.arena.bottom);
       const res = this.line.extend({ x: px, y: py }, MIN_POINT_DIST);
-      if (res.overflow) {
-        // Ran out of rope (hidden budget) — the line snaps, Ranger-style.
-        this.breakLine('TOO MUCH ROPE!', false);
-        return;
-      }
+      // res.overflow now means the rope's back end is paying out (visible
+      // tail retraction, original-Ranger styler behavior) - no snap.
       if (res.loop && pointInPolygon(this.creature.pos, res.loop)) {
         this.bankLoop();
       }
@@ -322,6 +319,7 @@ export class CaptureScene extends Phaser.Scene {
   private breakLine(msg: string, isAttack: boolean): void {
     this.line.clear();
     this.streak = 0;
+    sfx('snap');
     this.showToast(msg, isAttack ? '#e05c4a' : '#ffe9c9');
   }
 

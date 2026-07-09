@@ -104,6 +104,7 @@ function noise(dur: number, opts: { vol?: number; freq?: number; slide?: number;
 export type SfxName =
   | 'ui'
   | 'loop'
+  | 'snap'
   | 'coin'
   | 'capture'
   | 'bust'
@@ -142,6 +143,11 @@ export function sfx(name: SfxName): void {
       // with a bright answer - satisfying, never harsh
       tone(660, 0.06, { wave: 'triangle', vol: 0.1, slide: 1.3 });
       tone(1320, 0.08, { vol: 0.045, at: t + 0.035 });
+      break;
+    case 'snap':
+      // the rope breaking: a sharp fiber crack with a low recoil
+      noise(0.1, { freq: 3200, slide: 0.18, vol: 0.13 });
+      tone(320, 0.16, { wave: 'triangle', slide: 0.45, vol: 0.1, at: t + 0.02 });
       break;
     case 'coin':
       tone(880, 0.06, { vol: 0.08 });

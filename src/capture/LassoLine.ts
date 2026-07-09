@@ -3,7 +3,7 @@ import { Vec2, dist, polylineLength, segmentIntersection } from './geometry';
 export interface ExtendResult {
   /** Closed-loop polygon if the new segment crossed the line, else null. */
   loop: Vec2[] | null;
-  /** True if this extension would exceed the rope budget (point not added). */
+  /** True if the BACK of the rope paid out this step to stay in budget. */
   overflow: boolean;
 }
 
@@ -60,10 +60,19 @@ export class LassoLine {
     const last = this.pts[this.pts.length - 1];
     const d = dist(last, p);
     if (d < minPointDist) return { loop: null, overflow: false };
-    if (this.used + d > this.budget) return { loop: null, overflow: true };
 
     this.pts.push({ ...p });
     this.used += d;
+
+    // Rope budget, original-Ranger styler style: exceeding the budget no
+    // longer snaps the line - the BACK of the rope pays out instead, oldest
+    // points vanishing until the line fits again.
+    let trimmed = false;
+    while (this.used > this.budget && this.pts.length > 2) {
+      this.used -= dist(this.pts[0], this.pts[1]);
+      this.pts.shift();
+      trimmed = true;
+    }
 
     // Test the newest segment against all earlier segments (skip the adjacent one).
     const n = this.pts.length;
@@ -80,9 +89,9 @@ export class LassoLine {
         tail.push({ ...hit }, { ...p });
         this.pts = tail;
         this.used = polylineLength(this.pts);
-        return { loop: polygon, overflow: false };
+        return { loop: polygon, overflow: trimmed };
       }
     }
-    return { loop: null, overflow: false };
+    return { loop: null, overflow: trimmed };
   }
 }

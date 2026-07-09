@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SPECIES } from '../data/species';
 import { gameState, xpForNextLevel } from '../state/GameState';
 import { dateKey } from '../util/daily';
+import { movesForSpecies } from '../battle/moves';
 import { playMusic } from '../audio/audio';
 import { COLORS, FONT, HEX, drawPixelPanel } from '../ui/theme';
 import { ensureIcons } from '../ui/icons';
@@ -12,7 +13,7 @@ import { buildNav } from '../ui/nav';
 // same height as the Critters + Daily top bars so screens line up
 const STATUS_H = 110;
 const CARD_W = 560;
-const CARD_H = 150;
+const CARD_H = 190;
 const CARD_SPACING = 600;
 
 /**
@@ -51,7 +52,7 @@ export class HomeScene extends Phaser.Scene {
 
     // living diorama, sized to leave room for the posse carousel + CTA
     const dioY = STATUS_H + 62;
-    const dioH = Phaser.Math.Clamp(height - 800, 300, 560);
+    const dioH = Phaser.Math.Clamp(height - 840, 300, 560);
     this.buildDiorama(32, dioY, width - 64, dioH);
 
     // quick-select posse carousel between the diorama and the CTA
@@ -381,22 +382,36 @@ export class HomeScene extends Phaser.Scene {
     });
     this.carousel.add(nameT);
 
-    // three slots (critter uids) centered as a row within the card. Tap a
-    // filled slot to open that critter's page; long-press to change/clear.
+    // three slots (critter uids) centered as a row within the card, with
+    // level + move-type dots stacked under each. Tap a filled slot to open
+    // that critter's page; long-press to change/clear.
     for (let s = 0; s < 3; s++) {
       const sx = x + (s - 1) * 140;
-      const slot = this.add.rectangle(sx, cy + 14, 96, 96, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
+      const slotCy = cy - 14;
+      const slot = this.add.rectangle(sx, slotCy, 84, 84, COLORS.parchmentDark).setStrokeStyle(3, COLORS.saddle);
       this.carousel.add(slot);
       const memberUid = team.members[s];
       const inst = memberUid ? gameState.data.herd.find((c) => c.uid === memberUid) : undefined;
       if (inst) {
         const sp = SPECIES.find((c) => c.id === inst.speciesId);
         const texKey = sp && this.textures.exists(sp.textureKey) ? sp.textureKey : 'pl-unknown';
-        const img = this.add.image(sx, cy + 14, texKey).setDisplaySize(84, 84);
+        const img = this.add.image(sx, slotCy, texKey).setDisplaySize(72, 72);
         this.carousel.add(img);
+        const lv = this.add
+          .text(sx, cy + 42, `LV ${inst.level}`, { fontFamily: FONT.ui, fontSize: '16px', color: HEX.saddle })
+          .setOrigin(0.5);
+        this.carousel.add(lv);
+        if (sp) {
+          const moves = movesForSpecies(sp);
+          moves.forEach((mv, i) => {
+            const key = this.textures.exists(`typedot-${mv.type}`) ? `typedot-${mv.type}` : 'typedot-Normal';
+            const dot = this.add.image(sx + (i - (moves.length - 1) / 2) * 46, cy + 72, key).setScale(2);
+            this.carousel.add(dot);
+          });
+        }
       } else {
         const plus = this.add
-          .text(sx, cy + 14, '+', { fontFamily: FONT.display, fontSize: '34px', color: HEX.saddle })
+          .text(sx, slotCy, '+', { fontFamily: FONT.display, fontSize: '34px', color: HEX.saddle })
           .setOrigin(0.5);
         this.carousel.add(plus);
       }
